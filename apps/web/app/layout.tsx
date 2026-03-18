@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Cormorant } from "next/font/google";
-import { Manrope } from "next/font/google";
+import { Cormorant, Manrope } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
@@ -13,6 +12,7 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 const cormorant = Cormorant({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://walkingbooks.az"),
   title: "The Walking Books",
   description: "Community book-sharing platform — discover, reserve, and share physical books at partner cafes",
   icons: {
