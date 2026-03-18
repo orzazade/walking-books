@@ -110,8 +110,7 @@ export const update = mutation({
 export const recalculateReputation = internalMutation({
   args: {},
   handler: async () => {
-    // Placeholder: recalculate reputation scores based on full history
-    console.log("[users] recalculateReputation: placeholder — not yet implemented");
+    // TODO: recalculate reputation scores based on full history
   },
 });
 
