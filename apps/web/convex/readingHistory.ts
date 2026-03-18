@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { DAY_MS } from "./lib/lending";
 
 export const myHistory = query({
   handler: async (ctx) => {
@@ -33,7 +34,7 @@ export const myHistory = query({
           pickedUpAt: entry.pickedUpAt,
           returnedAt: entry.returnedAt!,
           daysHeld: Math.ceil(
-            (entry.returnedAt! - entry.pickedUpAt) / (1000 * 60 * 60 * 24),
+            (entry.returnedAt! - entry.pickedUpAt) / DAY_MS,
           ),
           pickupLocation: pickupLocation?.name ?? "Unknown",
           dropoffLocation: dropoffLocation?.name ?? null,

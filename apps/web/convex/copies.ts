@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
-import { getEffectiveLendingDays } from "./lib/lending";
+import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lending";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
 import { conditionValidator } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
@@ -119,7 +119,7 @@ export const pickup = mutation({
     const now = Date.now();
     const returnDeadline =
       copy.ownershipType === "lent"
-        ? now + lendingDays * 24 * 60 * 60 * 1000
+        ? now + lendingDays * DAY_MS
         : undefined;
 
     // Update copy
@@ -262,8 +262,7 @@ export const recall = mutation({
     if (copy.status === "available") {
       await ctx.db.patch(args.copyId, { status: "recalled" });
     } else if (copy.status === "checked_out") {
-      // Set 7-day grace deadline
-      const graceDeadline = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      const graceDeadline = Date.now() + RECALL_GRACE_DAYS * DAY_MS;
       const newDeadline =
         copy.returnDeadline && copy.returnDeadline < graceDeadline
           ? copy.returnDeadline
@@ -307,7 +306,7 @@ export const extend = mutation({
     const extensionDays = Math.ceil(originalDays * 0.5);
     const currentDeadline = copy.returnDeadline ?? Date.now();
     const newDeadline =
-      currentDeadline + extensionDays * 24 * 60 * 60 * 1000;
+      currentDeadline + extensionDays * DAY_MS;
 
     await ctx.db.patch(args.copyId, { returnDeadline: newDeadline });
 

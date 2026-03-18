@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
+import { HOUR_MS, RESERVATION_EXPIRY_HOURS } from "./lib/lending";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const active = query({
@@ -57,7 +58,7 @@ export const create = mutation({
       throw new Error("This copy already has an active reservation");
 
     const now = Date.now();
-    const expiresAt = now + 60 * 60 * 1000; // 1-hour expiry
+    const expiresAt = now + RESERVATION_EXPIRY_HOURS * HOUR_MS;
 
     // Create reservation
     const reservationId = await ctx.db.insert("reservations", {
