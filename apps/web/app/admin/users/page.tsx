@@ -37,6 +37,17 @@ const TABLE_STATUS_ACTIONS: Array<{ status: UserStatus; icon: typeof RotateCcw; 
   { status: "banned", icon: Ban, title: "Ban" },
 ];
 
+const MODAL_STATUS_ACTIONS: Array<{
+  status: UserStatus;
+  icon: typeof ShieldCheck;
+  label: string;
+  activeVariant: "default" | "destructive";
+}> = [
+  { status: "active", icon: ShieldCheck, label: "Active", activeVariant: "default" },
+  { status: "restricted", icon: ShieldAlert, label: "Restrict", activeVariant: "default" },
+  { status: "banned", icon: Ban, label: "Ban", activeVariant: "destructive" },
+];
+
 function repColor(score: number) {
   if (score >= 70) return "text-green-600";
   if (score >= 30) return "text-amber-600";
@@ -269,58 +280,20 @@ export default function AdminUsersPage() {
               <div>
                 <p className="mb-2 text-sm font-medium">Change Status</p>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={
-                      selectedUser.status === "active" ? "default" : "outline"
-                    }
-                    onClick={() => {
-                      handleStatusChange(selectedUser._id, "active");
-                      setSelectedUser({
-                        ...selectedUser,
-                        status: "active",
-                      });
-                    }}
-                    className="gap-1"
-                  >
-                    <ShieldCheck className="h-3 w-3" /> Active
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={
-                      selectedUser.status === "restricted"
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      handleStatusChange(selectedUser._id, "restricted");
-                      setSelectedUser({
-                        ...selectedUser,
-                        status: "restricted",
-                      });
-                    }}
-                    className="gap-1"
-                  >
-                    <ShieldAlert className="h-3 w-3" /> Restrict
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={
-                      selectedUser.status === "banned"
-                        ? "destructive"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      handleStatusChange(selectedUser._id, "banned");
-                      setSelectedUser({
-                        ...selectedUser,
-                        status: "banned",
-                      });
-                    }}
-                    className="gap-1"
-                  >
-                    <Ban className="h-3 w-3" /> Ban
-                  </Button>
+                  {MODAL_STATUS_ACTIONS.map(({ status, icon: Icon, label, activeVariant }) => (
+                    <Button
+                      key={status}
+                      size="sm"
+                      variant={selectedUser.status === status ? activeVariant : "outline"}
+                      onClick={() => {
+                        handleStatusChange(selectedUser._id, status);
+                        setSelectedUser({ ...selectedUser, status });
+                      }}
+                      className="gap-1"
+                    >
+                      <Icon className="h-3 w-3" /> {label}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
