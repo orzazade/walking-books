@@ -13,13 +13,15 @@ import {
   Star,
 } from "lucide-react";
 
+type ChartData = { label: string; value: number }[];
+
 /** Simple CSS bar chart component — no external charting library. */
 function BarChart({
   data,
   maxValue,
   color = "bg-primary",
 }: {
-  data: { label: string; value: number }[];
+  data: ChartData;
   maxValue?: number;
   color?: string;
 }) {
@@ -47,6 +49,39 @@ function BarChart({
         </div>
       ))}
     </div>
+  );
+}
+
+function ChartCard({
+  icon: Icon,
+  title,
+  data,
+  color,
+  emptyMessage,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  data: ChartData;
+  color: string;
+  emptyMessage?: string;
+  className?: string;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon className="h-4 w-4" /> {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {emptyMessage && data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        ) : (
+          <BarChart data={data} color={color} />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -153,90 +188,20 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Activity over time */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4" /> Activity Over Time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {monthlyActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No activity data yet.
-              </p>
-            ) : (
-              <BarChart data={monthlyActivity} color="bg-primary" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* User status breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="h-4 w-4" /> User Status Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarChart
-              data={[
-                { label: "Active", value: statusCounts.active },
-                { label: "Restricted", value: statusCounts.restricted },
-                { label: "Banned", value: statusCounts.banned },
-              ]}
-              color="bg-blue-500"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Top categories */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BookOpen className="h-4 w-4" /> Top Categories
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topCategories.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No genre data yet.
-              </p>
-            ) : (
-              <BarChart data={topCategories} color="bg-amber-500" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Most active locations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MapPin className="h-4 w-4" /> Most Active Locations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topLocations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No location data yet.
-              </p>
-            ) : (
-              <BarChart data={topLocations} color="bg-green-500" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Reputation distribution */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4" /> Reputation Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarChart data={reputationData} color="bg-primary" />
-          </CardContent>
-        </Card>
+        <ChartCard icon={TrendingUp} title="Activity Over Time" data={monthlyActivity} color="bg-primary" emptyMessage="No activity data yet." />
+        <ChartCard
+          icon={Users}
+          title="User Status Breakdown"
+          data={[
+            { label: "Active", value: statusCounts.active },
+            { label: "Restricted", value: statusCounts.restricted },
+            { label: "Banned", value: statusCounts.banned },
+          ]}
+          color="bg-blue-500"
+        />
+        <ChartCard icon={BookOpen} title="Top Categories" data={topCategories} color="bg-amber-500" emptyMessage="No genre data yet." />
+        <ChartCard icon={MapPin} title="Most Active Locations" data={topLocations} color="bg-green-500" emptyMessage="No location data yet." />
+        <ChartCard icon={BarChart3} title="Reputation Distribution" data={reputationData} color="bg-primary" className="lg:col-span-2" />
       </div>
     </>
   );
