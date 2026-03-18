@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { conditionValidator, ownershipTypeValidator, reportTypeValidator, userStatusValidator } from "./lib/validators";
+import { conditionValidator, copyStatusValidator, ownershipTypeValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -24,14 +24,7 @@ export default defineSchema({
 
   copies: defineTable({
     bookId: v.id("books"),
-    status: v.union(
-      v.literal("available"),
-      v.literal("reserved"),
-      v.literal("checked_out"),
-      v.literal("lost"),
-      v.literal("damaged"),
-      v.literal("recalled"),
-    ),
+    status: copyStatusValidator,
     condition: conditionValidator,
     ownershipType: ownershipTypeValidator,
     originalSharerId: v.id("users"),
@@ -55,8 +48,8 @@ export default defineSchema({
     dropoffLocationId: v.optional(v.id("partnerLocations")),
     pickedUpAt: v.number(),
     returnedAt: v.optional(v.number()),
-    conditionAtPickup: v.string(),
-    conditionAtReturn: v.optional(v.string()),
+    conditionAtPickup: conditionValidator,
+    conditionAtReturn: v.optional(conditionValidator),
     pickupPhotos: v.array(v.string()),
     returnPhotos: v.array(v.string()),
     readerNote: v.optional(v.string()),
@@ -103,12 +96,7 @@ export default defineSchema({
     locationId: v.id("partnerLocations"),
     reservedAt: v.number(),
     expiresAt: v.number(),
-    status: v.union(
-      v.literal("active"),
-      v.literal("fulfilled"),
-      v.literal("expired"),
-      v.literal("cancelled"),
-    ),
+    status: reservationStatusValidator,
   })
     .index("by_copy", ["copyId", "status"])
     .index("by_user", ["userId", "status"])
@@ -121,8 +109,8 @@ export default defineSchema({
     type: reportTypeValidator,
     photos: v.array(v.string()),
     description: v.string(),
-    previousCondition: v.string(),
-    newCondition: v.string(),
+    previousCondition: conditionValidator,
+    newCondition: conditionValidator,
     createdAt: v.number(),
   })
     .index("by_copy", ["copyId"]),

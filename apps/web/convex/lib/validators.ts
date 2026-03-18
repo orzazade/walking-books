@@ -40,3 +40,23 @@ export const userStatusValidator = v.union(
   v.literal("restricted"),
   v.literal("banned"),
 );
+
+export type CopyStatus = "available" | "reserved" | "checked_out" | "lost" | "damaged" | "recalled";
+
+export const copyStatusValidator = v.union(
+  v.literal("available"),
+  v.literal("reserved"),
+  v.literal("checked_out"),
+  v.literal("lost"),
+  v.literal("damaged"),
+  v.literal("recalled"),
+);
+
+export type ReservationStatus = "active" | "fulfilled" | "expired" | "cancelled";
+
+export const reservationStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("fulfilled"),
+  v.literal("expired"),
+  v.literal("cancelled"),
+);
