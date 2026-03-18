@@ -3,6 +3,16 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser, requireAdmin } from "./lib/auth";
 import { userStatusValidator } from "./lib/validators";
 
+const DEFAULT_USER_FIELDS = {
+  bio: undefined,
+  roles: ["reader"],
+  status: "active" as const,
+  reputationScore: 50,
+  booksShared: 0,
+  booksRead: 0,
+  favoriteGenres: [] as string[],
+};
+
 export const createFromClerk = internalMutation({
   args: {
     clerkId: v.string(),
@@ -23,13 +33,7 @@ export const createFromClerk = internalMutation({
       phone: args.phone,
       name: args.name,
       avatarUrl: args.avatarUrl,
-      bio: undefined,
-      roles: ["reader"],
-      status: "active",
-      reputationScore: 50,
-      booksShared: 0,
-      booksRead: 0,
-      favoriteGenres: [],
+      ...DEFAULT_USER_FIELDS,
     });
   },
 });
@@ -51,13 +55,7 @@ export const ensureUser = mutation({
       phone: identity.phoneNumber ?? "",
       name: identity.name ?? "Reader",
       avatarUrl: identity.pictureUrl ?? undefined,
-      bio: undefined,
-      roles: ["reader"],
-      status: "active",
-      reputationScore: 50,
-      booksShared: 0,
-      booksRead: 0,
-      favoriteGenres: [],
+      ...DEFAULT_USER_FIELDS,
     });
   },
 });
