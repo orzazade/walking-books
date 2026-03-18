@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { conditionValidator, ownershipTypeValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -31,13 +32,8 @@ export default defineSchema({
       v.literal("damaged"),
       v.literal("recalled"),
     ),
-    condition: v.union(
-      v.literal("like_new"),
-      v.literal("good"),
-      v.literal("fair"),
-      v.literal("worn"),
-    ),
-    ownershipType: v.union(v.literal("donated"), v.literal("lent")),
+    condition: conditionValidator,
+    ownershipType: ownershipTypeValidator,
     originalSharerId: v.id("users"),
     currentLocationId: v.optional(v.id("partnerLocations")),
     currentHolderId: v.optional(v.id("users")),

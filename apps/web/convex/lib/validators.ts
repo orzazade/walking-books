@@ -17,3 +17,10 @@ export const conditionValidator = v.union(
   v.literal("fair"),
   v.literal("worn"),
 );
+
+export type OwnershipType = "donated" | "lent";
+
+export const ownershipTypeValidator = v.union(
+  v.literal("donated"),
+  v.literal("lent"),
+);

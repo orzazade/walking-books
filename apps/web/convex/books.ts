@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
-import { conditionValidator } from "./lib/validators";
+import { conditionValidator, ownershipTypeValidator } from "./lib/validators";
 import { requireCurrentUser } from "./lib/auth";
 
 async function enrichWithAvailability<
@@ -94,7 +94,7 @@ export const register = mutation({
     pageCount: v.number(),
     language: v.string(),
     publisher: v.optional(v.string()),
-    ownershipType: v.union(v.literal("donated"), v.literal("lent")),
+    ownershipType: ownershipTypeValidator,
     condition: conditionValidator,
     locationId: v.id("partnerLocations"),
     sharerMaxLendingDays: v.optional(v.number()),
