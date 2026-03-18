@@ -111,6 +111,99 @@ describe("wishlist", () => {
     expect(wishlist[0].availableCount).toBe(1);
   });
 
+  it("availableNow returns wishlisted books that have available copies", async () => {
+    const t = convexTest(schema);
+
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        clerkId: "user_avail1",
+        phone: "+1234567892",
+        name: "Avail User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+    });
+
+    const { bookWithCopy, bookWithoutCopy, locationId } = await t.run(
+      async (ctx) => {
+        const locId = await ctx.db.insert("partnerLocations", {
+          name: "Test Library",
+          address: "123 Main St",
+          lat: 0,
+          lng: 0,
+          contactPhone: "+1000000000",
+          operatingHours: {},
+          photos: [],
+          shelfCapacity: 100,
+          currentBookCount: 5,
+          managedByUserId: userId,
+          staffUserIds: [],
+        });
+
+        const b1 = await ctx.db.insert("books", {
+          title: "Available Book",
+          author: "Author A",
+          coverImage: "https://example.com/a.jpg",
+          description: "Has copies",
+          categories: ["fiction"],
+          pageCount: 200,
+          language: "English",
+          avgRating: 4.0,
+          reviewCount: 5,
+        });
+
+        await ctx.db.insert("copies", {
+          bookId: b1,
+          status: "available",
+          condition: "good",
+          ownershipType: "donated",
+          originalSharerId: userId,
+          currentLocationId: locId,
+          qrCodeUrl: "",
+        });
+
+        const b2 = await ctx.db.insert("books", {
+          title: "Unavailable Book",
+          author: "Author B",
+          coverImage: "",
+          description: "No copies",
+          categories: ["fiction"],
+          pageCount: 100,
+          language: "English",
+          avgRating: 3.0,
+          reviewCount: 1,
+        });
+
+        return { bookWithCopy: b1, bookWithoutCopy: b2, locationId: locId };
+      },
+    );
+
+    const authed = t.withIdentity({ subject: "user_avail1" });
+
+    // Wishlist both books
+    await authed.mutation(api.wishlist.toggle, { bookId: bookWithCopy });
+    await authed.mutation(api.wishlist.toggle, { bookId: bookWithoutCopy });
+
+    const available = await authed.query(api.wishlist.availableNow, {});
+
+    // Should only return the book with an available copy
+    expect(available).toHaveLength(1);
+    expect(available[0].title).toBe("Available Book");
+    expect(available[0].availableCount).toBe(1);
+    expect(available[0].locations).toHaveLength(1);
+    expect(available[0].locations[0].name).toBe("Test Library");
+  });
+
+  it("availableNow returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema);
+    const result = await t.query(api.wishlist.availableNow, {});
+    expect(result).toEqual([]);
+  });
+
   it("isWishlisted returns false for unauthenticated users", async () => {
     const t = convexTest(schema);
 

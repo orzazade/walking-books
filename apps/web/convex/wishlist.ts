@@ -42,6 +42,64 @@ export const toggle = mutation({
   },
 });
 
+export const availableNow = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const entries = await ctx.db
+      .query("wishlist")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const results = await Promise.all(
+      entries.map(async (entry) => {
+        const book = await ctx.db.get(entry.bookId);
+        if (!book) return null;
+
+        // Find available copies with their locations
+        const copies = await ctx.db
+          .query("copies")
+          .withIndex("by_book", (q) => q.eq("bookId", entry.bookId))
+          .collect();
+
+        const availableCopies = copies.filter((c) => c.status === "available");
+        if (availableCopies.length === 0) return null;
+
+        // Get unique location names for available copies
+        const locationIds = [
+          ...new Set(
+            availableCopies
+              .map((c) => c.currentLocationId)
+              .filter((id): id is NonNullable<typeof id> => id !== undefined),
+          ),
+        ];
+        const locations = await Promise.all(
+          locationIds.map(async (id) => {
+            const loc = await ctx.db.get(id);
+            return loc ? { _id: loc._id, name: loc.name, address: loc.address } : null;
+          }),
+        );
+
+        return {
+          bookId: book._id,
+          title: book.title,
+          author: book.author,
+          coverImage: book.coverImage,
+          avgRating: book.avgRating,
+          availableCount: availableCopies.length,
+          locations: locations.filter((l) => l !== null),
+          // Return the first available copy ID for quick reservation
+          firstAvailableCopyId: availableCopies[0]._id,
+          firstLocationId: availableCopies[0].currentLocationId,
+        };
+      }),
+    );
+
+    return results.filter((r) => r !== null);
+  },
+});
+
 export const myWishlist = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
