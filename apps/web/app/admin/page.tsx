@@ -75,8 +75,8 @@ export default function AdminOverviewPage() {
         <div className="grid gap-3 sm:grid-cols-3">
           {[
             { href: "/admin/users", icon: ShieldAlert, iconColor: "text-destructive", title: "Low Reputation Users", count: lowRepUsers.length, desc: "users with score < 15", badgeVariant: "destructive" as const },
-            { href: "/admin/locations", icon: MapPin, iconColor: "text-amber-500", title: "Pending Partners", count: pendingPartners.length, desc: "awaiting approval", badgeVariant: "secondary" as const },
-            { href: "/admin/reports", icon: FileWarning, iconColor: "text-orange-500", title: "Damage Reports", count: damageReports.length, desc: "unresolved", badgeVariant: "destructive" as const },
+            { href: "/admin/locations", icon: MapPin, iconColor: "text-amber-500", title: "Restricted Partners", count: pendingPartners.length, desc: "partners with limited access", badgeVariant: "secondary" as const },
+            { href: "/admin/reports", icon: FileWarning, iconColor: "text-orange-500", title: "Damage Reports", count: damageReports.length, desc: "total reported", badgeVariant: "destructive" as const },
           ].map((alert) => (
             <Link key={alert.href} href={alert.href}>
               <Card className="cursor-pointer transition-shadow hover:shadow-md">
