@@ -76,7 +76,7 @@ export default function PartnerReportsPage() {
   const filteredReports =
     typeFilter === "all"
       ? reports
-      : reports.filter((r: any) => r.type === typeFilter);
+      : reports.filter((r) => r.type === typeFilter);
 
   return (
     <>
