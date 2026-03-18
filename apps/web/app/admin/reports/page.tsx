@@ -40,12 +40,8 @@ export default function AdminReportsPage() {
     return <p className="text-muted-foreground">Loading...</p>;
   }
 
-  const filtered =
-    filter === "all"
-      ? [...allReports].sort((a, b) => b.createdAt - a.createdAt)
-      : [...allReports]
-          .filter((r) => r.type === "damage_report")
-          .sort((a, b) => b.createdAt - a.createdAt);
+  const sorted = [...allReports].sort((a, b) => b.createdAt - a.createdAt);
+  const filtered = filter === "all" ? sorted : sorted.filter((r) => r.type === "damage_report");
 
   function getReporterName(report: Doc<"conditionReports">) {
     if (report.reportedByUserId) {
@@ -54,7 +50,6 @@ export default function AdminReportsPage() {
     }
     return "Partner staff";
   }
-
 
   return (
     <>
