@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Trash2, BookOpen } from "lucide-react";
@@ -140,14 +140,7 @@ export default function WishlistPage() {
         <WishlistContent />
       </Authenticated>
       <Unauthenticated>
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <p className="text-[0.875rem] text-muted-foreground">
-            Sign in to access your wishlist.
-          </p>
-          <SignInButton mode="modal">
-            <Button className="mt-4 rounded-xl">Sign In</Button>
-          </SignInButton>
-        </div>
+        <SignInPrompt message="Sign in to access your wishlist." />
       </Unauthenticated>
     </main>
   );
