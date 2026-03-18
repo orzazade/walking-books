@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { StatCard } from "@/components/stat-card";
 import {
   BookOpen,
   Users,
@@ -58,42 +59,10 @@ export default function AdminOverviewPage() {
 
       {/* Platform stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Total Books Shared
-            </span>
-            <span className="text-lg font-bold">{totalBooks}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Total Users
-            </span>
-            <span className="text-lg font-bold">{totalUsers}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <MapPin className="h-5 w-5 text-green-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Locations
-            </span>
-            <span className="text-lg font-bold">{totalLocations}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Clock className="h-5 w-5 text-amber-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Active Readers
-            </span>
-            <span className="text-lg font-bold">{activeReaders}</span>
-          </CardContent>
-        </Card>
+        <StatCard icon={BookOpen} label="Total Books Shared" value={totalBooks} />
+        <StatCard icon={Users} label="Total Users" value={totalUsers} iconClassName="text-blue-500" />
+        <StatCard icon={MapPin} label="Locations" value={totalLocations} iconClassName="text-green-500" />
+        <StatCard icon={Clock} label="Active Readers" value={activeReaders} iconClassName="text-amber-500" />
       </div>
 
       <Separator className="my-6" />
