@@ -1,6 +1,16 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import { type Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+
+async function requireCollectionOwner(ctx: MutationCtx, collectionId: Id<"collections">) {
+  const user = await requireCurrentUser(ctx);
+  const collection = await ctx.db.get(collectionId);
+  if (!collection) throw new Error("Collection not found");
+  if (collection.userId !== user._id) throw new Error("Not authorized");
+  return collection;
+}
 
 export const create = mutation({
   args: {
@@ -29,10 +39,7 @@ export const create = mutation({
 export const remove = mutation({
   args: { collectionId: v.id("collections") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const collection = await ctx.db.get(args.collectionId);
-    if (!collection) throw new Error("Collection not found");
-    if (collection.userId !== user._id) throw new Error("Not authorized");
+    await requireCollectionOwner(ctx, args.collectionId);
 
     // Delete all items in the collection
     const items = await ctx.db
@@ -50,10 +57,7 @@ export const remove = mutation({
 export const addBook = mutation({
   args: { collectionId: v.id("collections"), bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const collection = await ctx.db.get(args.collectionId);
-    if (!collection) throw new Error("Collection not found");
-    if (collection.userId !== user._id) throw new Error("Not authorized");
+    await requireCollectionOwner(ctx, args.collectionId);
 
     const book = await ctx.db.get(args.bookId);
     if (!book) throw new Error("Book not found");
@@ -79,10 +83,7 @@ export const addBook = mutation({
 export const removeBook = mutation({
   args: { collectionId: v.id("collections"), bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const collection = await ctx.db.get(args.collectionId);
-    if (!collection) throw new Error("Collection not found");
-    if (collection.userId !== user._id) throw new Error("Not authorized");
+    await requireCollectionOwner(ctx, args.collectionId);
 
     const existing = await ctx.db
       .query("collectionItems")
