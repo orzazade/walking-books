@@ -1,5 +1,4 @@
 import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 /**
  * Email Notification System — Resend Integration Placeholder
@@ -30,7 +29,7 @@ import { internal } from "./_generated/api";
  */
 export const sendReturnReminders = internalAction({
   args: {},
-  handler: async (ctx) => {
+  handler: async () => {
     const now = Date.now();
     const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
     const oneDayFromNow = now + 1 * 24 * 60 * 60 * 1000;
