@@ -132,6 +132,14 @@ export default defineSchema({
     .index("by_following", ["followingId"])
     .index("by_pair", ["followerId", "followingId"]),
 
+  readingGoals: defineTable({
+    userId: v.id("users"),
+    year: v.number(),
+    targetBooks: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_year", ["userId", "year"]),
+
   wishlist: defineTable({
     userId: v.id("users"),
     bookId: v.id("books"),
