@@ -12,7 +12,7 @@ import { ReservationTimer } from "@/components/reservation-timer";
 import { Authenticated } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle, Clock, BookOpen } from "lucide-react";
+import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -22,12 +22,15 @@ export default function BookDetailPage() {
   const copies = useQuery(api.copies.byBook, { bookId });
   const reviews = useQuery(api.reviews.byBook, { bookId });
   const activeReservations = useQuery(api.reservations.active);
+  const isWishlisted = useQuery(api.wishlist.isWishlisted, { bookId });
+  const toggleWishlist = useMutation(api.wishlist.toggle);
   const createReview = useMutation(api.reviews.create);
   const createReservation = useMutation(api.reservations.create);
 
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [togglingWishlist, setTogglingWishlist] = useState(false);
   const [reservingCopyId, setReservingCopyId] = useState<string | null>(null);
   const [justReserved, setJustReserved] = useState<{
     copyId: string;
@@ -187,6 +190,37 @@ export default function BookDetailPage() {
             {book.language && <span>{book.language}</span>}
             {book.publisher && <span>{book.publisher}</span>}
           </div>
+
+          <Authenticated>
+            <Button
+              variant={isWishlisted ? "default" : "outline"}
+              size="sm"
+              className="h-8 rounded-lg text-[0.75rem]"
+              disabled={togglingWishlist}
+              onClick={async () => {
+                setTogglingWishlist(true);
+                try {
+                  const result = await toggleWishlist({ bookId });
+                  toast.success(
+                    result.wishlisted
+                      ? "Added to your wishlist"
+                      : "Removed from your wishlist",
+                  );
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : "Failed to update wishlist";
+                  toast.error(message);
+                } finally {
+                  setTogglingWishlist(false);
+                }
+              }}
+            >
+              <Heart
+                className={`mr-1.5 h-3.5 w-3.5 ${isWishlisted ? "fill-current" : ""}`}
+              />
+              {isWishlisted ? "On Wishlist" : "Add to Wishlist"}
+            </Button>
+          </Authenticated>
         </div>
       </div>
 

@@ -155,4 +155,12 @@ export default defineSchema({
     .index("by_follower", ["followerId"])
     .index("by_following", ["followingId"])
     .index("by_pair", ["followerId", "followingId"]),
+
+  wishlist: defineTable({
+    userId: v.id("users"),
+    bookId: v.id("books"),
+    addedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_book", ["userId", "bookId"]),
 });
