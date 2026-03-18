@@ -74,22 +74,3 @@ export const byId = query({
     return await ctx.db.get(args.locationId);
   },
 });
-
-export const nearby = query({
-  args: {
-    minLat: v.number(),
-    maxLat: v.number(),
-    minLng: v.number(),
-    maxLng: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const all = await ctx.db.query("partnerLocations").collect();
-    return all.filter(
-      (loc) =>
-        loc.lat >= args.minLat &&
-        loc.lat <= args.maxLat &&
-        loc.lng >= args.minLng &&
-        loc.lng <= args.maxLng,
-    );
-  },
-});
