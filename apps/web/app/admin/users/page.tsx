@@ -31,6 +31,12 @@ const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructi
   banned: "destructive",
 };
 
+const TABLE_STATUS_ACTIONS: Array<{ status: UserStatus; icon: typeof RotateCcw; title: string }> = [
+  { status: "active", icon: RotateCcw, title: "Restore" },
+  { status: "restricted", icon: ShieldAlert, title: "Restrict" },
+  { status: "banned", icon: Ban, title: "Ban" },
+];
+
 function repColor(score: number) {
   if (score >= 70) return "text-green-600";
   if (score >= 30) return "text-amber-600";
@@ -146,48 +152,20 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        {user.status !== "active" && (
+                        {TABLE_STATUS_ACTIONS.filter((a) => a.status !== user.status).map(({ status, icon: Icon, title }) => (
                           <Button
+                            key={status}
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStatusChange(user._id, "active");
+                              handleStatusChange(user._id, status);
                             }}
-                            title="Restore"
+                            title={title}
                           >
-                            <RotateCcw className="h-3 w-3" />
+                            <Icon className="h-3 w-3" />
                           </Button>
-                        )}
-                        {user.status !== "restricted" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusChange(
-                                user._id,
-                                "restricted",
-                              );
-                            }}
-                            title="Restrict"
-                          >
-                            <ShieldAlert className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {user.status !== "banned" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusChange(user._id, "banned");
-                            }}
-                            title="Ban"
-                          >
-                            <Ban className="h-3 w-3" />
-                          </Button>
-                        )}
+                        ))}
                       </div>
                     </td>
                   </tr>
