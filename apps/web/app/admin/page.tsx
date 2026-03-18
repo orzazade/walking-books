@@ -15,6 +15,7 @@ import {
   FileWarning,
 } from "lucide-react";
 import Link from "next/link";
+import { type ReportType, REPORT_TYPE_LABELS } from "@/convex/lib/validators";
 
 export default function AdminOverviewPage() {
   const allUsers = useQuery(api.users.listAll);
@@ -179,8 +180,8 @@ export default function AdminOverviewPage() {
               <Card key={report._id}>
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
-                    <p className="font-medium capitalize">
-                      {report.type.replace(/_/g, " ")}
+                    <p className="font-medium">
+                      {REPORT_TYPE_LABELS[report.type as ReportType]}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {report.description}
@@ -194,11 +195,7 @@ export default function AdminOverviewPage() {
                           : "secondary"
                       }
                     >
-                      {report.type === "damage_report"
-                        ? "Damage"
-                        : report.type === "pickup_check"
-                          ? "Pickup"
-                          : "Return"}
+                      {REPORT_TYPE_LABELS[report.type as ReportType]}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {new Date(report.createdAt).toLocaleDateString()}

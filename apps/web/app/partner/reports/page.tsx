@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
+import { type Condition, type CopyStatus, type ReportType, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS, REPORT_TYPE_LABELS } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +21,6 @@ import {
   Loader2,
   Camera,
 } from "lucide-react";
-
-const TYPE_LABELS: Record<string, string> = {
-  pickup_check: "Pickup Check",
-  return_check: "Return Check",
-  damage_report: "Damage Report",
-};
 
 const TYPE_COLORS: Record<string, string> = {
   pickup_check: "bg-blue-100 text-blue-700",
@@ -141,7 +135,7 @@ export default function PartnerReportsPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[report.type] || ""}`}
                       >
-                        {TYPE_LABELS[report.type] || report.type}
+                        {REPORT_TYPE_LABELS[report.type as ReportType]}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Copy #{report.copyId.slice(-6)}

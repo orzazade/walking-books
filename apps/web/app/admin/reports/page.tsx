@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc } from "@/convex/_generated/dataModel";
-import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
+import { type Condition, type ReportType, CONDITION_LABELS, REPORT_TYPE_LABELS } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,8 +114,8 @@ export default function AdminReportsPage() {
                     ) : (
                       <Camera className="h-4 w-4 text-muted-foreground" />
                     )}
-                    <span className="font-medium capitalize">
-                      {report.type.replace(/_/g, " ")}
+                    <span className="font-medium">
+                      {REPORT_TYPE_LABELS[report.type as ReportType]}
                     </span>
                     <Badge
                       variant={
@@ -124,11 +124,7 @@ export default function AdminReportsPage() {
                           : "secondary"
                       }
                     >
-                      {report.type === "damage_report"
-                        ? "Damage"
-                        : report.type === "pickup_check"
-                          ? "Pickup"
-                          : "Return"}
+                      {REPORT_TYPE_LABELS[report.type as ReportType]}
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -184,7 +180,7 @@ export default function AdminReportsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileWarning className="h-5 w-5" />
-              {selectedReport?.type.replace(/_/g, " ")}
+              {selectedReport ? REPORT_TYPE_LABELS[selectedReport.type as ReportType] : ""}
             </DialogTitle>
           </DialogHeader>
 
@@ -219,7 +215,7 @@ export default function AdminReportsPage() {
                           : "secondary"
                       }
                     >
-                      {selectedReport.type.replace(/_/g, " ")}
+                      {REPORT_TYPE_LABELS[selectedReport.type as ReportType]}
                     </Badge>
                   </p>
                 </div>

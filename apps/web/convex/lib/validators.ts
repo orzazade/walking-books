@@ -27,6 +27,12 @@ export const ownershipTypeValidator = v.union(
 
 export type ReportType = "pickup_check" | "return_check" | "damage_report";
 
+export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
+  pickup_check: "Pickup Check",
+  return_check: "Return Check",
+  damage_report: "Damage Report",
+};
+
 export const reportTypeValidator = v.union(
   v.literal("pickup_check"),
   v.literal("return_check"),
