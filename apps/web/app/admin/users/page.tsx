@@ -24,6 +24,7 @@ import {
   RotateCcw,
   UserCog,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructive"> = {
   active: "default",
@@ -78,11 +79,19 @@ export default function AdminUsersPage() {
     userId: Id<"users">,
     status: "active" | "restricted" | "banned",
   ) {
-    await updateStatus({ userId, status });
+    try {
+      await updateStatus({ userId, status });
+    } catch {
+      toast.error("Failed to update user status");
+    }
   }
 
   async function handleRolesUpdate(userId: Id<"users">, roles: string[]) {
-    await updateRoles({ userId, roles });
+    try {
+      await updateRoles({ userId, roles });
+    } catch {
+      toast.error("Failed to update user roles");
+    }
   }
 
   return (
