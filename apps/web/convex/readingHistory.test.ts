@@ -107,9 +107,7 @@ describe("readingHistory", () => {
       return { bookId1: bid1, bookId2: bid2 };
     });
 
-    const history = await t.query(api.readingHistory.myHistory, {}, {
-      asIdentity: { subject: "user_history1" },
-    });
+    const history = await t.withIdentity({ subject: "user_history1" }).query(api.readingHistory.myHistory, {});
 
     expect(history).toHaveLength(2);
     // Most recently returned first
@@ -189,9 +187,7 @@ describe("readingHistory", () => {
       });
     });
 
-    const history = await t.query(api.readingHistory.myHistory, {}, {
-      asIdentity: { subject: "user_history2" },
-    });
+    const history = await t.withIdentity({ subject: "user_history2" }).query(api.readingHistory.myHistory, {});
 
     expect(history).toHaveLength(0);
   });

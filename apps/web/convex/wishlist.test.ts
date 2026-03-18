@@ -35,34 +35,26 @@ describe("wishlist", () => {
       });
     });
 
+    const authed = t.withIdentity({ subject: "user_test123" });
+
     // Initially not wishlisted
-    const before = await t.query(api.wishlist.isWishlisted, { bookId }, {
-      asIdentity: { subject: "user_test123" },
-    });
+    const before = await authed.query(api.wishlist.isWishlisted, { bookId });
     expect(before).toBe(false);
 
     // Toggle on
-    const result = await t.mutation(api.wishlist.toggle, { bookId }, {
-      asIdentity: { subject: "user_test123" },
-    });
+    const result = await authed.mutation(api.wishlist.toggle, { bookId });
     expect(result.wishlisted).toBe(true);
 
     // Verify wishlisted
-    const after = await t.query(api.wishlist.isWishlisted, { bookId }, {
-      asIdentity: { subject: "user_test123" },
-    });
+    const after = await authed.query(api.wishlist.isWishlisted, { bookId });
     expect(after).toBe(true);
 
     // Toggle off
-    const result2 = await t.mutation(api.wishlist.toggle, { bookId }, {
-      asIdentity: { subject: "user_test123" },
-    });
+    const result2 = await authed.mutation(api.wishlist.toggle, { bookId });
     expect(result2.wishlisted).toBe(false);
 
     // Verify removed
-    const final = await t.query(api.wishlist.isWishlisted, { bookId }, {
-      asIdentity: { subject: "user_test123" },
-    });
+    const final = await authed.query(api.wishlist.isWishlisted, { bookId });
     expect(final).toBe(false);
   });
 
@@ -107,15 +99,13 @@ describe("wishlist", () => {
       return bid;
     });
 
+    const authed = t.withIdentity({ subject: "user_test456" });
+
     // Add to wishlist
-    await t.mutation(api.wishlist.toggle, { bookId }, {
-      asIdentity: { subject: "user_test456" },
-    });
+    await authed.mutation(api.wishlist.toggle, { bookId });
 
     // Check myWishlist
-    const wishlist = await t.query(api.wishlist.myWishlist, {}, {
-      asIdentity: { subject: "user_test456" },
-    });
+    const wishlist = await authed.query(api.wishlist.myWishlist, {});
     expect(wishlist).toHaveLength(1);
     expect(wishlist[0].book.title).toBe("Wishlist Book");
     expect(wishlist[0].availableCount).toBe(1);

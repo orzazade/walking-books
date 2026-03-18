@@ -118,9 +118,7 @@ describe("recommendations", () => {
       });
     });
 
-    const recs = await t.query(api.recommendations.forMe, {}, {
-      asIdentity: { subject: "user_rec1" },
-    });
+    const recs = await t.withIdentity({ subject: "user_rec1" }).query(api.recommendations.forMe, {});
 
     // Should not include "Already Read"
     expect(recs.find((r: { title: string }) => r.title === "Already Read")).toBeUndefined();
@@ -216,9 +214,7 @@ describe("recommendations", () => {
       });
     });
 
-    const recs = await t.query(api.recommendations.forMe, {}, {
-      asIdentity: { subject: "user_rec2" },
-    });
+    const recs = await t.withIdentity({ subject: "user_rec2" }).query(api.recommendations.forMe, {});
 
     expect(recs).toHaveLength(2);
     // With no genre prefs, available + high-rated wins
