@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,22 +22,7 @@ import {
   Users,
 } from "lucide-react";
 
-type LocationDoc = {
-  _id: Id<"partnerLocations">;
-  _creationTime: number;
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  contactPhone: string;
-  contactEmail?: string;
-  operatingHours: any;
-  photos: string[];
-  shelfCapacity: number;
-  currentBookCount: number;
-  managedByUserId: Id<"users">;
-  staffUserIds: Id<"users">[];
-};
+type LocationDoc = Doc<"partnerLocations">;
 
 export default function AdminLocationsPage() {
   const allLocations = useQuery(api.partnerLocations.list);
@@ -102,12 +87,12 @@ export default function AdminLocationsPage() {
           </Card>
         ) : (
           filtered.map((loc) => {
-            const pct = utilizationPercent(loc as LocationDoc);
+            const pct = utilizationPercent(loc);
             return (
               <Card
                 key={loc._id}
                 className="cursor-pointer transition-shadow hover:shadow-md"
-                onClick={() => setSelectedLocation(loc as LocationDoc)}
+                onClick={() => setSelectedLocation(loc)}
               >
                 <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 min-w-0">
