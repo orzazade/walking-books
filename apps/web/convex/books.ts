@@ -3,6 +3,7 @@ import { action, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
 import { conditionValidator } from "./lib/validators";
+import { requireCurrentUser } from "./lib/auth";
 
 async function enrichWithAvailability<
   T extends {
@@ -99,14 +100,7 @@ export const register = mutation({
     sharerMaxLendingDays: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     // Find or create book
     let bookId;

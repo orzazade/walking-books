@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const createFromClerk = internalMutation({
   args: {
@@ -90,13 +91,7 @@ export const update = mutation({
     favoriteGenres: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
     const updates = Object.fromEntries(
       Object.entries(args).filter(([, v]) => v !== undefined),
     );
@@ -116,12 +111,7 @@ export const recalculateReputation = internalMutation({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await getCurrentUser(ctx);
     if (!caller || !caller.roles.includes("admin")) return [];
     return await ctx.db.query("users").collect();
   },
@@ -137,13 +127,8 @@ export const updateStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || !caller.roles.includes("admin")) {
+    const caller = await requireCurrentUser(ctx);
+    if (!caller.roles.includes("admin")) {
       throw new Error("Not authorized");
     }
     await ctx.db.patch(args.userId, { status: args.status });
@@ -156,13 +141,8 @@ export const updateRoles = mutation({
     roles: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || !caller.roles.includes("admin")) {
+    const caller = await requireCurrentUser(ctx);
+    if (!caller.roles.includes("admin")) {
       throw new Error("Not authorized");
     }
     await ctx.db.patch(args.userId, { roles: args.roles });

@@ -3,6 +3,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
 import { conditionValidator } from "./lib/validators";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -56,12 +57,7 @@ export const allAtLocation = query({
 export const byHolder = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return [];
     return await ctx.db
       .query("copies")
@@ -73,12 +69,7 @@ export const byHolder = query({
 export const bySharer = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return [];
     return await ctx.db
       .query("copies")
@@ -96,13 +87,7 @@ export const pickup = mutation({
     photos: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
@@ -190,13 +175,7 @@ export const returnCopy = mutation({
     readerNote: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
@@ -279,13 +258,7 @@ export const returnCopy = mutation({
 export const recall = mutation({
   args: { copyId: v.id("copies") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
@@ -316,13 +289,7 @@ export const recall = mutation({
 export const extend = mutation({
   args: { copyId: v.id("copies") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
