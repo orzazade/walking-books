@@ -12,10 +12,11 @@ export const forMe = query({
       .query("journeyEntries")
       .withIndex("by_reader", (q) => q.eq("readerId", user._id))
       .collect();
-    const readCopyIds = journeyEntries.map((e) => e.copyId);
+    const readCopies = await Promise.all(
+      journeyEntries.map((e) => ctx.db.get(e.copyId)),
+    );
     const readBookIds = new Set<string>();
-    for (const copyId of readCopyIds) {
-      const copy = await ctx.db.get(copyId);
+    for (const copy of readCopies) {
       if (copy) readBookIds.add(copy.bookId);
     }
 
