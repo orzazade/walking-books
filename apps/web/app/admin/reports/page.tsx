@@ -23,6 +23,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+const CONDITION_BADGE_VARIANT: Record<Condition, "default" | "secondary" | "destructive"> = {
+  like_new: "default",
+  good: "secondary",
+  fair: "secondary",
+  worn: "destructive",
+};
+
 export default function AdminReportsPage() {
   const allReports = useQuery(api.conditionReports.listAll);
   const allUsers = useQuery(api.users.listAll);
@@ -48,17 +55,6 @@ export default function AdminReportsPage() {
     return "Partner staff";
   }
 
-  function conditionBadgeColor(condition: Condition) {
-    switch (condition) {
-      case "like_new":
-        return "default" as const;
-      case "good":
-      case "fair":
-        return "secondary" as const;
-      case "worn":
-        return "destructive" as const;
-    }
-  }
 
   return (
     <>
@@ -140,14 +136,14 @@ export default function AdminReportsPage() {
                   {/* Condition change */}
                   <div className="flex items-center gap-1 text-xs">
                     <Badge
-                      variant={conditionBadgeColor(report.previousCondition)}
+                      variant={CONDITION_BADGE_VARIANT[report.previousCondition as Condition]}
                       className="text-xs"
                     >
                       {CONDITION_LABELS[report.previousCondition as Condition]}
                     </Badge>
                     <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     <Badge
-                      variant={conditionBadgeColor(report.newCondition)}
+                      variant={CONDITION_BADGE_VARIANT[report.newCondition as Condition]}
                       className="text-xs"
                     >
                       {CONDITION_LABELS[report.newCondition as Condition]}
@@ -233,9 +229,9 @@ export default function AdminReportsPage() {
                   <div className="flex-1 rounded-md border p-3 text-center">
                     <p className="text-xs text-muted-foreground">Before</p>
                     <Badge
-                      variant={conditionBadgeColor(
-                        selectedReport.previousCondition,
-                      )}
+                      variant={CONDITION_BADGE_VARIANT[
+                        selectedReport.previousCondition as Condition
+                      ]}
                       className="mt-1"
                     >
                       {CONDITION_LABELS[selectedReport.previousCondition as Condition]}
@@ -245,9 +241,9 @@ export default function AdminReportsPage() {
                   <div className="flex-1 rounded-md border p-3 text-center">
                     <p className="text-xs text-muted-foreground">After</p>
                     <Badge
-                      variant={conditionBadgeColor(
-                        selectedReport.newCondition,
-                      )}
+                      variant={CONDITION_BADGE_VARIANT[
+                        selectedReport.newCondition as Condition
+                      ]}
                       className="mt-1"
                     >
                       {CONDITION_LABELS[selectedReport.newCondition as Condition]}

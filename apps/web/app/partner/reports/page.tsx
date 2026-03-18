@@ -22,7 +22,7 @@ import {
   Camera,
 } from "lucide-react";
 
-const TYPE_COLORS: Record<string, string> = {
+const TYPE_COLORS: Record<ReportType, string> = {
   pickup_check: "bg-blue-100 text-blue-700",
   return_check: "bg-green-100 text-green-700",
   damage_report: "bg-red-100 text-red-700",
