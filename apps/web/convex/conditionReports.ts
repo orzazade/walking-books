@@ -46,6 +46,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+
     const reportId = await ctx.db.insert("conditionReports", {
       copyId: args.copyId,
       reportedByUserId: user._id,
