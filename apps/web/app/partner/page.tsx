@@ -214,16 +214,11 @@ function LocationDashboard({
               {damagedCopies.map((copy) => (
                 <Card key={copy._id}>
                   <CardContent className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="font-medium">
-                        Copy #{copy._id.slice(-6)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {COPY_STATUS_LABELS[copy.status as CopyStatus]}
-                      </p>
-                    </div>
+                    <p className="font-medium">
+                      Copy #{copy._id.slice(-6)}
+                    </p>
                     <Badge variant="destructive">
-                      {copy.status}
+                      {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                     </Badge>
                   </CardContent>
                 </Card>
