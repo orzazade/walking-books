@@ -112,6 +112,8 @@ export const updateStatus = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
     await ctx.db.patch(args.userId, { status: args.status });
   },
 });
@@ -123,6 +125,8 @@ export const updateRoles = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
     await ctx.db.patch(args.userId, { roles: args.roles });
   },
 });
