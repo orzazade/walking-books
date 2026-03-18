@@ -232,11 +232,8 @@ export const returnCopy = mutation({
       reputationScore: clampScore(user.reputationScore + repChange),
     });
 
-    // Determine new status: recalled if lent with deadline, otherwise available
-    const newStatus =
-      copy.ownershipType === "lent" && copy.returnDeadline
-        ? "recalled"
-        : "available";
+    // Keep recalled status if owner recalled; otherwise make available again
+    const newStatus = copy.status === "recalled" ? "recalled" : "available";
 
     // Update copy
     await ctx.db.patch(args.copyId, {
