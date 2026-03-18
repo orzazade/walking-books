@@ -100,6 +100,7 @@ export default defineSchema({
   })
     .index("by_copy", ["copyId", "status"])
     .index("by_user", ["userId", "status"])
+    .index("by_location", ["locationId", "status"])
     .index("by_expiry", ["status", "expiresAt"]),
 
   conditionReports: defineTable({

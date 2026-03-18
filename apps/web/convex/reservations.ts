@@ -104,12 +104,12 @@ export const cancel = mutation({
 export const byLocation = query({
   args: { locationId: v.id("partnerLocations") },
   handler: async (ctx, args) => {
-    // Get all active reservations and filter by location
-    const allActive = await ctx.db
+    return await ctx.db
       .query("reservations")
-      .withIndex("by_expiry", (q) => q.eq("status", "active"))
+      .withIndex("by_location", (q) =>
+        q.eq("locationId", args.locationId).eq("status", "active"),
+      )
       .collect();
-    return allActive.filter((r) => r.locationId === args.locationId);
   },
 });
 
