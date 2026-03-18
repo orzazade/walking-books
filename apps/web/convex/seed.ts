@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server";
+import { DAY_MS } from "./lib/lending";
 
 export const run = internalMutation({
   args: {},
@@ -17,7 +18,6 @@ export const run = internalMutation({
       clerkId: "seed_user_001",
       phone: "+994501234567",
       name: "Seed Admin",
-      avatarUrl: undefined,
       bio: "Platform seed account for development data.",
       roles: ["reader", "partner", "admin"],
       status: "active",
@@ -31,7 +31,6 @@ export const run = internalMutation({
       clerkId: "seed_user_002",
       phone: "+994551234567",
       name: "Leyla Mammadova",
-      avatarUrl: undefined,
       bio: "Avid reader and book lover from Baku.",
       roles: ["reader"],
       status: "active",
@@ -268,10 +267,7 @@ export const run = internalMutation({
         ownershipType: cfg.ownership,
         originalSharerId: seedUserId,
         currentLocationId: locationIds[cfg.locIdx],
-        currentHolderId: undefined,
         qrCodeUrl: `https://walkingbooks.app/copy/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        returnDeadline: undefined,
-        lendingPeriodDays: undefined,
         sharerMaxLendingDays: cfg.ownership === "lent" ? 30 : undefined,
       });
       copyIds.push(id);
@@ -279,7 +275,7 @@ export const run = internalMutation({
 
     // --- 5 Sample Journey Entries (completed reads) ---
     const now = Date.now();
-    const dayMs = 24 * 60 * 60 * 1000;
+    const dayMs = DAY_MS;
 
     const journeyConfigs = [
       { copyIdx: 0, locIdx: 0, daysAgo: 30, readDays: 14 },
@@ -304,8 +300,6 @@ export const run = internalMutation({
         conditionAtReturn: "good",
         pickupPhotos: [],
         returnPhotos: [],
-        readerNote: undefined,
-        reservationId: undefined,
       });
     }
 
