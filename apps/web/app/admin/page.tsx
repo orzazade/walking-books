@@ -124,20 +124,9 @@ export default function AdminOverviewPage() {
                       {report.description}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        report.type === "damage_report"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {REPORT_TYPE_LABELS[report.type as ReportType]}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(report.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(report.createdAt).toLocaleDateString()}
+                  </span>
                 </CardContent>
               </Card>
             ))}
