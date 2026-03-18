@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
-import { conditionValidator, ownershipTypeValidator } from "./lib/validators";
+import { conditionValidator, ownershipTypeValidator, CONDITION_LABELS } from "./lib/validators";
 import { requireCurrentUser } from "./lib/auth";
 
 async function enrichWithAvailability<
@@ -160,7 +160,7 @@ export const register = mutation({
       reportedByUserId: user._id,
       type: "pickup_check",
       photos: [],
-      description: `Initial condition: ${args.condition}`,
+      description: `Initial condition: ${CONDITION_LABELS[args.condition]}`,
       previousCondition: args.condition,
       newCondition: args.condition,
       createdAt: Date.now(),

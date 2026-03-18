@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lending";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
-import { conditionValidator } from "./lib/validators";
+import { conditionValidator, CONDITION_LABELS } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const byBook = query({
@@ -148,7 +148,7 @@ export const pickup = mutation({
       reportedByUserId: user._id,
       type: "pickup_check",
       photos: args.photos,
-      description: `Pickup condition: ${args.conditionAtPickup}`,
+      description: `Pickup condition: ${CONDITION_LABELS[args.conditionAtPickup]}`,
       previousCondition: copy.condition,
       newCondition: args.conditionAtPickup,
       createdAt: now,
@@ -239,7 +239,7 @@ export const returnCopy = mutation({
       reportedByUserId: user._id,
       type: "return_check",
       photos: args.photos,
-      description: `Return condition: ${args.conditionAtReturn}`,
+      description: `Return condition: ${CONDITION_LABELS[args.conditionAtReturn]}`,
       previousCondition: copy.condition,
       newCondition: args.conditionAtReturn,
       createdAt: now,
