@@ -18,7 +18,6 @@ import {
   FileWarning,
   Camera,
   ArrowRight,
-  ShieldAlert,
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
@@ -311,22 +310,6 @@ export default function AdminReportsPage() {
                   >
                     <CheckCircle className="h-3 w-3" /> Dismiss Report
                   </Button>
-                  {selectedReport.reportedByUserId && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={async () => {
-                        if (selectedReport.reportedByUserId) {
-                          // Penalize the holder — in a real app we'd look up the journey
-                          // to find who had the copy, but for now we note the reporter
-                        }
-                        setSelectedReport(null);
-                      }}
-                      className="gap-1"
-                    >
-                      <ShieldAlert className="h-3 w-3" /> Penalize User
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
