@@ -1,77 +1,34 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Camera, X, Keyboard } from "lucide-react";
+import { useScanner } from "@/components/use-scanner";
 
 interface IsbnScannerProps {
   onScan: (isbn: string) => void;
 }
 
 export function IsbnScanner({ onScan }: IsbnScannerProps) {
-  const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualIsbn, setManualIsbn] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<{ stop: () => Promise<void> } | null>(null);
 
-  const stopScanner = useCallback(async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch {
-        // scanner may already be stopped
-      }
-      html5QrCodeRef.current = null;
-    }
+  const onDecode = useCallback((decodedText: string): string | null => {
+    const cleaned = decodedText.replace(/[^0-9X]/gi, "");
+    return cleaned.length === 10 || cleaned.length === 13 ? cleaned : null;
   }, []);
 
-  const startScanner = useCallback(async () => {
-    setError(null);
-    try {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("isbn-scanner-region");
-      html5QrCodeRef.current = scanner;
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 150 } },
-        (decodedText) => {
-          const cleaned = decodedText.replace(/[^0-9X]/gi, "");
-          if (cleaned.length === 10 || cleaned.length === 13) {
-            stopScanner();
-            onScan(cleaned);
-          }
-        },
-        () => {
-          // ignore scan failures
-        },
-      );
-    } catch {
-        setError(
-        "Could not access camera. Please allow camera permissions or enter ISBN manually.",
-      );
-      setMode("manual");
-    }
-  }, [onScan, stopScanner]);
+  const qrbox = useMemo(() => ({ width: 250, height: 150 }), []);
 
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, [stopScanner]);
-
-  useEffect(() => {
-    if (mode === "camera") {
-      startScanner();
-    }
-    return () => {
-      if (mode === "camera") {
-        stopScanner();
-      }
-    };
-  }, [mode, startScanner, stopScanner]);
+  const { mode, setMode, error, scannerRef, stopScanner } = useScanner({
+    regionId: "isbn-scanner-region",
+    qrbox,
+    onDecode,
+    onResult: onScan,
+    cameraErrorMessage:
+      "Could not access camera. Please allow camera permissions or enter ISBN manually.",
+  });
 
   if (mode === "choose") {
     return (

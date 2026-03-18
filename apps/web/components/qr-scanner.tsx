@@ -1,100 +1,49 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Camera, X, Keyboard } from "lucide-react";
+import { useScanner } from "@/components/use-scanner";
 
 interface QrScannerProps {
   onScan: (copyId: string) => void;
 }
 
 export function QrScanner({ onScan }: QrScannerProps) {
-  const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualId, setManualId] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<{ stop: () => Promise<void> } | null>(null);
 
-  const stopScanner = useCallback(async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch {
-        // scanner may already be stopped
+  const onDecode = useCallback((decodedText: string): string | null => {
+    // Try to extract copy ID from a URL like /copy/abc123
+    try {
+      const url = new URL(decodedText);
+      const pathParts = url.pathname.split("/");
+      const copyIndex = pathParts.indexOf("copy");
+      if (copyIndex !== -1 && pathParts[copyIndex + 1]) {
+        return pathParts[copyIndex + 1];
       }
-      html5QrCodeRef.current = null;
+    } catch {
+      // Not a URL, treat as raw ID
     }
+    // Return raw text if it looks like an ID (non-empty, no spaces)
+    const trimmed = decodedText.trim();
+    if (trimmed && !trimmed.includes(" ")) {
+      return trimmed;
+    }
+    return null;
   }, []);
 
-  const extractCopyId = useCallback(
-    (decodedText: string): string | null => {
-      // Try to extract copy ID from a URL like /copy/abc123
-      try {
-        const url = new URL(decodedText);
-        const pathParts = url.pathname.split("/");
-        const copyIndex = pathParts.indexOf("copy");
-        if (copyIndex !== -1 && pathParts[copyIndex + 1]) {
-          return pathParts[copyIndex + 1];
-        }
-      } catch {
-        // Not a URL, treat as raw ID
-      }
-      // Return raw text if it looks like an ID (non-empty, no spaces)
-      const trimmed = decodedText.trim();
-      if (trimmed && !trimmed.includes(" ")) {
-        return trimmed;
-      }
-      return null;
-    },
-    [],
-  );
+  const qrbox = useMemo(() => ({ width: 250, height: 250 }), []);
 
-  const startScanner = useCallback(async () => {
-    setError(null);
-    try {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("qr-scanner-region");
-      html5QrCodeRef.current = scanner;
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          const copyId = extractCopyId(decodedText);
-          if (copyId) {
-            stopScanner();
-            onScan(copyId);
-          }
-        },
-        () => {
-          // ignore scan failures
-        },
-      );
-    } catch {
-        setError(
-        "Could not access camera. Please allow camera permissions or enter copy ID manually.",
-      );
-      setMode("manual");
-    }
-  }, [onScan, stopScanner, extractCopyId]);
-
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, [stopScanner]);
-
-  useEffect(() => {
-    if (mode === "camera") {
-      startScanner();
-    }
-    return () => {
-      if (mode === "camera") {
-        stopScanner();
-      }
-    };
-  }, [mode, startScanner, stopScanner]);
+  const { mode, setMode, error, scannerRef, stopScanner } = useScanner({
+    regionId: "qr-scanner-region",
+    qrbox,
+    onDecode,
+    onResult: onScan,
+    cameraErrorMessage:
+      "Could not access camera. Please allow camera permissions or enter copy ID manually.",
+  });
 
   if (mode === "choose") {
     return (
