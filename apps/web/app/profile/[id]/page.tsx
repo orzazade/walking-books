@@ -17,6 +17,7 @@ import {
   Award,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -92,6 +93,8 @@ export default function ProfilePage() {
     setToggling(true);
     try {
       await toggleFollow({ targetUserId: userId });
+    } catch {
+      toast.error("Failed to update follow status");
     } finally {
       setToggling(false);
     }
