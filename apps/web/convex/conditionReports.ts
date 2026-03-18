@@ -3,16 +3,6 @@ import { query, mutation } from "./_generated/server";
 import { conditionValidator, reportTypeValidator } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
-export const byCopy = query({
-  args: { copyId: v.id("copies") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("conditionReports")
-      .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
-      .collect();
-  },
-});
-
 export const byLocation = query({
   args: { locationId: v.id("partnerLocations") },
   handler: async (ctx, args) => {
