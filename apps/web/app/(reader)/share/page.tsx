@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type Condition } from "@/convex/lib/validators";
+import { type Condition, type OwnershipType } from "@/convex/lib/validators";
 import { IsbnScanner } from "@/components/isbn-scanner";
 import { ConditionPhotoCapture } from "@/components/condition-photo-capture";
 import { LocationPicker } from "@/components/location-picker";
@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type OwnershipType = "donated" | "lent";
 
 const CONDITIONS: { value: Condition; label: string; desc: string }[] = [
   { value: "like_new", label: "Like New", desc: "No visible wear" },
