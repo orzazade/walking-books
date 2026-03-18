@@ -13,7 +13,6 @@ interface QrScannerProps {
 export function QrScanner({ onScan }: QrScannerProps) {
   const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualId, setManualId] = useState("");
-  const [, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<unknown>(null);
@@ -28,7 +27,6 @@ export function QrScanner({ onScan }: QrScannerProps) {
       }
       html5QrCodeRef.current = null;
     }
-    setScanning(false);
   }, []);
 
   const extractCopyId = useCallback(
@@ -56,7 +54,6 @@ export function QrScanner({ onScan }: QrScannerProps) {
 
   const startScanner = useCallback(async () => {
     setError(null);
-    setScanning(true);
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-scanner-region");
@@ -76,8 +73,7 @@ export function QrScanner({ onScan }: QrScannerProps) {
         },
       );
     } catch {
-      setScanning(false);
-      setError(
+        setError(
         "Could not access camera. Please allow camera permissions or enter copy ID manually.",
       );
       setMode("manual");

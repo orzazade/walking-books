@@ -13,7 +13,6 @@ interface IsbnScannerProps {
 export function IsbnScanner({ onScan }: IsbnScannerProps) {
   const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualIsbn, setManualIsbn] = useState("");
-  const [, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<unknown>(null);
@@ -28,12 +27,10 @@ export function IsbnScanner({ onScan }: IsbnScannerProps) {
       }
       html5QrCodeRef.current = null;
     }
-    setScanning(false);
   }, []);
 
   const startScanner = useCallback(async () => {
     setError(null);
-    setScanning(true);
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("isbn-scanner-region");
@@ -53,8 +50,7 @@ export function IsbnScanner({ onScan }: IsbnScannerProps) {
         },
       );
     } catch {
-      setScanning(false);
-      setError(
+        setError(
         "Could not access camera. Please allow camera permissions or enter ISBN manually.",
       );
       setMode("manual");
