@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { DAY_MS } from "./lib/lending";
 
 export const getStats = query({
   args: { userId: v.optional(v.id("users")) },
@@ -26,7 +27,7 @@ export const getStats = query({
     let avgDaysPerBook: number | null = null;
     if (completedReads.length > 0) {
       const totalDays = completedReads.reduce((sum, e) => {
-        const days = (e.returnedAt! - e.pickedUpAt) / (1000 * 60 * 60 * 24);
+        const days = (e.returnedAt! - e.pickedUpAt) / DAY_MS;
         return sum + days;
       }, 0);
       avgDaysPerBook = Math.round((totalDays / completedReads.length) * 10) / 10;

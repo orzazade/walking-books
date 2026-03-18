@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus, type Condition } from "@/convex/lib/validators";
+import { DAY_MS } from "@/convex/lib/lending";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -160,7 +161,7 @@ export default function PartnerInventoryPage() {
             const daysOnShelf =
               copy.status === "available"
                 ? Math.floor(
-                    (Date.now() - copy._creationTime) / (1000 * 60 * 60 * 24),
+                    (Date.now() - copy._creationTime) / DAY_MS,
                   )
                 : null;
 
