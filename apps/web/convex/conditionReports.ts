@@ -38,8 +38,8 @@ export const byLocation = query({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user || !user.roles.includes("admin")) return [];
+    const admin = await getCurrentUser(ctx);
+    if (!admin || !admin.roles.includes("admin")) return [];
     return await ctx.db.query("conditionReports").collect();
   },
 });

@@ -13,6 +13,13 @@ export async function getCurrentUser(
     .unique();
 }
 
+/** Look up the current user, throwing if not authenticated or not an admin. */
+export async function requireAdmin(ctx: QueryCtx): Promise<Doc<"users">> {
+  const user = await requireCurrentUser(ctx);
+  if (!user.roles.includes("admin")) throw new Error("Not authorized");
+  return user;
+}
+
 /** Look up the current user, throwing if not authenticated. */
 export async function requireCurrentUser(
   ctx: QueryCtx,

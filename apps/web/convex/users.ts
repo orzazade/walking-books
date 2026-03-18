@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { getCurrentUser, requireCurrentUser, requireAdmin } from "./lib/auth";
 import { userStatusValidator } from "./lib/validators";
 
 export const createFromClerk = internalMutation({
@@ -102,8 +102,8 @@ export const recalculateReputation = internalMutation({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    const caller = await getCurrentUser(ctx);
-    if (!caller || !caller.roles.includes("admin")) return [];
+    const admin = await getCurrentUser(ctx);
+    if (!admin || !admin.roles.includes("admin")) return [];
     return await ctx.db.query("users").collect();
   },
 });
@@ -114,10 +114,7 @@ export const updateStatus = mutation({
     status: userStatusValidator,
   },
   handler: async (ctx, args) => {
-    const caller = await requireCurrentUser(ctx);
-    if (!caller.roles.includes("admin")) {
-      throw new Error("Not authorized");
-    }
+    await requireAdmin(ctx);
     await ctx.db.patch(args.userId, { status: args.status });
   },
 });
@@ -128,10 +125,7 @@ export const updateRoles = mutation({
     roles: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const caller = await requireCurrentUser(ctx);
-    if (!caller.roles.includes("admin")) {
-      throw new Error("Not authorized");
-    }
+    await requireAdmin(ctx);
     await ctx.db.patch(args.userId, { roles: args.roles });
   },
 });
