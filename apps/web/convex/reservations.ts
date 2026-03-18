@@ -129,14 +129,18 @@ export const expireStale = internalMutation({
       // Expire reservation
       await ctx.db.patch(reservation._id, { status: "expired" });
 
+      // Fetch copy and user in parallel
+      const [copy, user] = await Promise.all([
+        ctx.db.get(reservation.copyId),
+        ctx.db.get(reservation.userId),
+      ]);
+
       // Release copy
-      const copy = await ctx.db.get(reservation.copyId);
       if (copy && copy.status === "reserved") {
         await ctx.db.patch(reservation.copyId, { status: "available" });
       }
 
       // Apply no-show penalty
-      const user = await ctx.db.get(reservation.userId);
       if (user) {
         await ctx.db.patch(user._id, {
           reputationScore: clampScore(
