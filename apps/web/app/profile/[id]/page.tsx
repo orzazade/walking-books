@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
+import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
 import { Authenticated } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -257,9 +258,9 @@ export default function ProfilePage() {
                     </div>
                     <Badge
                       variant="outline"
-                      className="rounded-md capitalize text-[0.6875rem]"
+                      className="rounded-md text-[0.6875rem]"
                     >
-                      {entry.conditionAtReturn ?? entry.conditionAtPickup}
+                      {CONDITION_LABELS[(entry.conditionAtReturn ?? entry.conditionAtPickup) as Condition]}
                     </Badge>
                   </div>
                   {entry.readerNote && (

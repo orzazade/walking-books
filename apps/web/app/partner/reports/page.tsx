@@ -261,7 +261,7 @@ function NewReportForm({
             <button
               key={cond}
               onClick={() => setNewCondition(cond)}
-              className={`rounded-full border px-3 py-1 text-sm capitalize transition-colors ${
+              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                 newCondition === cond
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-muted text-muted-foreground hover:border-muted-foreground/50"
