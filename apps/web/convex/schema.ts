@@ -147,4 +147,21 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_book", ["userId", "bookId"]),
+
+  collections: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
+
+  collectionItems: defineTable({
+    collectionId: v.id("collections"),
+    bookId: v.id("books"),
+    addedAt: v.number(),
+  })
+    .index("by_collection", ["collectionId"])
+    .index("by_collection_book", ["collectionId", "bookId"]),
 });
