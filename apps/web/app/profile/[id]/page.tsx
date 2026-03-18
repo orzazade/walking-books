@@ -1,11 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { useQuery, useMutation, useConvexAuth, Authenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
-import { Authenticated } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, Authenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/star-rating";
 import { ReservationTimer } from "@/components/reservation-timer";
-import { Authenticated } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
