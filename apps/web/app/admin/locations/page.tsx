@@ -22,14 +22,12 @@ import {
   Users,
 } from "lucide-react";
 
-type LocationDoc = Doc<"partnerLocations">;
-
 export default function AdminLocationsPage() {
   const allLocations = useQuery(api.partnerLocations.list);
   const allUsers = useQuery(api.users.listAll);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLocation, setSelectedLocation] =
-    useState<LocationDoc | null>(null);
+    useState<Doc<"partnerLocations"> | null>(null);
 
   if (allLocations === undefined || allUsers === undefined) {
     return <p className="text-muted-foreground">Loading...</p>;
@@ -46,7 +44,7 @@ export default function AdminLocationsPage() {
     return user?.name ?? "Unknown";
   }
 
-  function utilizationPercent(loc: LocationDoc) {
+  function utilizationPercent(loc: Doc<"partnerLocations">) {
     if (loc.shelfCapacity === 0) return 0;
     return Math.round((loc.currentBookCount / loc.shelfCapacity) * 100);
   }
