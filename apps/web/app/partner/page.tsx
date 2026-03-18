@@ -211,11 +211,11 @@ function LocationDashboard({
                     <p className="font-medium">
                       Copy #{copy._id.slice(-6)}
                     </p>
-                    <p className="text-xs text-muted-foreground capitalize">
+                    <p className="text-xs text-muted-foreground">
                       Condition: {CONDITION_LABELS[copy.condition as Condition]}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="capitalize">
+                  <Badge variant="secondary">
                     {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                   </Badge>
                 </CardContent>
@@ -251,7 +251,7 @@ function LocationDashboard({
                       <p className="font-medium">
                         Copy #{copy._id.slice(-6)}
                       </p>
-                      <p className="text-xs text-muted-foreground capitalize">
+                      <p className="text-xs text-muted-foreground">
                         {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                       </p>
                     </div>

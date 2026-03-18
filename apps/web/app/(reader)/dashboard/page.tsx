@@ -283,7 +283,7 @@ function DashboardContent() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className="capitalize text-[0.6875rem]">
+                  <Badge variant="secondary" className="text-[0.6875rem]">
                     {CONDITION_LABELS[copy.condition as Condition]}
                   </Badge>
                   <Button
@@ -420,7 +420,7 @@ function DashboardContent() {
                     variant={
                       copy.status === "available" ? "default" : "secondary"
                     }
-                    className="capitalize text-[0.6875rem]"
+                    className="text-[0.6875rem]"
                   >
                     {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                   </Badge>

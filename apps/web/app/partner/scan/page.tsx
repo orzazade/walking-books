@@ -157,11 +157,10 @@ function ScannedCopyActions({
                     ? "secondary"
                     : "outline"
               }
-              className="capitalize"
             >
               {COPY_STATUS_LABELS[copy.status as keyof typeof COPY_STATUS_LABELS]}
             </Badge>
-            <Badge variant="outline" className="capitalize">
+            <Badge variant="outline">
               {conditionLabel}
             </Badge>
             <Badge variant="outline" className="capitalize">
@@ -218,7 +217,7 @@ function ScannedCopyActions({
         <Card>
           <CardContent className="p-6 text-center">
             <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
-            <p className="font-medium capitalize">
+            <p className="font-medium">
               This copy is {COPY_STATUS_LABELS[copy.status as keyof typeof COPY_STATUS_LABELS]}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">

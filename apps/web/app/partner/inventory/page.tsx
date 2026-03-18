@@ -183,7 +183,6 @@ export default function PartnerInventoryPage() {
                   <div>
                     <Badge
                       variant={STATUS_COLORS[copy.status] || "outline"}
-                      className="capitalize"
                     >
                       {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                     </Badge>

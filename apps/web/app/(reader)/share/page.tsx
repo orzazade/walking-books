@@ -417,7 +417,7 @@ export default function ShareBookPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Condition</span>
-                <Badge variant="secondary" className="capitalize">
+                <Badge variant="secondary">
                   {CONDITION_LABELS[condition]}
                 </Badge>
               </div>

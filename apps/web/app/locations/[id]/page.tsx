@@ -154,7 +154,7 @@ export default function LocationDetailPage() {
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
                     <p className="font-medium">Copy #{copy._id.slice(-6)}</p>
-                    <p className="text-sm text-muted-foreground capitalize">
+                    <p className="text-sm text-muted-foreground">
                       {CONDITION_LABELS[copy.condition as Condition]} &middot;{" "}
                       {copy.ownershipType}
                     </p>
