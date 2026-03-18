@@ -31,6 +31,12 @@ const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructi
   banned: "destructive",
 };
 
+function repColor(score: number) {
+  if (score >= 70) return "text-green-600";
+  if (score >= 30) return "text-amber-600";
+  return "text-destructive";
+}
+
 export default function AdminUsersPage() {
   const allUsers = useQuery(api.users.listAll);
   const updateStatus = useMutation(api.users.updateStatus);
@@ -50,11 +56,6 @@ export default function AdminUsersPage() {
       u.phone.includes(searchTerm),
   );
 
-  const repColor = (score: number) => {
-    if (score >= 70) return "text-green-600";
-    if (score >= 30) return "text-amber-600";
-    return "text-destructive";
-  };
 
   async function handleStatusChange(
     userId: Id<"users">,
