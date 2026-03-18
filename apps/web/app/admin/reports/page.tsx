@@ -105,9 +105,6 @@ export default function AdminReportsPage() {
                     ) : (
                       <Camera className="h-4 w-4 text-muted-foreground" />
                     )}
-                    <span className="font-medium">
-                      {REPORT_TYPE_LABELS[report.type as ReportType]}
-                    </span>
                     <Badge
                       variant={
                         report.type === "damage_report"
