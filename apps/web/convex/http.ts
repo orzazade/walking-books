@@ -18,8 +18,16 @@ http.route({
     }
 
     const bodyText = await request.text();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let body: any;
+    let body: {
+      type: string;
+      data: {
+        id: string;
+        phone_numbers?: { phone_number: string }[];
+        first_name?: string;
+        last_name?: string;
+        image_url?: string;
+      };
+    };
     try {
       body = JSON.parse(bodyText);
     } catch {
