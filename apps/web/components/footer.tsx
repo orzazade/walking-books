@@ -1,16 +1,23 @@
 import Link from "next/link";
 import Image from "next/image";
 
-const NAV_LINKS = [
-  { href: "/browse", label: "Browse" },
-  { href: "/search", label: "Search" },
-  { href: "/locations", label: "Locations" },
-] as const;
-
-const SECONDARY_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/share", label: "Share a Book" },
-  { href: "/settings", label: "Settings" },
+const LINK_COLUMNS = [
+  {
+    heading: "Explore",
+    links: [
+      { href: "/browse", label: "Browse" },
+      { href: "/search", label: "Search" },
+      { href: "/locations", label: "Locations" },
+    ],
+  },
+  {
+    heading: "Account",
+    links: [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/share", label: "Share a Book" },
+      { href: "/settings", label: "Settings" },
+    ],
+  },
 ] as const;
 
 export function Footer() {
@@ -41,40 +48,25 @@ export function Footer() {
 
           {/* Nav links */}
           <div className="flex gap-12">
-            <div>
-              <h3 className="mb-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                Explore
-              </h3>
-              <ul className="space-y-2">
-                {NAV_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-[0.8125rem] text-foreground/70 transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                Account
-              </h3>
-              <ul className="space-y-2">
-                {SECONDARY_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-[0.8125rem] text-foreground/70 transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {LINK_COLUMNS.map((col) => (
+              <div key={col.heading}>
+                <h3 className="mb-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  {col.heading}
+                </h3>
+                <ul className="space-y-2">
+                  {col.links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="text-[0.8125rem] text-foreground/70 transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
