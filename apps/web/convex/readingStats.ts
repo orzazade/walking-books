@@ -33,12 +33,24 @@ export const getStats = query({
       avgDaysPerBook = Math.round((totalDays / completedReads.length) * 10) / 10;
     }
 
-    // Genre breakdown from completed reads
+    // Genre breakdown from completed reads (batch lookups to avoid N+1)
+    const copies = await Promise.all(
+      completedReads.map((e) => ctx.db.get(e.copyId)),
+    );
+    const uniqueBookIds = [...new Set(
+      copies.filter((c) => c !== null).map((c) => c.bookId),
+    )];
+    const books = await Promise.all(
+      uniqueBookIds.map((id) => ctx.db.get(id)),
+    );
+    const bookMap = new Map(
+      books.filter((b) => b !== null).map((b) => [b._id, b]),
+    );
+
     const genreCounts: Record<string, number> = {};
-    for (const entry of completedReads) {
-      const copy = await ctx.db.get(entry.copyId);
+    for (const copy of copies) {
       if (!copy) continue;
-      const book = await ctx.db.get(copy.bookId);
+      const book = bookMap.get(copy.bookId);
       if (!book) continue;
       for (const genre of book.categories) {
         genreCounts[genre] = (genreCounts[genre] || 0) + 1;
