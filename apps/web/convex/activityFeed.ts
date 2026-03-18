@@ -29,9 +29,11 @@ export const feed = query({
 
     const followedIds = new Set(followRows.map((f) => f.followingId));
 
-    // Cache for users and books to avoid redundant lookups
+    // Cache for users, books, copies, and locations to avoid redundant lookups
     const userCache = new Map<string, Doc<"users">>();
     const bookCache = new Map<string, Doc<"books">>();
+    const copyCache = new Map<string, Doc<"copies">>();
+    const locationCache = new Map<string, Doc<"partnerLocations">>();
 
     async function getUser(id: Id<"users">) {
       const cached = userCache.get(id);
@@ -49,6 +51,22 @@ export const feed = query({
       return b;
     }
 
+    async function getCopy(id: Id<"copies">) {
+      const cached = copyCache.get(id);
+      if (cached) return cached;
+      const c = await ctx.db.get(id);
+      if (c) copyCache.set(id, c);
+      return c;
+    }
+
+    async function getLocation(id: Id<"partnerLocations">) {
+      const cached = locationCache.get(id);
+      if (cached) return cached;
+      const l = await ctx.db.get(id);
+      if (l) locationCache.set(id, l);
+      return l;
+    }
+
     const items: FeedItem[] = [];
 
     // Collect journey entries (pickups & returns) from followed users
@@ -59,13 +77,13 @@ export const feed = query({
         .collect();
 
       for (const entry of entries) {
-        const copy = await ctx.db.get(entry.copyId);
+        const copy = await getCopy(entry.copyId);
         if (!copy) continue;
         const book = await getBook(copy.bookId);
         const followedUser = await getUser(followedId);
         if (!book || !followedUser) continue;
 
-        const pickupLocation = await ctx.db.get(entry.pickupLocationId);
+        const pickupLocation = await getLocation(entry.pickupLocationId);
 
         // Pickup event
         items.push({
@@ -88,7 +106,7 @@ export const feed = query({
         // Return event (if returned)
         if (entry.returnedAt) {
           const dropoffLocation = entry.dropoffLocationId
-            ? await ctx.db.get(entry.dropoffLocationId)
+            ? await getLocation(entry.dropoffLocationId)
             : null;
           items.push({
             type: "return",
