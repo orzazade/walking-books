@@ -20,6 +20,7 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 type Condition = "like_new" | "good" | "fair" | "worn";
 type OwnershipType = "donated" | "lent";
@@ -113,8 +114,9 @@ export default function ShareBookPage() {
         copyId: result.copyId,
         bookId: result.bookId,
       });
-    } catch (err) {
-      console.error("Failed to register book:", err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to register book";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
