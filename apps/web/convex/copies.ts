@@ -323,17 +323,24 @@ export const processOverdue = internalMutation({
       )
       .collect();
 
+    // Group overdue copies by holder to batch-fetch and apply cumulative penalties
+    const penaltyByHolder = new Map<typeof overdueCopies[0]["currentHolderId"], number>();
     for (const copy of overdueCopies) {
       if (!copy.currentHolderId) continue;
+      penaltyByHolder.set(
+        copy.currentHolderId,
+        (penaltyByHolder.get(copy.currentHolderId) ?? 0) + REPUTATION.OVERDUE_DAILY,
+      );
+    }
 
-      const user = await ctx.db.get(copy.currentHolderId);
+    const holderIds = [...penaltyByHolder.keys()];
+    const holders = await Promise.all(holderIds.map((id) => ctx.db.get(id!)));
+
+    for (let i = 0; i < holderIds.length; i++) {
+      const user = holders[i];
       if (!user) continue;
-
-      // Apply -1/day penalty (called daily by cron)
       await ctx.db.patch(user._id, {
-        reputationScore: clampScore(
-          user.reputationScore + REPUTATION.OVERDUE_DAILY,
-        ),
+        reputationScore: clampScore(user.reputationScore + penaltyByHolder.get(holderIds[i])!),
       });
     }
   },
