@@ -20,6 +20,7 @@ import type * as lib_reputation from "../lib/reputation.js";
 import type * as notifications from "../notifications.js";
 import type * as partnerLocations from "../partnerLocations.js";
 import type * as readingHistory from "../readingHistory.js";
+import type * as recommendations from "../recommendations.js";
 import type * as reservations from "../reservations.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   partnerLocations: typeof partnerLocations;
   readingHistory: typeof readingHistory;
+  recommendations: typeof recommendations;
   reservations: typeof reservations;
   reviews: typeof reviews;
   seed: typeof seed;
