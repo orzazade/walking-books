@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { type Doc } from "@/convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,19 +22,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-type ReportDoc = {
-  _id: Id<"conditionReports">;
-  _creationTime: number;
-  copyId: Id<"copies">;
-  reportedByUserId?: Id<"users">;
-  reportedByPartnerId?: Id<"partnerLocations">;
-  type: "pickup_check" | "return_check" | "damage_report";
-  photos: string[];
-  description: string;
-  previousCondition: string;
-  newCondition: string;
-  createdAt: number;
-};
+type ReportDoc = Doc<"conditionReports">;
 
 export default function AdminReportsPage() {
   const allReports = useQuery(api.conditionReports.listAll);
