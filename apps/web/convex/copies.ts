@@ -201,14 +201,17 @@ export const returnCopy = mutation({
       returnDeadline: undefined,
     });
 
-    // Close journey entry
-    const journeyEntries = await ctx.db
+    // Close journey entry — filter + first to avoid collecting all history
+    const openEntry = await ctx.db
       .query("journeyEntries")
       .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
-      .collect();
-    const openEntry = journeyEntries.find(
-      (e) => e.readerId === user._id && !e.returnedAt,
-    );
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("readerId"), user._id),
+          q.eq(q.field("returnedAt"), undefined),
+        ),
+      )
+      .first();
     if (openEntry) {
       await ctx.db.patch(openEntry._id, {
         returnedAt: now,
