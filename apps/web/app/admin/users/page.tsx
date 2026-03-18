@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc, type Id } from "@/convex/_generated/dataModel";
+import { type UserStatus } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ export default function AdminUsersPage() {
       u.phone.includes(searchTerm),
   );
 
-  const statusColor = (status: string) => {
+  const statusColor = (status: UserStatus) => {
     switch (status) {
       case "active":
         return "default" as const;
@@ -51,8 +52,6 @@ export default function AdminUsersPage() {
         return "secondary" as const;
       case "banned":
         return "destructive" as const;
-      default:
-        return "secondary" as const;
     }
   };
 

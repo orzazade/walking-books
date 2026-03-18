@@ -47,18 +47,15 @@ export default function AdminReportsPage() {
     return "Partner staff";
   }
 
-  function conditionBadgeColor(condition: string) {
+  function conditionBadgeColor(condition: Condition) {
     switch (condition) {
       case "like_new":
         return "default" as const;
       case "good":
-        return "secondary" as const;
       case "fair":
         return "secondary" as const;
       case "worn":
         return "destructive" as const;
-      default:
-        return "secondary" as const;
     }
   }
 
