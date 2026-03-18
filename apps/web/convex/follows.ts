@@ -31,6 +31,8 @@ export const toggle = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!user) throw new Error("User not found");
+    if (user._id === args.targetUserId)
+      throw new Error("Cannot follow yourself");
     const existing = await ctx.db
       .query("follows")
       .withIndex("by_pair", (q) =>
