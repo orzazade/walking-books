@@ -92,7 +92,7 @@ export const myWaitlist = query({
           )
           .collect();
         const position = waiters.filter(
-          (w) => w.joinedAt < entry.joinedAt,
+          (w) => w.joinedAt < entry.joinedAt || (w.joinedAt === entry.joinedAt && w._creationTime < entry._creationTime),
         ).length + 1;
 
         return {
@@ -143,7 +143,7 @@ export const position = query({
       )
       .collect();
     const position = waiters.filter(
-      (w) => w.joinedAt < activeEntry.joinedAt,
+      (w) => w.joinedAt < activeEntry.joinedAt || (w.joinedAt === activeEntry.joinedAt && w._creationTime < activeEntry._creationTime),
     ).length + 1;
 
     return { position, status: "waiting" as const, notifiedAt: null };
