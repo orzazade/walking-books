@@ -113,17 +113,10 @@ export default function AdminAnalyticsPage() {
     "90-100": 0,
   };
   for (const user of allUsers) {
-    const score = Math.min(user.reputationScore, 100);
-    if (score < 10) repBuckets["0-9"]++;
-    else if (score < 20) repBuckets["10-19"]++;
-    else if (score < 30) repBuckets["20-29"]++;
-    else if (score < 40) repBuckets["30-39"]++;
-    else if (score < 50) repBuckets["40-49"]++;
-    else if (score < 60) repBuckets["50-59"]++;
-    else if (score < 70) repBuckets["60-69"]++;
-    else if (score < 80) repBuckets["70-79"]++;
-    else if (score < 90) repBuckets["80-89"]++;
-    else repBuckets["90-100"]++;
+    const score = Math.min(Math.max(user.reputationScore, 0), 100);
+    const index = Math.min(Math.floor(score / 10), 9);
+    const key = index === 9 ? "90-100" : `${index * 10}-${index * 10 + 9}`;
+    repBuckets[key]++;
   }
   const reputationData = Object.entries(repBuckets).map(([label, value]) => ({
     label,
