@@ -1,15 +1,11 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const myLocation = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return null;
 
     // Check as manager first
@@ -38,13 +34,7 @@ export const update = mutation({
     staffUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");

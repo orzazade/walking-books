@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireCurrentUser } from "./lib/auth";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -18,14 +19,7 @@ export const create = mutation({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     // Upsert: one review per user per book
     const existing = await ctx.db

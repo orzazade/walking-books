@@ -1,16 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const active = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return [];
     return await ctx.db
       .query("reservations")
@@ -27,13 +23,7 @@ export const create = mutation({
     locationId: v.id("partnerLocations"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
 
     // Check reputation restrictions
     const restrictions = getUserRestrictions(user.reputationScore);
@@ -89,19 +79,13 @@ export const create = mutation({
 export const cancel = mutation({
   args: { reservationId: v.id("reservations") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const user = await requireCurrentUser(ctx);
 
     const reservation = await ctx.db.get(args.reservationId);
     if (!reservation) throw new Error("Reservation not found");
     if (reservation.status !== "active")
       throw new Error("Reservation is not active");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user || user._id !== reservation.userId)
+    if (user._id !== reservation.userId)
       throw new Error("Not your reservation");
 
     await ctx.db.patch(args.reservationId, { status: "cancelled" });
