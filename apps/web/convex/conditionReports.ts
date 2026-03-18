@@ -57,8 +57,18 @@ export const create = mutation({
     ),
     photos: v.array(v.string()),
     description: v.string(),
-    previousCondition: v.string(),
-    newCondition: v.string(),
+    previousCondition: v.union(
+      v.literal("like_new"),
+      v.literal("good"),
+      v.literal("fair"),
+      v.literal("worn"),
+    ),
+    newCondition: v.union(
+      v.literal("like_new"),
+      v.literal("good"),
+      v.literal("fair"),
+      v.literal("worn"),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -85,11 +95,7 @@ export const create = mutation({
     // If damage report, update copy condition
     if (args.type === "damage_report") {
       await ctx.db.patch(args.copyId, {
-        condition: args.newCondition as
-          | "like_new"
-          | "good"
-          | "fair"
-          | "worn",
+        condition: args.newCondition,
       });
     }
 

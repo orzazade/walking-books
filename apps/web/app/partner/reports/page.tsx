@@ -199,7 +199,7 @@ function NewReportForm({
 }: {
   copies: Array<{
     _id: Id<"copies">;
-    condition: string;
+    condition: "like_new" | "good" | "fair" | "worn";
     status: string;
   }>;
   onSuccess: () => void;
@@ -207,7 +207,7 @@ function NewReportForm({
   const createReport = useMutation(api.conditionReports.create);
   const [copyId, setCopyId] = useState("");
   const [description, setDescription] = useState("");
-  const [newCondition, setNewCondition] = useState<string>("fair");
+  const [newCondition, setNewCondition] = useState<"like_new" | "good" | "fair" | "worn">("fair");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,7 +228,7 @@ function NewReportForm({
         type: "damage_report",
         photos: [],
         description: description.trim(),
-        previousCondition: selectedCopy?.condition || "unknown",
+        previousCondition: selectedCopy?.condition ?? "fair",
         newCondition,
       });
       onSuccess();
