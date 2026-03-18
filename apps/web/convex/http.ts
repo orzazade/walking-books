@@ -40,12 +40,17 @@ http.route({
       const phone = phone_numbers?.[0]?.phone_number ?? "";
       const name = [first_name, last_name].filter(Boolean).join(" ") || "Reader";
 
-      await ctx.runMutation(internal.users.createFromClerk, {
-        clerkId: id,
-        phone,
-        name,
-        avatarUrl: image_url ?? undefined,
-      });
+      try {
+        await ctx.runMutation(internal.users.createFromClerk, {
+          clerkId: id,
+          phone,
+          name,
+          avatarUrl: image_url ?? undefined,
+        });
+      } catch (error) {
+        console.error("Failed to create user from Clerk webhook:", error);
+        return new Response("Internal error", { status: 500 });
+      }
     }
 
     return new Response("OK", { status: 200 });
