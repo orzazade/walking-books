@@ -13,7 +13,7 @@ interface IsbnScannerProps {
 export function IsbnScanner({ onScan }: IsbnScannerProps) {
   const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualIsbn, setManualIsbn] = useState("");
-  const [scanning, setScanning] = useState(false);
+  const [, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<unknown>(null);

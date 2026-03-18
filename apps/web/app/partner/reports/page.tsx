@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertTriangle,
-  CheckCircle,
-  Eye,
   Plus,
   Loader2,
   Camera,

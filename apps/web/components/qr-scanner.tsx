@@ -13,7 +13,7 @@ interface QrScannerProps {
 export function QrScanner({ onScan }: QrScannerProps) {
   const [mode, setMode] = useState<"choose" | "camera" | "manual">("choose");
   const [manualId, setManualId] = useState("");
-  const [scanning, setScanning] = useState(false);
+  const [, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<unknown>(null);

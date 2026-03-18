@@ -3,7 +3,6 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { LocationMap } from "@/components/location-map";
-import { useState } from "react";
 import { MapPin } from "lucide-react";
 
 interface LocationPickerProps {
