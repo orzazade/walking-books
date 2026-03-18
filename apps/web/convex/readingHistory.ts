@@ -1,13 +1,9 @@
 import { query } from "./_generated/server";
+import { getCurrentUser } from "./lib/auth";
 
 export const myHistory = query({
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return [];
 
     const entries = await ctx.db

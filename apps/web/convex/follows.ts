@@ -1,15 +1,11 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const isFollowing = query({
   args: { targetUserId: v.id("users") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return false;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return false;
     const follow = await ctx.db
       .query("follows")
@@ -24,13 +20,7 @@ export const isFollowing = query({
 export const toggle = mutation({
   args: { targetUserId: v.id("users") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
     if (user._id === args.targetUserId)
       throw new Error("Cannot follow yourself");
     const existing = await ctx.db

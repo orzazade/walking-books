@@ -1,15 +1,11 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const isWishlisted = query({
   args: { bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return false;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return false;
     const entry = await ctx.db
       .query("wishlist")
@@ -24,13 +20,7 @@ export const isWishlisted = query({
 export const toggle = mutation({
   args: { bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!user) throw new Error("User not found");
+    const user = await requireCurrentUser(ctx);
     const book = await ctx.db.get(args.bookId);
     if (!book) throw new Error("Book not found");
     const existing = await ctx.db
@@ -54,12 +44,7 @@ export const toggle = mutation({
 
 export const myWishlist = query({
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getCurrentUser(ctx);
     if (!user) return [];
     const entries = await ctx.db
       .query("wishlist")
