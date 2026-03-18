@@ -97,12 +97,9 @@ export const update = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
     if (!user) throw new Error("User not found");
-    const updates: Record<string, unknown> = {};
-    if (args.name !== undefined) updates.name = args.name;
-    if (args.bio !== undefined) updates.bio = args.bio;
-    if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
-    if (args.favoriteGenres !== undefined)
-      updates.favoriteGenres = args.favoriteGenres;
+    const updates = Object.fromEntries(
+      Object.entries(args).filter(([, v]) => v !== undefined),
+    );
     await ctx.db.patch(user._id, updates);
   },
 });
