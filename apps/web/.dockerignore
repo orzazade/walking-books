@@ -1,0 +1,9 @@
+node_modules
+.next
+.turbo
+.git
+.claude
+.env*
+.DS_Store
+*.tsbuildinfo
+.planning

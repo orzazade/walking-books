@@ -1,0 +1,386 @@
+import { v } from "convex/values";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { getEffectiveLendingDays } from "./lib/lending";
+import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
+
+export const byBook = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("copies")
+      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+      .collect();
+  },
+});
+
+export const byId = query({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.copyId);
+  },
+});
+
+export const journey = query({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("journeyEntries")
+      .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
+      .collect();
+  },
+});
+
+export const byLocation = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("copies")
+      .withIndex("by_location", (q) =>
+        q.eq("currentLocationId", args.locationId).eq("status", "available"),
+      )
+      .collect();
+  },
+});
+
+export const allAtLocation = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    // Get all copies at this location regardless of status
+    // The index is (currentLocationId, status), so we query by locationId only
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_location", (q) => q.eq("currentLocationId", args.locationId))
+      .collect();
+    return copies;
+  },
+});
+
+export const byHolder = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) return [];
+    return await ctx.db
+      .query("copies")
+      .withIndex("by_holder", (q) => q.eq("currentHolderId", user._id))
+      .collect();
+  },
+});
+
+export const bySharer = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) return [];
+    return await ctx.db
+      .query("copies")
+      .withIndex("by_sharer", (q) => q.eq("originalSharerId", user._id))
+      .collect();
+  },
+});
+
+export const pickup = mutation({
+  args: {
+    copyId: v.id("copies"),
+    locationId: v.id("partnerLocations"),
+    reservationId: v.optional(v.id("reservations")),
+    conditionAtPickup: v.string(),
+    photos: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+    if (copy.status !== "available" && copy.status !== "reserved")
+      throw new Error("Copy not available for pickup");
+
+    // Fulfill reservation if provided
+    if (args.reservationId) {
+      const reservation = await ctx.db.get(args.reservationId);
+      if (reservation && reservation.status === "active") {
+        await ctx.db.patch(args.reservationId, { status: "fulfilled" });
+      }
+    }
+
+    // Calculate lending period
+    const book = await ctx.db.get(copy.bookId);
+    const pageCount = book?.pageCount ?? 200;
+    let lendingDays = getEffectiveLendingDays(
+      pageCount,
+      copy.sharerMaxLendingDays,
+    );
+
+    // Warning zone: cap at 14 days for users with score 30-49
+    const restrictions = getUserRestrictions(user.reputationScore);
+    if (restrictions.tier === "warning") {
+      lendingDays = Math.min(lendingDays, 14);
+    }
+
+    const now = Date.now();
+    const returnDeadline =
+      copy.ownershipType === "lent"
+        ? now + lendingDays * 24 * 60 * 60 * 1000
+        : undefined;
+
+    // Update copy
+    await ctx.db.patch(args.copyId, {
+      status: "checked_out",
+      currentHolderId: user._id,
+      returnDeadline,
+      lendingPeriodDays: lendingDays,
+    });
+
+    // Create journey entry
+    await ctx.db.insert("journeyEntries", {
+      copyId: args.copyId,
+      readerId: user._id,
+      pickupLocationId: args.locationId,
+      dropoffLocationId: undefined,
+      pickedUpAt: now,
+      returnedAt: undefined,
+      conditionAtPickup: args.conditionAtPickup,
+      conditionAtReturn: undefined,
+      pickupPhotos: args.photos,
+      returnPhotos: [],
+      readerNote: undefined,
+      reservationId: args.reservationId,
+    });
+
+    // Create condition report
+    await ctx.db.insert("conditionReports", {
+      copyId: args.copyId,
+      reportedByUserId: user._id,
+      reportedByPartnerId: undefined,
+      type: "pickup_check",
+      photos: args.photos,
+      description: `Pickup condition: ${args.conditionAtPickup}`,
+      previousCondition: copy.condition,
+      newCondition: args.conditionAtPickup,
+      createdAt: now,
+    });
+
+    // Update user booksRead
+    await ctx.db.patch(user._id, { booksRead: user.booksRead + 1 });
+
+    return { success: true };
+  },
+});
+
+export const returnCopy = mutation({
+  args: {
+    copyId: v.id("copies"),
+    locationId: v.id("partnerLocations"),
+    conditionAtReturn: v.string(),
+    photos: v.array(v.string()),
+    readerNote: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+    if (copy.currentHolderId !== user._id)
+      throw new Error("You are not the current holder");
+
+    const now = Date.now();
+
+    // Calculate reputation change
+    let repChange = 0;
+    const isOnTime = !copy.returnDeadline || now <= copy.returnDeadline;
+    if (isOnTime) {
+      repChange += REPUTATION.RETURN_ON_TIME;
+    } else {
+      repChange += REPUTATION.LATE_RETURN;
+    }
+
+    // Good condition bonus
+    const goodConditions = ["like_new", "good"];
+    if (goodConditions.includes(args.conditionAtReturn)) {
+      repChange += REPUTATION.GOOD_CONDITION;
+    }
+
+    // Note bonus
+    if (args.readerNote) {
+      repChange += REPUTATION.LEAVE_NOTE;
+    }
+
+    // Update reputation
+    await ctx.db.patch(user._id, {
+      reputationScore: clampScore(user.reputationScore + repChange),
+    });
+
+    // Determine new status: recalled if lent with deadline, otherwise available
+    const newStatus =
+      copy.ownershipType === "lent" && copy.returnDeadline
+        ? "recalled"
+        : "available";
+
+    // Update copy
+    await ctx.db.patch(args.copyId, {
+      status: newStatus,
+      currentHolderId: undefined,
+      currentLocationId: args.locationId,
+      returnDeadline: undefined,
+    });
+
+    // Close journey entry
+    const journeyEntries = await ctx.db
+      .query("journeyEntries")
+      .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
+      .collect();
+    const openEntry = journeyEntries.find(
+      (e) => e.readerId === user._id && !e.returnedAt,
+    );
+    if (openEntry) {
+      await ctx.db.patch(openEntry._id, {
+        returnedAt: now,
+        conditionAtReturn: args.conditionAtReturn,
+        dropoffLocationId: args.locationId,
+        returnPhotos: args.photos,
+        readerNote: args.readerNote,
+      });
+    }
+
+    // Create condition report
+    await ctx.db.insert("conditionReports", {
+      copyId: args.copyId,
+      reportedByUserId: user._id,
+      reportedByPartnerId: undefined,
+      type: "return_check",
+      photos: args.photos,
+      description: `Return condition: ${args.conditionAtReturn}`,
+      previousCondition: copy.condition,
+      newCondition: args.conditionAtReturn,
+      createdAt: now,
+    });
+
+    return { success: true, reputationChange: repChange };
+  },
+});
+
+export const recall = mutation({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+    if (copy.originalSharerId !== user._id)
+      throw new Error("Only the sharer can recall");
+
+    if (copy.status === "available") {
+      await ctx.db.patch(args.copyId, { status: "recalled" });
+    } else if (copy.status === "checked_out") {
+      // Set 7-day grace deadline
+      const graceDeadline = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      const newDeadline =
+        copy.returnDeadline && copy.returnDeadline < graceDeadline
+          ? copy.returnDeadline
+          : graceDeadline;
+      await ctx.db.patch(args.copyId, {
+        status: "recalled",
+        returnDeadline: newDeadline,
+      });
+    } else {
+      throw new Error("Cannot recall copy in current status");
+    }
+
+    return { success: true };
+  },
+});
+
+export const extend = mutation({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+    if (copy.currentHolderId !== user._id)
+      throw new Error("You are not the current holder");
+    if (copy.status !== "checked_out")
+      throw new Error("Copy is not checked out");
+
+    // Check no active reservation waiting
+    const activeReservation = await ctx.db
+      .query("reservations")
+      .withIndex("by_copy", (q) =>
+        q.eq("copyId", args.copyId).eq("status", "active"),
+      )
+      .first();
+    if (activeReservation)
+      throw new Error("Cannot extend: there is an active reservation");
+
+    // Extend by 50% of original period
+    const originalDays = copy.lendingPeriodDays ?? 21;
+    const extensionDays = Math.ceil(originalDays * 0.5);
+    const currentDeadline = copy.returnDeadline ?? Date.now();
+    const newDeadline =
+      currentDeadline + extensionDays * 24 * 60 * 60 * 1000;
+
+    await ctx.db.patch(args.copyId, { returnDeadline: newDeadline });
+
+    return { success: true, newDeadline, extensionDays };
+  },
+});
+
+export const processOverdue = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const overdueCopies = await ctx.db
+      .query("copies")
+      .withIndex("by_status_deadline", (q) => q.eq("status", "checked_out"))
+      .collect();
+
+    for (const copy of overdueCopies) {
+      if (!copy.returnDeadline || copy.returnDeadline >= now) continue;
+      if (!copy.currentHolderId) continue;
+
+      const user = await ctx.db.get(copy.currentHolderId);
+      if (!user) continue;
+
+      // Apply -1/day penalty (called daily by cron)
+      await ctx.db.patch(user._id, {
+        reputationScore: clampScore(
+          user.reputationScore + REPUTATION.OVERDUE_DAILY,
+        ),
+      });
+    }
+  },
+});

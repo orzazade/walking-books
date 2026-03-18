@@ -1,0 +1,8 @@
+node_modules
+.next
+.env.local
+.env
+.planning
+.superpowers
+.turbo
+bun.lock
