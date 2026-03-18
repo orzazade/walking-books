@@ -52,6 +52,26 @@ export function Header() {
 
   const mobileItems = [...NAV_ITEMS, ...AUTH_ITEMS];
 
+  function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof BookMarked }) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[0.8125rem] font-medium transition-colors",
+          isActive(href)
+            ? "text-primary"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+        {isActive(href) && (
+          <span className="absolute bottom-0 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
+        )}
+      </Link>
+    );
+  }
+
   return (
     <header
       className={cn(
@@ -75,43 +95,13 @@ export function Header() {
         {/* Desktop nav */}
         <nav className="hidden items-center gap-0.5 md:flex">
           {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[0.8125rem] font-medium transition-colors",
-                isActive(item.href)
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
-              {isActive(item.href) && (
-                <span className="absolute bottom-0 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
-              )}
-            </Link>
+            <NavLink key={item.href} {...item} />
           ))}
 
           <Authenticated>
             <div className="mx-3 h-4 w-px bg-border/60" />
             {AUTH_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[0.8125rem] font-medium transition-colors",
-                  isActive(item.href)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <item.icon className="h-3.5 w-3.5" />
-                {item.label}
-                {isActive(item.href) && (
-                  <span className="absolute bottom-0 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
-                )}
-              </Link>
+              <NavLink key={item.href} {...item} />
             ))}
             <div className="ml-2">
               <UserButton />
