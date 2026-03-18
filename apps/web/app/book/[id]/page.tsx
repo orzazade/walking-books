@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type Condition, type CopyStatus } from "@/convex/lib/validators";
 
+const COPY_STATUS_COLOR: Record<string, string> = {
+  available: "bg-primary/10 text-primary border-primary/20",
+  reserved: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+};
+
 export default function BookDetailPage() {
   const params = useParams();
   const bookId = params.id as Id<"books">;
@@ -114,17 +119,6 @@ export default function BookDetailPage() {
       setSubmitting(false);
     }
   }
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-primary/10 text-primary border-primary/20";
-      case "reserved":
-        return "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400";
-      default:
-        return "bg-secondary text-secondary-foreground border-border/40";
-    }
-  };
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10">
@@ -259,7 +253,7 @@ export default function BookDetailPage() {
                     <div className="space-y-1.5">
                       <div className="flex gap-2">
                         <Badge
-                          className={`rounded-md border text-[0.6875rem] ${statusColor(copy.status)}`}
+                          className={`rounded-md border text-[0.6875rem] ${COPY_STATUS_COLOR[copy.status] ?? "bg-secondary text-secondary-foreground border-border/40"}`}
                         >
                           {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                         </Badge>
