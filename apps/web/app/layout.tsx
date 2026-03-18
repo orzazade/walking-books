@@ -7,6 +7,7 @@ import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { UserSync } from "@/components/user-sync";
+import { Toaster } from "@/components/ui/sonner";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 const cormorant = Cormorant({ subsets: ["latin"], variable: "--font-serif" });
@@ -51,6 +52,7 @@ export default function RootLayout({
               {children}
             </div>
             <Footer />
+            <Toaster />
           </ConvexClientProvider>
         </ClerkProvider>
       </body>
