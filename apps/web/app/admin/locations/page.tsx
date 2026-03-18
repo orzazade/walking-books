@@ -22,6 +22,17 @@ import {
   Users,
 } from "lucide-react";
 
+function utilizationPercent(loc: Doc<"partnerLocations">) {
+  if (loc.shelfCapacity === 0) return 0;
+  return Math.round((loc.currentBookCount / loc.shelfCapacity) * 100);
+}
+
+function utilizationColor(pct: number) {
+  if (pct >= 90) return "text-destructive";
+  if (pct >= 70) return "text-amber-600";
+  return "text-green-600";
+}
+
 export default function AdminLocationsPage() {
   const allLocations = useQuery(api.partnerLocations.list);
   const allUsers = useQuery(api.users.listAll);
@@ -42,17 +53,6 @@ export default function AdminLocationsPage() {
   function getManagerName(managerId: Id<"users">) {
     const user = allUsers?.find((u) => u._id === managerId);
     return user?.name ?? "Unknown";
-  }
-
-  function utilizationPercent(loc: Doc<"partnerLocations">) {
-    if (loc.shelfCapacity === 0) return 0;
-    return Math.round((loc.currentBookCount / loc.shelfCapacity) * 100);
-  }
-
-  function utilizationColor(pct: number) {
-    if (pct >= 90) return "text-destructive";
-    if (pct >= 70) return "text-amber-600";
-    return "text-green-600";
   }
 
   return (
