@@ -40,6 +40,18 @@ export const create = mutation({
         rating: args.rating,
         text: args.text,
       });
+
+      // Recalculate book average with updated rating
+      const book = await ctx.db.get(args.bookId);
+      if (book && book.reviewCount > 0) {
+        const newAvg =
+          (book.avgRating * book.reviewCount - existing.rating + args.rating) /
+          book.reviewCount;
+        await ctx.db.patch(args.bookId, {
+          avgRating: Math.round(newAvg * 10) / 10,
+        });
+      }
+
       return existing._id;
     }
 
