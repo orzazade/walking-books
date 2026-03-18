@@ -4,6 +4,7 @@ import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lendin
 import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions } from "./lib/reputation";
 import { conditionValidator, CONDITION_LABELS } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { notifyNextWaiter } from "./lib/waitlist";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -236,19 +237,7 @@ export const returnCopy = mutation({
 
     // Notify the next person on the waitlist if the copy is now available
     if (newStatus === "available") {
-      const nextWaiter = await ctx.db
-        .query("waitlist")
-        .withIndex("by_book_status", (q) =>
-          q.eq("bookId", copy.bookId).eq("status", "waiting"),
-        )
-        .first();
-      if (nextWaiter) {
-        await ctx.db.patch(nextWaiter._id, {
-          status: "notified",
-          notifiedAt: now,
-          notifiedCopyId: args.copyId,
-        });
-      }
+      await notifyNextWaiter(ctx, copy.bookId, args.copyId, now);
     }
 
     return { success: true, reputationChange: repChange };

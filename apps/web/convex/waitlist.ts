@@ -1,9 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
-
-/** 24-hour window for a notified user to reserve before the slot moves on. */
-const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+import { notifyNextWaiter } from "./lib/waitlist";
 
 export const join = mutation({
   args: { bookId: v.id("books") },
@@ -159,37 +157,6 @@ export const position = query({
 export const notifyNext = mutation({
   args: { bookId: v.id("books"), copyId: v.id("copies") },
   handler: async (ctx, args) => {
-    // Expire any stale notifications first (past 24h window)
-    const notified = await ctx.db
-      .query("waitlist")
-      .withIndex("by_book_status", (q) =>
-        q.eq("bookId", args.bookId).eq("status", "notified"),
-      )
-      .collect();
-
-    const now = Date.now();
-    for (const entry of notified) {
-      if (entry.notifiedAt && now - entry.notifiedAt > NOTIFICATION_WINDOW_MS) {
-        await ctx.db.patch(entry._id, { status: "cancelled" });
-      }
-    }
-
-    // Find the next waiting user (FIFO by joinedAt)
-    const nextWaiter = await ctx.db
-      .query("waitlist")
-      .withIndex("by_book_status", (q) =>
-        q.eq("bookId", args.bookId).eq("status", "waiting"),
-      )
-      .first();
-
-    if (!nextWaiter) return null;
-
-    await ctx.db.patch(nextWaiter._id, {
-      status: "notified",
-      notifiedAt: now,
-      notifiedCopyId: args.copyId,
-    });
-
-    return nextWaiter.userId;
+    return await notifyNextWaiter(ctx, args.bookId, args.copyId, Date.now());
   },
 });
