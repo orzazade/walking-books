@@ -15,6 +15,12 @@ import {
   Share2,
 } from "lucide-react";
 
+const QUICK_ACTIONS = [
+  { href: "/search", icon: Search, title: "Search by title", description: "Find a specific book or author" },
+  { href: "/browse", icon: BookOpen, title: "Browse categories", description: "Explore what is available now" },
+  { href: "/locations", icon: MapPin, title: "Find a cafe", description: "See nearby partner locations" },
+] as const;
+
 const STEPS = [
   {
     number: "01",
@@ -134,56 +140,24 @@ export default function Home() {
             </div>
 
             <div className="space-y-2">
-              <Link href="/search" className="quick-action-link">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                    <Search className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-[0.8125rem] font-medium">
-                      Search by title
+              {QUICK_ACTIONS.map((action) => (
+                <Link key={action.href} href={action.href} className="quick-action-link">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                      <action.icon className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <div className="text-[0.6875rem] text-muted-foreground">
-                      Find a specific book or author
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-              </Link>
-
-              <Link href="/browse" className="quick-action-link">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-[0.8125rem] font-medium">
-                      Browse categories
-                    </div>
-                    <div className="text-[0.6875rem] text-muted-foreground">
-                      Explore what is available now
+                    <div>
+                      <div className="text-[0.8125rem] font-medium">
+                        {action.title}
+                      </div>
+                      <div className="text-[0.6875rem] text-muted-foreground">
+                        {action.description}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-              </Link>
-
-              <Link href="/locations" className="quick-action-link">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-[0.8125rem] font-medium">
-                      Find a cafe
-                    </div>
-                    <div className="text-[0.6875rem] text-muted-foreground">
-                      See nearby partner locations
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-              </Link>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                </Link>
+              ))}
             </div>
           </div>
         </div>
