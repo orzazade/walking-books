@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X } from "lucide-react";
 
 interface ConditionPhotoCaptureProps {
   onCapture: (dataUrl: string) => void;
