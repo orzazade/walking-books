@@ -3,9 +3,11 @@ import { convexTest } from "convex-test";
 import schema from "./schema";
 import { api } from "./_generated/api";
 
+const modules = import.meta.glob("./**/*.*s");
+
 describe("wishlist", () => {
   it("toggle adds a book to the wishlist for an authenticated user", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const userId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", {
@@ -59,7 +61,7 @@ describe("wishlist", () => {
   });
 
   it("myWishlist returns books with availability info", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const userId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", {
@@ -112,7 +114,7 @@ describe("wishlist", () => {
   });
 
   it("availableNow returns wishlisted books that have available copies", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const userId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", {
@@ -199,13 +201,13 @@ describe("wishlist", () => {
   });
 
   it("availableNow returns empty for unauthenticated users", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
     const result = await t.query(api.wishlist.availableNow, {});
     expect(result).toEqual([]);
   });
 
   it("isWishlisted returns false for unauthenticated users", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const bookId = await t.run(async (ctx) => {
       return await ctx.db.insert("books", {
@@ -226,7 +228,7 @@ describe("wishlist", () => {
   });
 
   it("toggle throws for unauthenticated users", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const bookId = await t.run(async (ctx) => {
       return await ctx.db.insert("books", {

@@ -3,9 +3,11 @@ import { convexTest } from "convex-test";
 import schema from "./schema";
 import { api } from "./_generated/api";
 
+const modules = import.meta.glob("./**/*.*s");
+
 describe("readingHistory", () => {
   it("returns completed reads sorted by most recent", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const { userId, locationId } = await t.run(async (ctx) => {
       const uid = await ctx.db.insert("users", {
@@ -124,7 +126,7 @@ describe("readingHistory", () => {
   });
 
   it("excludes in-progress reads (not yet returned)", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const { userId, locationId } = await t.run(async (ctx) => {
       const uid = await ctx.db.insert("users", {
@@ -193,7 +195,7 @@ describe("readingHistory", () => {
   });
 
   it("returns empty array for unauthenticated users", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
     const history = await t.query(api.readingHistory.myHistory, {});
     expect(history).toEqual([]);
   });

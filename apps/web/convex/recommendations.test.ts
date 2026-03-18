@@ -3,9 +3,11 @@ import { convexTest } from "convex-test";
 import schema from "./schema";
 import { api } from "./_generated/api";
 
+const modules = import.meta.glob("./**/*.*s");
+
 describe("recommendations", () => {
   it("recommends books matching user favorite genres, excludes already-read", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     const { userId, locationId } = await t.run(async (ctx) => {
       const uid = await ctx.db.insert("users", {
@@ -138,7 +140,7 @@ describe("recommendations", () => {
   });
 
   it("falls back to highly-rated books when user has no favorite genres", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
 
     await t.run(async (ctx) => {
       await ctx.db.insert("users", {
@@ -223,7 +225,7 @@ describe("recommendations", () => {
   });
 
   it("returns empty array for unauthenticated users", async () => {
-    const t = convexTest(schema);
+    const t = convexTest(schema, modules);
     const recs = await t.query(api.recommendations.forMe, {});
     expect(recs).toEqual([]);
   });
