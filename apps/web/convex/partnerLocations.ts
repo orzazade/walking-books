@@ -51,12 +51,11 @@ export const update = mutation({
     if (location.managedByUserId !== user._id)
       throw new Error("Only the manager can update location settings");
 
-    const { locationId, ...updates } = args;
-    const cleanUpdates: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(updates)) {
-      if (val !== undefined) cleanUpdates[key] = val;
-    }
-    await ctx.db.patch(locationId, cleanUpdates);
+    const { locationId, ...rest } = args;
+    const updates = Object.fromEntries(
+      Object.entries(rest).filter(([, v]) => v !== undefined),
+    );
+    await ctx.db.patch(locationId, updates);
     return { success: true };
   },
 });

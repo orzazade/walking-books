@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
+import { conditionValidator } from "./lib/validators";
 
 async function enrichWithAvailability<
   T extends {
@@ -93,12 +94,7 @@ export const register = mutation({
     language: v.string(),
     publisher: v.optional(v.string()),
     ownershipType: v.union(v.literal("donated"), v.literal("lent")),
-    condition: v.union(
-      v.literal("like_new"),
-      v.literal("good"),
-      v.literal("fair"),
-      v.literal("worn"),
-    ),
+    condition: conditionValidator,
     locationId: v.id("partnerLocations"),
     sharerMaxLendingDays: v.optional(v.number()),
   },
