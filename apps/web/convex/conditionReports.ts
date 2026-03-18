@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { conditionValidator } from "./lib/validators";
 
 export const byCopy = query({
   args: { copyId: v.id("copies") },
@@ -57,18 +58,8 @@ export const create = mutation({
     ),
     photos: v.array(v.string()),
     description: v.string(),
-    previousCondition: v.union(
-      v.literal("like_new"),
-      v.literal("good"),
-      v.literal("fair"),
-      v.literal("worn"),
-    ),
-    newCondition: v.union(
-      v.literal("like_new"),
-      v.literal("good"),
-      v.literal("fair"),
-      v.literal("worn"),
-    ),
+    previousCondition: conditionValidator,
+    newCondition: conditionValidator,
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
+import { conditionValidator } from "./lib/validators";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -91,7 +92,7 @@ export const pickup = mutation({
     copyId: v.id("copies"),
     locationId: v.id("partnerLocations"),
     reservationId: v.optional(v.id("reservations")),
-    conditionAtPickup: v.string(),
+    conditionAtPickup: conditionValidator,
     photos: v.array(v.string()),
   },
   handler: async (ctx, args) => {
@@ -184,7 +185,7 @@ export const returnCopy = mutation({
   args: {
     copyId: v.id("copies"),
     locationId: v.id("partnerLocations"),
-    conditionAtReturn: v.string(),
+    conditionAtReturn: conditionValidator,
     photos: v.array(v.string()),
     readerNote: v.optional(v.string()),
   },

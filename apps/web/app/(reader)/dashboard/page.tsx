@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
+import { type Condition } from "@/convex/lib/validators";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@clerk/nextjs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,7 +61,7 @@ function DashboardContent() {
     copyId: Id<"copies">;
   } | null>(null);
   const [returnLocationId, setReturnLocationId] = useState<string>("");
-  const [returnCondition, setReturnCondition] = useState<string>("good");
+  const [returnCondition, setReturnCondition] = useState<Condition>("good");
   const [returnNote, setReturnNote] = useState("");
 
   if (user === undefined) {
