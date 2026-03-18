@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { StatCard } from "@/components/stat-card";
 import {
   BookOpen,
   Clock,
@@ -96,44 +97,10 @@ function LocationDashboard({
 
       {/* Today's overview */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              On Shelf
-            </span>
-            <span className="text-lg font-bold">{availableCopies.length}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Clock className="h-5 w-5 text-amber-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Reserved
-            </span>
-            <span className="text-lg font-bold">{reservedCopies.length}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Checked Out
-            </span>
-            <span className="text-lg font-bold">
-              {checkedOutCopies.length}
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Package className="h-5 w-5 text-muted-foreground" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Capacity
-            </span>
-            <span className="text-lg font-bold">{shelfUtilization}%</span>
-          </CardContent>
-        </Card>
+        <StatCard icon={BookOpen} label="On Shelf" value={availableCopies.length} />
+        <StatCard icon={Clock} label="Reserved" value={reservedCopies.length} iconClassName="text-amber-500" />
+        <StatCard icon={CheckCircle} label="Checked Out" value={checkedOutCopies.length} iconClassName="text-green-500" />
+        <StatCard icon={Package} label="Capacity" value={`${shelfUtilization}%`} iconClassName="text-muted-foreground" />
       </div>
 
       <Separator className="my-6" />

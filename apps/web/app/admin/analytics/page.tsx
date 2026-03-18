@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/stat-card";
 import {
   BarChart3,
   TrendingUp,
@@ -145,42 +146,10 @@ export default function AdminAnalyticsPage() {
 
       {/* Summary cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Books Shared
-            </span>
-            <span className="text-lg font-bold">{totalBooksShared}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <BookOpen className="h-5 w-5 text-green-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Books Read
-            </span>
-            <span className="text-lg font-bold">{totalBooksRead}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Active Users
-            </span>
-            <span className="text-lg font-bold">{statusCounts.active}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center p-4">
-            <Star className="h-5 w-5 text-amber-500" />
-            <span className="mt-1 text-xs text-muted-foreground">
-              Avg Reputation
-            </span>
-            <span className="text-lg font-bold">{avgReputation}</span>
-          </CardContent>
-        </Card>
+        <StatCard icon={BookOpen} label="Books Shared" value={totalBooksShared} />
+        <StatCard icon={BookOpen} label="Books Read" value={totalBooksRead} iconClassName="text-green-500" />
+        <StatCard icon={Users} label="Active Users" value={statusCounts.active} iconClassName="text-blue-500" />
+        <StatCard icon={Star} label="Avg Reputation" value={avgReputation} iconClassName="text-amber-500" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
