@@ -193,20 +193,6 @@ export default function AdminReportsPage() {
                     {new Date(selectedReport.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Type</span>
-                  <p>
-                    <Badge
-                      variant={
-                        selectedReport.type === "damage_report"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {REPORT_TYPE_LABELS[selectedReport.type as ReportType]}
-                    </Badge>
-                  </p>
-                </div>
               </div>
 
               <div className="text-sm">
