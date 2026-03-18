@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/star-rating";
+import { getErrorMessage } from "@/lib/utils";
 import { ReservationTimer } from "@/components/reservation-timer";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -90,9 +91,7 @@ export default function BookDetailPage() {
       setJustReserved({ copyId, expiresAt: result.expiresAt });
       toast.success("Book reserved! Head to the location to pick it up.");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to reserve";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Failed to reserve"));
     } finally {
       setReservingCopyId(null);
     }
@@ -111,9 +110,7 @@ export default function BookDetailPage() {
       setReviewText("");
       toast.success("Review submitted!");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to submit review";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Failed to submit review"));
     } finally {
       setSubmitting(false);
     }
@@ -201,9 +198,7 @@ export default function BookDetailPage() {
                       : "Removed from your wishlist",
                   );
                 } catch (err: unknown) {
-                  const message =
-                    err instanceof Error ? err.message : "Failed to update wishlist";
-                  toast.error(message);
+                  toast.error(getErrorMessage(err, "Failed to update wishlist"));
                 } finally {
                   setTogglingWishlist(false);
                 }

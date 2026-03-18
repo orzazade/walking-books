@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { getErrorMessage } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,9 +148,7 @@ export default function PartnerSettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save settings",
-      );
+      setError(getErrorMessage(err, "Failed to save settings"));
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { getErrorMessage } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,9 +91,7 @@ function DashboardContent() {
     try {
       await fn();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Something went wrong"));
     } finally {
       setActionLoading(null);
     }

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { type Condition, type CopyStatus, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { QrScanner } from "@/components/qr-scanner";
+import { getErrorMessage } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -273,7 +274,7 @@ function ReservedActions({
     } catch (err: unknown) {
       onResult({
         type: "error",
-        message: `Handoff failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        message: `Handoff failed: ${getErrorMessage(err, "Unknown error")}`,
       });
     } finally {
       setLoading(false);
@@ -342,7 +343,7 @@ function CheckedOutActions({
     } catch (err: unknown) {
       onResult({
         type: "error",
-        message: `Check-in failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        message: `Check-in failed: ${getErrorMessage(err, "Unknown error")}`,
       });
     } finally {
       setLoading(false);

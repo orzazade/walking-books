@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, type OwnershipType, CONDITION_LABELS } from "@/convex/lib/validators";
 import { IsbnScanner } from "@/components/isbn-scanner";
+import { getErrorMessage } from "@/lib/utils";
 import { ConditionPhotoCapture } from "@/components/condition-photo-capture";
 import { LocationPicker } from "@/components/location-picker";
 import { Button } from "@/components/ui/button";
@@ -114,8 +115,7 @@ export default function ShareBookPage() {
         bookId: result.bookId,
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to register book";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Failed to register book"));
     } finally {
       setSubmitting(false);
     }
