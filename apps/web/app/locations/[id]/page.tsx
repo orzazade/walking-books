@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Clock, BookOpen, Phone, Mail } from "lucide-react";
 import Link from "next/link";
+import { CONDITION_LABELS, type Condition } from "@/convex/lib/validators";
 
 export default function LocationDetailPage() {
   const params = useParams();
@@ -154,7 +155,7 @@ export default function LocationDetailPage() {
                   <div>
                     <p className="font-medium">Copy #{copy._id.slice(-6)}</p>
                     <p className="text-sm text-muted-foreground capitalize">
-                      {copy.condition.replace("_", " ")} &middot;{" "}
+                      {CONDITION_LABELS[copy.condition as Condition]} &middot;{" "}
                       {copy.ownershipType}
                     </p>
                   </div>

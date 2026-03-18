@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { type Condition } from "@/convex/lib/validators";
+import { type Condition, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { QrScanner } from "@/components/qr-scanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -136,7 +136,7 @@ function ScannedCopyActions({
     (r) => r.copyId === copyId && r.status === "active",
   );
 
-  const conditionLabel = copy.condition.replace("_", " ");
+  const conditionLabel = CONDITION_LABELS[copy.condition as Condition];
 
   return (
     <div className="space-y-4">
@@ -159,7 +159,7 @@ function ScannedCopyActions({
               }
               className="capitalize"
             >
-              {copy.status.replace("_", " ")}
+              {COPY_STATUS_LABELS[copy.status as keyof typeof COPY_STATUS_LABELS]}
             </Badge>
             <Badge variant="outline" className="capitalize">
               {conditionLabel}
@@ -219,7 +219,7 @@ function ScannedCopyActions({
           <CardContent className="p-6 text-center">
             <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
             <p className="font-medium capitalize">
-              This copy is {copy.status.replace("_", " ")}
+              This copy is {COPY_STATUS_LABELS[copy.status as keyof typeof COPY_STATUS_LABELS]}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               No actions available for copies in this state.

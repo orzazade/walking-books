@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
+import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus, type Condition } from "@/convex/lib/validators";
 
 function PartnerDashboardContent() {
   const location = useQuery(api.partnerLocations.myLocation);
@@ -211,11 +212,11 @@ function LocationDashboard({
                       Copy #{copy._id.slice(-6)}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">
-                      Condition: {copy.condition.replace("_", " ")}
+                      Condition: {CONDITION_LABELS[copy.condition as Condition]}
                     </p>
                   </div>
                   <Badge variant="secondary" className="capitalize">
-                    {copy.status.replace("_", " ")}
+                    {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                   </Badge>
                 </CardContent>
               </Card>
@@ -251,10 +252,10 @@ function LocationDashboard({
                         Copy #{copy._id.slice(-6)}
                       </p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {copy.status.replace("_", " ")}
+                        {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                       </p>
                     </div>
-                    <Badge variant="destructive" className="capitalize">
+                    <Badge variant="destructive">
                       {copy.status}
                     </Badge>
                   </CardContent>

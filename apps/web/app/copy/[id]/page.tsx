@@ -8,6 +8,7 @@ import { type Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CopyJourney } from "@/components/copy-journey";
+import { CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 
 export default function CopyDetailPage() {
   const params = useParams();
@@ -64,10 +65,10 @@ export default function CopyDetailPage() {
 
         <div className="flex flex-wrap gap-2">
           <Badge className={statusColor[copy.status] ?? ""}>
-            {copy.status.replace("_", " ")}
+            {COPY_STATUS_LABELS[copy.status]}
           </Badge>
           <Badge variant="outline">
-            {copy.condition.replace("_", " ")}
+            {CONDITION_LABELS[copy.condition]}
           </Badge>
           <Badge variant="secondary">{copy.ownershipType}</Badge>
         </div>

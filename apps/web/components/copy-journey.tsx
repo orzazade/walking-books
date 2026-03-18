@@ -1,10 +1,12 @@
+import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
+
 interface JourneyEntry {
   pickupLocationId: string;
   dropoffLocationId?: string;
   pickedUpAt: number;
   returnedAt?: number;
-  conditionAtPickup: string;
-  conditionAtReturn?: string;
+  conditionAtPickup: Condition;
+  conditionAtReturn?: Condition;
   readerNote?: string;
 }
 
@@ -42,13 +44,13 @@ export function CopyJourney({ entries }: CopyJourneyProps) {
               Picked up {formatDate(entry.pickedUpAt)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Condition: {entry.conditionAtPickup.replace("_", " ")}
+              Condition: {CONDITION_LABELS[entry.conditionAtPickup]}
             </p>
             {entry.returnedAt && (
               <p className="text-xs text-muted-foreground">
                 Returned {formatDate(entry.returnedAt)}
                 {entry.conditionAtReturn &&
-                  ` — ${entry.conditionAtReturn.replace("_", " ")}`}
+                  ` — ${CONDITION_LABELS[entry.conditionAtReturn]}`}
               </p>
             )}
             {entry.readerNote && (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc } from "@/convex/_generated/dataModel";
-import { type Condition } from "@/convex/lib/validators";
+import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,14 +147,14 @@ export default function AdminReportsPage() {
                       variant={conditionBadgeColor(report.previousCondition)}
                       className="text-xs"
                     >
-                      {report.previousCondition.replace("_", " ")}
+                      {CONDITION_LABELS[report.previousCondition as Condition]}
                     </Badge>
                     <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     <Badge
                       variant={conditionBadgeColor(report.newCondition)}
                       className="text-xs"
                     >
-                      {report.newCondition.replace("_", " ")}
+                      {CONDITION_LABELS[report.newCondition as Condition]}
                     </Badge>
                   </div>
 
@@ -242,7 +242,7 @@ export default function AdminReportsPage() {
                       )}
                       className="mt-1"
                     >
-                      {selectedReport.previousCondition.replace("_", " ")}
+                      {CONDITION_LABELS[selectedReport.previousCondition as Condition]}
                     </Badge>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -254,7 +254,7 @@ export default function AdminReportsPage() {
                       )}
                       className="mt-1"
                     >
-                      {selectedReport.newCondition.replace("_", " ")}
+                      {CONDITION_LABELS[selectedReport.newCondition as Condition]}
                     </Badge>
                   </div>
                 </div>

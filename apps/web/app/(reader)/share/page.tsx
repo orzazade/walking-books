@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type Condition, type OwnershipType } from "@/convex/lib/validators";
+import { type Condition, type OwnershipType, CONDITION_LABELS } from "@/convex/lib/validators";
 import { IsbnScanner } from "@/components/isbn-scanner";
 import { ConditionPhotoCapture } from "@/components/condition-photo-capture";
 import { LocationPicker } from "@/components/location-picker";
@@ -418,7 +418,7 @@ export default function ShareBookPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Condition</span>
                 <Badge variant="secondary" className="capitalize">
-                  {condition.replace("_", " ")}
+                  {CONDITION_LABELS[condition]}
                 </Badge>
               </div>
               {photos.length > 0 && (

@@ -13,6 +13,7 @@ import { Authenticated } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
+import { CONDITION_LABELS, COPY_STATUS_LABELS, type Condition, type CopyStatus } from "@/convex/lib/validators";
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -260,13 +261,13 @@ export default function BookDetailPage() {
                         <Badge
                           className={`rounded-md border text-[0.6875rem] ${statusColor(copy.status)}`}
                         >
-                          {copy.status.replace("_", " ")}
+                          {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                         </Badge>
                         <Badge
                           variant="outline"
                           className="rounded-md text-[0.6875rem]"
                         >
-                          {copy.condition.replace("_", " ")}
+                          {CONDITION_LABELS[copy.condition as Condition]}
                         </Badge>
                       </div>
                       <p className="text-[0.75rem] text-muted-foreground">

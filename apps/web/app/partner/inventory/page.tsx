@@ -13,6 +13,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import Link from "next/link";
+import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus, type Condition } from "@/convex/lib/validators";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -184,14 +185,14 @@ export default function PartnerInventoryPage() {
                       variant={STATUS_COLORS[copy.status] || "outline"}
                       className="capitalize"
                     >
-                      {copy.status.replace("_", " ")}
+                      {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                     </Badge>
                   </div>
                   <div>
                     <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize ${CONDITION_COLORS[copy.condition] || ""}`}
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CONDITION_COLORS[copy.condition] || ""}`}
                     >
-                      {copy.condition.replace("_", " ")}
+                      {CONDITION_LABELS[copy.condition as Condition]}
                     </span>
                   </div>
                   <div>

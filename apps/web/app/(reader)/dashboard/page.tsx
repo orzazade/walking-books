@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type Condition, CONDITIONS, CONDITION_LABELS } from "@/convex/lib/validators";
+import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@clerk/nextjs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -284,7 +284,7 @@ function DashboardContent() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary" className="capitalize text-[0.6875rem]">
-                    {copy.condition.replace("_", " ")}
+                    {CONDITION_LABELS[copy.condition as Condition]}
                   </Badge>
                   <Button
                     variant="outline"
@@ -422,7 +422,7 @@ function DashboardContent() {
                     }
                     className="capitalize text-[0.6875rem]"
                   >
-                    {copy.status.replace("_", " ")}
+                    {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                   </Badge>
                   {copy.ownershipType === "lent" &&
                     (copy.status === "available" ||

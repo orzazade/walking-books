@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { type Condition, CONDITIONS, CONDITION_LABELS } from "@/convex/lib/validators";
+import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -150,8 +150,8 @@ export default function PartnerReportsPage() {
                     <p className="text-sm">{report.description}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>
-                        {report.previousCondition.replace("_", " ")} &rarr;{" "}
-                        {report.newCondition.replace("_", " ")}
+                        {CONDITION_LABELS[report.previousCondition as Condition]} &rarr;{" "}
+                        {CONDITION_LABELS[report.newCondition as Condition]}
                       </span>
                       <span>
                         {new Date(report.createdAt).toLocaleDateString()}{" "}
@@ -254,7 +254,7 @@ function NewReportForm({
           <option value="">Select a copy...</option>
           {copies.map((c) => (
             <option key={c._id} value={c._id}>
-              #{c._id.slice(-6)} - {c.condition.replace("_", " ")} ({c.status})
+              #{c._id.slice(-6)} - {CONDITION_LABELS[c.condition as Condition]} ({COPY_STATUS_LABELS[c.status as CopyStatus]})
             </option>
           ))}
         </select>

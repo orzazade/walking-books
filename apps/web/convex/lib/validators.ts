@@ -43,6 +43,15 @@ export const userStatusValidator = v.union(
 
 export type CopyStatus = "available" | "reserved" | "checked_out" | "lost" | "damaged" | "recalled";
 
+export const COPY_STATUS_LABELS: Record<CopyStatus, string> = {
+  available: "Available",
+  reserved: "Reserved",
+  checked_out: "Checked Out",
+  lost: "Lost",
+  damaged: "Damaged",
+  recalled: "Recalled",
+};
+
 export const copyStatusValidator = v.union(
   v.literal("available"),
   v.literal("reserved"),
