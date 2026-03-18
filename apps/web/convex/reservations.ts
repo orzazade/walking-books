@@ -134,11 +134,12 @@ export const expireStale = internalMutation({
     const now = Date.now();
     const staleReservations = await ctx.db
       .query("reservations")
-      .withIndex("by_expiry", (q) => q.eq("status", "active"))
+      .withIndex("by_expiry", (q) =>
+        q.eq("status", "active").lt("expiresAt", now),
+      )
       .collect();
 
     for (const reservation of staleReservations) {
-      if (reservation.expiresAt >= now) continue;
 
       // Expire reservation
       await ctx.db.patch(reservation._id, { status: "expired" });
