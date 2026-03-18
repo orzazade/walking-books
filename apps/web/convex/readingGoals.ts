@@ -63,17 +63,19 @@ export const getProgress = query({
     const yearStart = new Date(args.year, 0, 1).getTime();
     const yearEnd = new Date(args.year + 1, 0, 1).getTime();
 
-    const entries = await ctx.db
+    const completedEntries = await ctx.db
       .query("journeyEntries")
       .withIndex("by_reader", (q) => q.eq("readerId", user._id))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("returnedAt"), undefined),
+          q.gte(q.field("returnedAt"), yearStart),
+          q.lt(q.field("returnedAt"), yearEnd),
+        ),
+      )
       .collect();
 
-    const completedReads = entries.filter(
-      (e) =>
-        e.returnedAt !== undefined &&
-        e.returnedAt >= yearStart &&
-        e.returnedAt < yearEnd,
-    ).length;
+    const completedReads = completedEntries.length;
 
     return {
       year: args.year,
