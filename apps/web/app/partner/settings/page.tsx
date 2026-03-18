@@ -42,7 +42,7 @@ export default function PartnerSettingsPage() {
   >({});
   const [photos, setPhotos] = useState<string[]>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
-  const [staffIds, setStaffIds] = useState<string[]>([]);
+  const [staffIds, setStaffIds] = useState<Id<"users">[]>([]);
   const [newStaffId, setNewStaffId] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -57,7 +57,7 @@ export default function PartnerSettingsPage() {
       setContactEmail(location.contactEmail ?? "");
       setShelfCapacity(location.shelfCapacity);
       setPhotos(location.photos);
-      setStaffIds(location.staffUserIds as string[]);
+      setStaffIds([...location.staffUserIds]);
 
       // Parse operating hours
       const hours = location.operatingHours || {};
@@ -117,8 +117,9 @@ export default function PartnerSettingsPage() {
   }
 
   function addStaff() {
-    if (newStaffId.trim() && !staffIds.includes(newStaffId.trim())) {
-      setStaffIds((prev) => [...prev, newStaffId.trim()]);
+    const trimmed = newStaffId.trim() as Id<"users">;
+    if (trimmed && !staffIds.includes(trimmed)) {
+      setStaffIds((prev) => [...prev, trimmed]);
       setNewStaffId("");
     }
   }
@@ -141,7 +142,7 @@ export default function PartnerSettingsPage() {
         shelfCapacity,
         operatingHours,
         photos,
-        staffUserIds: staffIds as Id<"users">[],
+        staffUserIds: staffIds,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
