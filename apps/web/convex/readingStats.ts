@@ -51,7 +51,6 @@ export const getStats = query({
 
     // Monthly reading activity (last 12 months)
     const now = Date.now();
-    const twelveMonthsAgo = now - 365 * 24 * 60 * 60 * 1000;
     const monthlyActivity: { month: string; count: number }[] = [];
 
     for (let i = 11; i >= 0; i--) {

@@ -376,10 +376,7 @@ function CheckedOutActions({
   );
 }
 
-function AvailableActions({
-  copyId,
-  onReset,
-}: {
+function AvailableActions(_props: {
   copyId: CopyId;
   onReset: () => void;
 }) {

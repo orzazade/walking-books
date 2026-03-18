@@ -6,7 +6,6 @@ import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { getErrorMessage } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
