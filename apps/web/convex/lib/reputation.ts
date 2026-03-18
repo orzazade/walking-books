@@ -1,10 +1,8 @@
 export const REPUTATION = {
   RETURN_ON_TIME: 3,
   GOOD_CONDITION: 2,
-  SHARE_BOOK: 5,
   LEAVE_NOTE: 1,
   LATE_RETURN: -5,
-  DAMAGE_REPORTED: -10,
   NO_SHOW: -3,
   OVERDUE_DAILY: -1,
 } as const;
