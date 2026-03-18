@@ -41,9 +41,8 @@ export const removeGoal = mutation({
         q.eq("userId", user._id).eq("year", args.year),
       )
       .unique();
-    if (existing) {
-      await ctx.db.delete(existing._id);
-    }
+    if (!existing) throw new Error("No reading goal found for this year");
+    await ctx.db.delete(existing._id);
   },
 });
 
