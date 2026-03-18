@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { getBookCopyCounts } from "./lib/availability";
 
 export const forMe = query({
   handler: async (ctx) => {
@@ -27,17 +28,8 @@ export const forMe = query({
       readBookIds.add(copy.bookId);
     }
 
-    // Get all copies for availability counts
-    const allCopies = await ctx.db.query("copies").collect();
-    const availabilityMap = new Map<string, number>();
-    for (const copy of allCopies) {
-      if (copy.status === "available") {
-        availabilityMap.set(
-          copy.bookId,
-          (availabilityMap.get(copy.bookId) ?? 0) + 1,
-        );
-      }
-    }
+    // Get availability counts
+    const copyCounts = await getBookCopyCounts(ctx);
 
     // Get all books, exclude already-read ones
     const allBooks = await ctx.db.query("books").collect();
@@ -58,7 +50,7 @@ export const forMe = query({
       }
 
       // Availability bonus: +5 if available right now
-      const available = availabilityMap.get(book._id) ?? 0;
+      const available = copyCounts.get(book._id)?.availableCopies ?? 0;
       if (available > 0) score += 5;
 
       // Rating bonus: scale 0-5

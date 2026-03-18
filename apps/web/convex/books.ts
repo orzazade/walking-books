@@ -4,6 +4,7 @@ import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
 import { conditionValidator, ownershipTypeValidator, CONDITION_LABELS } from "./lib/validators";
 import { requireCurrentUser } from "./lib/auth";
+import { getBookCopyCounts } from "./lib/availability";
 
 async function enrichWithAvailability<
   T extends {
@@ -12,26 +13,7 @@ async function enrichWithAvailability<
     avgRating: number;
   },
 >(ctx: QueryCtx, books: Array<T>) {
-  const copies = await ctx.db.query("copies").collect();
-  const counts = new Map<
-    string,
-    {
-      totalCopies: number;
-      availableCopies: number;
-    }
-  >();
-
-  for (const copy of copies) {
-    const current = counts.get(copy.bookId) ?? {
-      totalCopies: 0,
-      availableCopies: 0,
-    };
-    current.totalCopies += 1;
-    if (copy.status === "available") {
-      current.availableCopies += 1;
-    }
-    counts.set(copy.bookId, current);
-  }
+  const counts = await getBookCopyCounts(ctx);
 
   return books
     .map((book) => {
