@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
