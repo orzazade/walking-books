@@ -21,17 +21,15 @@ export const byLocation = query({
       .collect();
 
     // Get all condition reports for these copies
-    const allReports = [];
-    for (const copy of copies) {
-      const reports = await ctx.db
-        .query("conditionReports")
-        .withIndex("by_copy", (q) => q.eq("copyId", copy._id))
-        .collect();
-      for (const r of reports) {
-        allReports.push(r);
-      }
-    }
-    return allReports.sort((a, b) => b.createdAt - a.createdAt);
+    const reportArrays = await Promise.all(
+      copies.map((copy) =>
+        ctx.db
+          .query("conditionReports")
+          .withIndex("by_copy", (q) => q.eq("copyId", copy._id))
+          .collect(),
+      ),
+    );
+    return reportArrays.flat().sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
