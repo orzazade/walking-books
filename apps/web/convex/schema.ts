@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { conditionValidator, ownershipTypeValidator, reportTypeValidator } from "./lib/validators";
+import { conditionValidator, ownershipTypeValidator, reportTypeValidator, userStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -72,11 +72,7 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
     roles: v.array(v.string()),
-    status: v.union(
-      v.literal("active"),
-      v.literal("restricted"),
-      v.literal("banned"),
-    ),
+    status: userStatusValidator,
     reputationScore: v.number(),
     booksShared: v.number(),
     booksRead: v.number(),

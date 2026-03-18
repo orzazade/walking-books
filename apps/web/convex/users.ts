@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { userStatusValidator } from "./lib/validators";
 
 export const createFromClerk = internalMutation({
   args: {
@@ -110,11 +111,7 @@ export const listAll = query({
 export const updateStatus = mutation({
   args: {
     userId: v.id("users"),
-    status: v.union(
-      v.literal("active"),
-      v.literal("restricted"),
-      v.literal("banned"),
-    ),
+    status: userStatusValidator,
   },
   handler: async (ctx, args) => {
     const caller = await requireCurrentUser(ctx);

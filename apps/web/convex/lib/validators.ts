@@ -32,3 +32,11 @@ export const reportTypeValidator = v.union(
   v.literal("return_check"),
   v.literal("damage_report"),
 );
+
+export type UserStatus = "active" | "restricted" | "banned";
+
+export const userStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("restricted"),
+  v.literal("banned"),
+);
