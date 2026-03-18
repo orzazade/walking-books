@@ -23,6 +23,8 @@ export const toggle = mutation({
     const user = await requireCurrentUser(ctx);
     if (user._id === args.targetUserId)
       throw new Error("Cannot follow yourself");
+    const target = await ctx.db.get(args.targetUserId);
+    if (!target) throw new Error("User not found");
     const existing = await ctx.db
       .query("follows")
       .withIndex("by_pair", (q) =>
