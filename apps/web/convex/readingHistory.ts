@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { DAY_MS } from "./lib/lending";
 
@@ -15,13 +16,35 @@ export const myHistory = query({
     // Only include completed reads (returned books)
     const completed = entries.filter((e) => e.returnedAt !== undefined);
 
+    // Batch-fetch copies, then cache books and locations to avoid redundant lookups
+    const copies = await Promise.all(
+      completed.map((e) => ctx.db.get(e.copyId)),
+    );
+
+    const bookCache = new Map<string, Doc<"books"> | null>();
+    const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
+
+    async function getBook(id: Id<"books">) {
+      if (bookCache.has(id)) return bookCache.get(id)!;
+      const b = await ctx.db.get(id);
+      bookCache.set(id, b);
+      return b;
+    }
+
+    async function getLocation(id: Id<"partnerLocations">) {
+      if (locationCache.has(id)) return locationCache.get(id)!;
+      const l = await ctx.db.get(id);
+      locationCache.set(id, l);
+      return l;
+    }
+
     const history = await Promise.all(
-      completed.map(async (entry) => {
-        const copy = await ctx.db.get(entry.copyId);
-        const book = copy ? await ctx.db.get(copy.bookId) : null;
-        const pickupLocation = await ctx.db.get(entry.pickupLocationId);
+      completed.map(async (entry, i) => {
+        const copy = copies[i];
+        const book = copy ? await getBook(copy.bookId) : null;
+        const pickupLocation = await getLocation(entry.pickupLocationId);
         const dropoffLocation = entry.dropoffLocationId
-          ? await ctx.db.get(entry.dropoffLocationId)
+          ? await getLocation(entry.dropoffLocationId)
           : null;
 
         return {
