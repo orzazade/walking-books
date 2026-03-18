@@ -359,11 +359,12 @@ export const processOverdue = internalMutation({
     const now = Date.now();
     const overdueCopies = await ctx.db
       .query("copies")
-      .withIndex("by_status_deadline", (q) => q.eq("status", "checked_out"))
+      .withIndex("by_status_deadline", (q) =>
+        q.eq("status", "checked_out").lt("returnDeadline", now),
+      )
       .collect();
 
     for (const copy of overdueCopies) {
-      if (!copy.returnDeadline || copy.returnDeadline >= now) continue;
       if (!copy.currentHolderId) continue;
 
       const user = await ctx.db.get(copy.currentHolderId);
