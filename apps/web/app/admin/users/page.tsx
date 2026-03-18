@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { type Doc, type Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,21 +24,7 @@ import {
   UserCog,
 } from "lucide-react";
 
-type UserDoc = {
-  _id: Id<"users">;
-  _creationTime: number;
-  clerkId: string;
-  phone: string;
-  name: string;
-  avatarUrl?: string;
-  bio?: string;
-  roles: string[];
-  status: "active" | "restricted" | "banned";
-  reputationScore: number;
-  booksShared: number;
-  booksRead: number;
-  favoriteGenres: string[];
-};
+type UserDoc = Doc<"users">;
 
 export default function AdminUsersPage() {
   const allUsers = useQuery(api.users.listAll);
