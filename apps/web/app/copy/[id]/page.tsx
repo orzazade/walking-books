@@ -8,7 +8,16 @@ import { type Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CopyJourney } from "@/components/copy-journey";
-import { CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
+import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus } from "@/convex/lib/validators";
+
+const STATUS_COLOR: Record<CopyStatus, string> = {
+  available: "bg-emerald-100 text-emerald-700",
+  reserved: "bg-amber-100 text-amber-700",
+  checked_out: "bg-blue-100 text-blue-700",
+  recalled: "bg-orange-100 text-orange-700",
+  lost: "bg-red-100 text-red-700",
+  damaged: "bg-red-100 text-red-700",
+};
 
 export default function CopyDetailPage() {
   const params = useParams();
@@ -37,15 +46,6 @@ export default function CopyDetailPage() {
     );
   }
 
-  const statusColor: Record<string, string> = {
-    available: "bg-emerald-100 text-emerald-700",
-    reserved: "bg-amber-100 text-amber-700",
-    checked_out: "bg-blue-100 text-blue-700",
-    recalled: "bg-orange-100 text-orange-700",
-    lost: "bg-red-100 text-red-700",
-    damaged: "bg-red-100 text-red-700",
-  };
-
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <div className="space-y-4">
@@ -64,7 +64,7 @@ export default function CopyDetailPage() {
         <h1 className="text-2xl font-bold">Copy Details</h1>
 
         <div className="flex flex-wrap gap-2">
-          <Badge className={statusColor[copy.status] ?? ""}>
+          <Badge className={STATUS_COLOR[copy.status]}>
             {COPY_STATUS_LABELS[copy.status]}
           </Badge>
           <Badge variant="outline">

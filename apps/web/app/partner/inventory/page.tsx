@@ -25,14 +25,14 @@ const STATUS_FILTERS = [
   { value: "recalled", label: "Recalled" },
 ] as const;
 
-const CONDITION_COLORS: Record<string, string> = {
+const CONDITION_COLORS: Record<Condition, string> = {
   like_new: "bg-green-100 text-green-700",
   good: "bg-blue-100 text-blue-700",
   fair: "bg-yellow-100 text-yellow-700",
   worn: "bg-red-100 text-red-700",
 };
 
-const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const STATUS_COLORS: Record<CopyStatus, "default" | "secondary" | "destructive" | "outline"> = {
   available: "default",
   reserved: "secondary",
   checked_out: "outline",
@@ -182,14 +182,14 @@ export default function PartnerInventoryPage() {
                   </div>
                   <div>
                     <Badge
-                      variant={STATUS_COLORS[copy.status] || "outline"}
+                      variant={STATUS_COLORS[copy.status as CopyStatus]}
                     >
                       {COPY_STATUS_LABELS[copy.status as CopyStatus]}
                     </Badge>
                   </div>
                   <div>
                     <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CONDITION_COLORS[copy.condition] || ""}`}
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CONDITION_COLORS[copy.condition as Condition]}`}
                     >
                       {CONDITION_LABELS[copy.condition as Condition]}
                     </span>
