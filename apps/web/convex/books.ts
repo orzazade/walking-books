@@ -183,19 +183,6 @@ export const register = mutation({
   },
 });
 
-export const search = query({
-  args: { query: v.string() },
-  handler: async (ctx, args) => {
-    if (!args.query.trim()) return [];
-    return await ctx.db
-      .query("books")
-      .withSearchIndex("search_title_author", (q) =>
-        q.search("title", args.query),
-      )
-      .take(20);
-  },
-});
-
 export const searchCatalog = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {
@@ -221,14 +208,6 @@ export const searchCatalog = query({
   },
 });
 
-export const byCategory = query({
-  args: { category: v.string() },
-  handler: async (ctx, args) => {
-    const allBooks = await ctx.db.query("books").collect();
-    return allBooks.filter((book) => book.categories.includes(args.category));
-  },
-});
-
 export const byCategoryCatalog = query({
   args: { category: v.string() },
   handler: async (ctx, args) => {
@@ -237,13 +216,6 @@ export const byCategoryCatalog = query({
       book.categories.includes(args.category),
     );
     return await enrichWithAvailability(ctx, filtered);
-  },
-});
-
-export const listAll = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("books").collect();
   },
 });
 
