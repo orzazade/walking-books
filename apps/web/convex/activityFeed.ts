@@ -74,7 +74,8 @@ export const feed = query({
       const entries = await ctx.db
         .query("journeyEntries")
         .withIndex("by_reader", (q) => q.eq("readerId", followedId))
-        .collect();
+        .order("desc")
+        .take(limit);
 
       for (const entry of entries) {
         const copy = await getCopy(entry.copyId);
@@ -133,7 +134,8 @@ export const feed = query({
       const reviews = await ctx.db
         .query("reviews")
         .withIndex("by_user", (q) => q.eq("userId", followedId))
-        .collect();
+        .order("desc")
+        .take(limit);
 
       for (const review of reviews) {
         const book = await getBook(review.bookId);
