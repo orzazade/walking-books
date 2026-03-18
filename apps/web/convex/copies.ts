@@ -216,6 +216,10 @@ export const returnCopy = mutation({
         returnPhotos: args.photos,
         readerNote: args.readerNote,
       });
+    } else {
+      console.warn(
+        `returnCopy: no open journey entry found for copy ${args.copyId} and user ${user._id}`,
+      );
     }
 
     // Create condition report
