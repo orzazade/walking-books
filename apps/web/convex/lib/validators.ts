@@ -75,3 +75,12 @@ export const reservationStatusValidator = v.union(
   v.literal("expired"),
   v.literal("cancelled"),
 );
+
+export type WaitlistStatus = "waiting" | "notified" | "fulfilled" | "cancelled";
+
+export const waitlistStatusValidator = v.union(
+  v.literal("waiting"),
+  v.literal("notified"),
+  v.literal("fulfilled"),
+  v.literal("cancelled"),
+);

@@ -234,6 +234,23 @@ export const returnCopy = mutation({
       createdAt: now,
     });
 
+    // Notify the next person on the waitlist if the copy is now available
+    if (newStatus === "available") {
+      const nextWaiter = await ctx.db
+        .query("waitlist")
+        .withIndex("by_book_status", (q) =>
+          q.eq("bookId", copy.bookId).eq("status", "waiting"),
+        )
+        .first();
+      if (nextWaiter) {
+        await ctx.db.patch(nextWaiter._id, {
+          status: "notified",
+          notifiedAt: now,
+          notifiedCopyId: args.copyId,
+        });
+      }
+    }
+
     return { success: true, reputationChange: repChange };
   },
 });
