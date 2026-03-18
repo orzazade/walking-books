@@ -173,7 +173,7 @@ export default function AdminUsersPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStatusChange(user._id as Id<"users">, "active");
+                              handleStatusChange(user._id, "active");
                             }}
                             title="Restore"
                           >
@@ -187,7 +187,7 @@ export default function AdminUsersPage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStatusChange(
-                                user._id as Id<"users">,
+                                user._id,
                                 "restricted",
                               );
                             }}
@@ -202,7 +202,7 @@ export default function AdminUsersPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStatusChange(user._id as Id<"users">, "banned");
+                              handleStatusChange(user._id, "banned");
                             }}
                             title="Ban"
                           >
