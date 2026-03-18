@@ -18,7 +18,12 @@ http.route({
     }
 
     const bodyText = await request.text();
-    const body = JSON.parse(bodyText);
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      return new Response("Invalid JSON", { status: 400 });
+    }
     const eventType = body.type;
 
     if (eventType === "user.created") {

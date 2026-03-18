@@ -8,6 +8,9 @@ export const generate = action({
     const qrResponse = await fetch(
       `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`,
     );
+    if (!qrResponse.ok) {
+      throw new Error(`QR code generation failed: ${qrResponse.status}`);
+    }
     const blob = await qrResponse.blob();
     const storageId = await ctx.storage.store(blob);
     return storageId;
