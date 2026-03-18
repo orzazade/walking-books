@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -40,8 +40,6 @@ type ReportDoc = {
 export default function AdminReportsPage() {
   const allReports = useQuery(api.conditionReports.listAll);
   const allUsers = useQuery(api.users.listAll);
-  const updateUserStatus = useMutation(api.users.updateStatus);
-
   const [selectedReport, setSelectedReport] = useState<ReportDoc | null>(null);
   const [filter, setFilter] = useState<"all" | "damage_report">("damage_report");
 

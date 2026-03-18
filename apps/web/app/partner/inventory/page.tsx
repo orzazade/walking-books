@@ -3,16 +3,14 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Package,
   Search,
   Printer,
   BookOpen,
-  Filter,
 } from "lucide-react";
 import Link from "next/link";
 

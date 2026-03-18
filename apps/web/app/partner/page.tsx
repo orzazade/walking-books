@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +10,6 @@ import {
   BookOpen,
   Clock,
   ScanLine,
-  Printer,
   Package,
   AlertTriangle,
   CheckCircle,
@@ -39,19 +38,17 @@ function PartnerDashboardContent() {
     );
   }
 
-  return <LocationDashboard locationId={location._id} locationName={location.name} shelfCapacity={location.shelfCapacity} currentBookCount={location.currentBookCount} />;
+  return <LocationDashboard locationId={location._id} locationName={location.name} shelfCapacity={location.shelfCapacity} />;
 }
 
 function LocationDashboard({
   locationId,
   locationName,
   shelfCapacity,
-  currentBookCount,
 }: {
   locationId: Id<"partnerLocations">;
   locationName: string;
   shelfCapacity: number;
-  currentBookCount: number;
 }) {
   const allCopies = useQuery(api.copies.allAtLocation, { locationId });
   const reservations = useQuery(api.reservations.byLocation, { locationId });
@@ -70,10 +67,6 @@ function LocationDashboard({
   const activeReservations = reservations.filter(
     (r) => r.status === "active",
   );
-  const expiringReservations = activeReservations
-    .filter((r) => r.expiresAt - Date.now() < 15 * 60 * 1000) // expiring within 15 min
-    .sort((a, b) => a.expiresAt - b.expiresAt);
-
   const shelfUtilization = shelfCapacity > 0
     ? Math.round((allCopies.length / shelfCapacity) * 100)
     : 0;
