@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { type Condition } from "@/convex/lib/validators";
+import { type Condition, CONDITIONS, CONDITION_LABELS } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -213,7 +213,7 @@ function NewReportForm({
   const [error, setError] = useState<string | null>(null);
 
   const selectedCopy = copies.find((c) => c._id === copyId);
-  const CONDITIONS = ["like_new", "good", "fair", "worn"] as const;
+
 
   async function handleSubmit() {
     if (!copyId || !description.trim()) {
@@ -273,7 +273,7 @@ function NewReportForm({
                   : "border-muted text-muted-foreground hover:border-muted-foreground/50"
               }`}
             >
-              {cond.replace("_", " ")}
+              {CONDITION_LABELS[cond]}
             </button>
           ))}
         </div>

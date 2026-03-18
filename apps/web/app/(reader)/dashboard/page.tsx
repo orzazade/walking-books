@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type Condition } from "@/convex/lib/validators";
+import { type Condition, CONDITIONS, CONDITION_LABELS } from "@/convex/lib/validators";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@clerk/nextjs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,12 +34,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
-const CONDITIONS = [
-  { value: "like_new", label: "Like New" },
-  { value: "good", label: "Good" },
-  { value: "fair", label: "Fair" },
-  { value: "worn", label: "Worn" },
-] as const;
 
 function DashboardContent() {
   const { isAuthenticated } = useConvexAuth();
@@ -445,16 +439,16 @@ function DashboardContent() {
               <div className="grid grid-cols-2 gap-1.5">
                 {CONDITIONS.map((c) => (
                   <button
-                    key={c.value}
+                    key={c}
                     type="button"
-                    onClick={() => setReturnCondition(c.value)}
+                    onClick={() => setReturnCondition(c)}
                     className={`rounded-lg border px-3 py-2 text-[0.8125rem] transition-colors ${
-                      returnCondition === c.value
+                      returnCondition === c
                         ? "border-primary bg-primary/5 font-medium"
                         : "border-border/50 hover:bg-muted"
                     }`}
                   >
-                    {c.label}
+                    {CONDITION_LABELS[c]}
                   </button>
                 ))}
               </div>
