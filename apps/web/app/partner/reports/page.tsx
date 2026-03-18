@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { type Condition } from "@/convex/lib/validators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -199,7 +200,7 @@ function NewReportForm({
 }: {
   copies: Array<{
     _id: Id<"copies">;
-    condition: "like_new" | "good" | "fair" | "worn";
+    condition: Condition;
     status: string;
   }>;
   onSuccess: () => void;
@@ -207,7 +208,7 @@ function NewReportForm({
   const createReport = useMutation(api.conditionReports.create);
   const [copyId, setCopyId] = useState("");
   const [description, setDescription] = useState("");
-  const [newCondition, setNewCondition] = useState<"like_new" | "good" | "fair" | "worn">("fair");
+  const [newCondition, setNewCondition] = useState<Condition>("fair");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
