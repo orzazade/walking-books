@@ -281,11 +281,7 @@ export default function ShareBookPage() {
                 <Separator />
                 <Button
                   variant="link"
-                  onClick={() => {
-                    setTitle(" ");
-                    setTimeout(() => setTitle(""), 0);
-                    setIsbn("manual");
-                  }}
+                  onClick={() => setIsbn("manual")}
                 >
                   Skip ISBN lookup, enter details manually
                 </Button>
