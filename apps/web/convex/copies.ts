@@ -135,14 +135,10 @@ export const pickup = mutation({
       copyId: args.copyId,
       readerId: user._id,
       pickupLocationId: args.locationId,
-      dropoffLocationId: undefined,
       pickedUpAt: now,
-      returnedAt: undefined,
       conditionAtPickup: args.conditionAtPickup,
-      conditionAtReturn: undefined,
       pickupPhotos: args.photos,
       returnPhotos: [],
-      readerNote: undefined,
       reservationId: args.reservationId,
     });
 
@@ -150,7 +146,6 @@ export const pickup = mutation({
     await ctx.db.insert("conditionReports", {
       copyId: args.copyId,
       reportedByUserId: user._id,
-      reportedByPartnerId: undefined,
       type: "pickup_check",
       photos: args.photos,
       description: `Pickup condition: ${args.conditionAtPickup}`,
@@ -242,7 +237,6 @@ export const returnCopy = mutation({
     await ctx.db.insert("conditionReports", {
       copyId: args.copyId,
       reportedByUserId: user._id,
-      reportedByPartnerId: undefined,
       type: "return_check",
       photos: args.photos,
       description: `Return condition: ${args.conditionAtReturn}`,

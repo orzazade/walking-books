@@ -4,7 +4,6 @@ import { getCurrentUser, requireCurrentUser, requireAdmin } from "./lib/auth";
 import { userStatusValidator } from "./lib/validators";
 
 const DEFAULT_USER_FIELDS = {
-  bio: undefined,
   roles: ["reader"],
   status: "active" as const,
   reputationScore: 50,

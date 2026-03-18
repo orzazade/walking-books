@@ -144,9 +144,7 @@ export const register = mutation({
       ownershipType: args.ownershipType,
       originalSharerId: user._id,
       currentLocationId: args.locationId,
-      currentHolderId: undefined,
       qrCodeUrl: "",
-      returnDeadline: undefined,
       lendingPeriodDays,
       sharerMaxLendingDays: args.sharerMaxLendingDays,
     });
@@ -160,7 +158,6 @@ export const register = mutation({
     await ctx.db.insert("conditionReports", {
       copyId,
       reportedByUserId: user._id,
-      reportedByPartnerId: undefined,
       type: "pickup_check",
       photos: [],
       description: `Initial condition: ${args.condition}`,

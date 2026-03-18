@@ -59,7 +59,6 @@ export const create = mutation({
     const reportId = await ctx.db.insert("conditionReports", {
       copyId: args.copyId,
       reportedByUserId: user._id,
-      reportedByPartnerId: undefined,
       type: args.type,
       photos: args.photos,
       description: args.description,
