@@ -30,39 +30,8 @@ import { internalAction } from "./_generated/server";
 export const sendReturnReminders = internalAction({
   args: {},
   handler: async () => {
-    const now = Date.now();
-    const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
-    const oneDayFromNow = now + 1 * 24 * 60 * 60 * 1000;
-
-    // TODO: Query copies with status "checked_out" and returnDeadline within range
-    // const checkedOutCopies = await ctx.runQuery(internal.copies.dueWithin, { deadline: threeDaysFromNow });
-
-    // TODO: For each copy due within 3 days:
-    // 1. Look up the current holder (user)
-    // 2. Look up the book title via copy.bookId
-    // 3. Determine urgency level based on deadline proximity
-    // 4. Send appropriate email via Resend
-
-    console.log(
-      `[notifications] Would send return reminders for copies due before ${new Date(threeDaysFromNow).toISOString()}`,
-    );
-    console.log(
-      `[notifications] Urgent reminders for copies due before ${new Date(oneDayFromNow).toISOString()}`,
-    );
-
-    // TODO: Example email templates to implement:
-    //
-    // 3-day reminder:
-    //   Subject: "Reminder: {bookTitle} is due in 3 days"
-    //   Body: friendly reminder with return locations link
-    //
-    // 1-day reminder:
-    //   Subject: "Due tomorrow: {bookTitle}"
-    //   Body: urgent reminder, mention reputation impact of late return
-    //
-    // Overdue notice:
-    //   Subject: "Overdue: {bookTitle} — please return soon"
-    //   Body: note about daily reputation penalty, link to dashboard
+    // No-op until Resend integration is configured.
+    // See setup instructions in the module-level comment above.
   },
 });
 
