@@ -91,9 +91,8 @@ export const removeBook = mutation({
         q.eq("collectionId", args.collectionId).eq("bookId", args.bookId),
       )
       .unique();
-    if (existing) {
-      await ctx.db.delete(existing._id);
-    }
+    if (!existing) throw new Error("Book not in collection");
+    await ctx.db.delete(existing._id);
   },
 });
 
