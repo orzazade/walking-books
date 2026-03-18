@@ -104,7 +104,7 @@ export default function PartnerReportsPage() {
           const count =
             f.value === "all"
               ? reports.length
-              : reports.filter((r: any) => r.type === f.value).length;
+              : reports.filter((r) => r.type === f.value).length;
           return (
             <button
               key={f.value}
@@ -131,7 +131,7 @@ export default function PartnerReportsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredReports.map((report: any) => (
+          {filteredReports.map((report) => (
             <Card key={report._id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
