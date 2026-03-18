@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lending";
-import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
+import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions } from "./lib/reputation";
 import { conditionValidator, CONDITION_LABELS } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
@@ -179,27 +179,12 @@ export const returnCopy = mutation({
 
     const now = Date.now();
 
-    // Calculate reputation change
-    let repChange = 0;
-    const isOnTime = !copy.returnDeadline || now <= copy.returnDeadline;
-    if (isOnTime) {
-      repChange += REPUTATION.RETURN_ON_TIME;
-    } else {
-      repChange += REPUTATION.LATE_RETURN;
-    }
-
-    // Good condition bonus
-    const goodConditions = ["like_new", "good"];
-    if (goodConditions.includes(args.conditionAtReturn)) {
-      repChange += REPUTATION.GOOD_CONDITION;
-    }
-
-    // Note bonus
-    if (args.readerNote) {
-      repChange += REPUTATION.LEAVE_NOTE;
-    }
-
-    // Update reputation
+    // Calculate and apply reputation change
+    const repChange = calculateReturnRepChange({
+      isOnTime: !copy.returnDeadline || now <= copy.returnDeadline,
+      condition: args.conditionAtReturn,
+      hasNote: !!args.readerNote,
+    });
     await ctx.db.patch(user._id, {
       reputationScore: clampScore(user.reputationScore + repChange),
     });

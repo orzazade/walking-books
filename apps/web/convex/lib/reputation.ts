@@ -11,6 +11,22 @@ export function clampScore(score: number): number {
   return Math.max(0, Math.min(100, score));
 }
 
+/** Calculate reputation change for a book return based on timeliness, condition, and note. */
+export function calculateReturnRepChange(opts: {
+  isOnTime: boolean;
+  condition: string;
+  hasNote: boolean;
+}): number {
+  let change = opts.isOnTime ? REPUTATION.RETURN_ON_TIME : REPUTATION.LATE_RETURN;
+  if (opts.condition === "like_new" || opts.condition === "good") {
+    change += REPUTATION.GOOD_CONDITION;
+  }
+  if (opts.hasNote) {
+    change += REPUTATION.LEAVE_NOTE;
+  }
+  return change;
+}
+
 export function getUserRestrictions(score: number) {
   if (score < 15)
     return { canReserve: false, maxBooks: 0, tier: "suspended" as const };
