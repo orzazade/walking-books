@@ -52,7 +52,7 @@ export function IsbnScanner({ onScan }: IsbnScannerProps) {
           // ignore scan failures
         },
       );
-    } catch (err) {
+    } catch {
       setScanning(false);
       setError(
         "Could not access camera. Please allow camera permissions or enter ISBN manually.",

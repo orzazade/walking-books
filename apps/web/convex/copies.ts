@@ -45,13 +45,10 @@ export const byLocation = query({
 export const allAtLocation = query({
   args: { locationId: v.id("partnerLocations") },
   handler: async (ctx, args) => {
-    // Get all copies at this location regardless of status
-    // The index is (currentLocationId, status), so we query by locationId only
-    const copies = await ctx.db
+    return await ctx.db
       .query("copies")
       .withIndex("by_location", (q) => q.eq("currentLocationId", args.locationId))
       .collect();
-    return copies;
   },
 });
 
