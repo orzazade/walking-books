@@ -25,6 +25,12 @@ import {
   UserCog,
 } from "lucide-react";
 
+const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructive"> = {
+  active: "default",
+  restricted: "secondary",
+  banned: "destructive",
+};
+
 export default function AdminUsersPage() {
   const allUsers = useQuery(api.users.listAll);
   const updateStatus = useMutation(api.users.updateStatus);
@@ -43,17 +49,6 @@ export default function AdminUsersPage() {
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.phone.includes(searchTerm),
   );
-
-  const statusColor = (status: UserStatus) => {
-    switch (status) {
-      case "active":
-        return "default" as const;
-      case "restricted":
-        return "secondary" as const;
-      case "banned":
-        return "destructive" as const;
-    }
-  };
 
   const repColor = (score: number) => {
     if (score >= 70) return "text-green-600";
@@ -132,7 +127,7 @@ export default function AdminUsersPage() {
                       {user.reputationScore}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Badge variant={statusColor(user.status)}>
+                      <Badge variant={USER_STATUS_BADGE[user.status]}>
                         {user.status}
                       </Badge>
                     </td>
@@ -252,7 +247,7 @@ export default function AdminUsersPage() {
                 <div>
                   <span className="text-muted-foreground">Status</span>
                   <p>
-                    <Badge variant={statusColor(selectedUser.status)}>
+                    <Badge variant={USER_STATUS_BADGE[selectedUser.status]}>
                       {selectedUser.status}
                     </Badge>
                   </p>
