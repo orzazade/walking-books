@@ -110,31 +110,35 @@ export const feed = query({
       }
     }
 
-    // Collect reviews from followed users (single scan, filtered by followed set)
-    const allReviews = await ctx.db.query("reviews").collect();
+    // Collect reviews from followed users via index lookup per user
+    for (const followedId of followedIds) {
+      const reviews = await ctx.db
+        .query("reviews")
+        .withIndex("by_user", (q) => q.eq("userId", followedId))
+        .collect();
 
-    for (const review of allReviews) {
-      if (!followedIds.has(review.userId)) continue;
-      const book = await getBook(review.bookId);
-      const reviewer = await getUser(review.userId);
-      if (!book || !reviewer) continue;
+      for (const review of reviews) {
+        const book = await getBook(review.bookId);
+        const reviewer = await getUser(followedId);
+        if (!book || !reviewer) continue;
 
-      items.push({
-        type: "review",
-        timestamp: review._creationTime,
-        user: {
-          _id: reviewer._id,
-          name: reviewer.name,
-          avatarUrl: reviewer.avatarUrl,
-        },
-        book: {
-          _id: book._id,
-          title: book.title,
-          author: book.author,
-          coverImage: book.coverImage,
-        },
-        detail: { rating: review.rating, reviewText: review.text },
-      });
+        items.push({
+          type: "review",
+          timestamp: review._creationTime,
+          user: {
+            _id: reviewer._id,
+            name: reviewer.name,
+            avatarUrl: reviewer.avatarUrl,
+          },
+          book: {
+            _id: book._id,
+            title: book.title,
+            author: book.author,
+            coverImage: book.coverImage,
+          },
+          detail: { rating: review.rating, reviewText: review.text },
+        });
+      }
     }
 
     // Sort by most recent first and limit

@@ -122,6 +122,7 @@ export default defineSchema({
     text: v.string(),
   })
     .index("by_book", ["bookId"])
+    .index("by_user", ["userId"])
     .index("by_user_book", ["userId", "bookId"]),
 
   follows: defineTable({
