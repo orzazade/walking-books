@@ -24,3 +24,11 @@ export const ownershipTypeValidator = v.union(
   v.literal("donated"),
   v.literal("lent"),
 );
+
+export type ReportType = "pickup_check" | "return_check" | "damage_report";
+
+export const reportTypeValidator = v.union(
+  v.literal("pickup_check"),
+  v.literal("return_check"),
+  v.literal("damage_report"),
+);

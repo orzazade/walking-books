@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { conditionValidator, ownershipTypeValidator } from "./lib/validators";
+import { conditionValidator, ownershipTypeValidator, reportTypeValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -122,11 +122,7 @@ export default defineSchema({
     copyId: v.id("copies"),
     reportedByUserId: v.optional(v.id("users")),
     reportedByPartnerId: v.optional(v.id("partnerLocations")),
-    type: v.union(
-      v.literal("pickup_check"),
-      v.literal("return_check"),
-      v.literal("damage_report"),
-    ),
+    type: reportTypeValidator,
     photos: v.array(v.string()),
     description: v.string(),
     previousCondition: v.string(),

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { conditionValidator } from "./lib/validators";
+import { conditionValidator, reportTypeValidator } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const byCopy = query({
@@ -47,11 +47,7 @@ export const listAll = query({
 export const create = mutation({
   args: {
     copyId: v.id("copies"),
-    type: v.union(
-      v.literal("pickup_check"),
-      v.literal("return_check"),
-      v.literal("damage_report"),
-    ),
+    type: reportTypeValidator,
     photos: v.array(v.string()),
     description: v.string(),
     previousCondition: conditionValidator,
