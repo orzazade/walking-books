@@ -22,12 +22,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-type ReportDoc = Doc<"conditionReports">;
-
 export default function AdminReportsPage() {
   const allReports = useQuery(api.conditionReports.listAll);
   const allUsers = useQuery(api.users.listAll);
-  const [selectedReport, setSelectedReport] = useState<ReportDoc | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Doc<"conditionReports"> | null>(null);
   const [filter, setFilter] = useState<"all" | "damage_report">("damage_report");
 
   if (allReports === undefined || allUsers === undefined) {
@@ -41,7 +39,7 @@ export default function AdminReportsPage() {
           .filter((r) => r.type === "damage_report")
           .sort((a, b) => b.createdAt - a.createdAt);
 
-  function getReporterName(report: ReportDoc) {
+  function getReporterName(report: Doc<"conditionReports">) {
     if (report.reportedByUserId) {
       const user = allUsers?.find((u) => u._id === report.reportedByUserId);
       return user?.name ?? "Unknown user";
@@ -108,7 +106,7 @@ export default function AdminReportsPage() {
             <Card
               key={report._id}
               className="cursor-pointer transition-shadow hover:shadow-md"
-              onClick={() => setSelectedReport(report as ReportDoc)}
+              onClick={() => setSelectedReport(report)}
             >
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex-1">
@@ -139,7 +137,7 @@ export default function AdminReportsPage() {
                     {report.description}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    By: {getReporterName(report as ReportDoc)} | Copy #
+                    By: {getReporterName(report)} | Copy #
                     {report.copyId.slice(-6)}
                   </p>
                 </div>

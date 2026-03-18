@@ -24,15 +24,13 @@ import {
   UserCog,
 } from "lucide-react";
 
-type UserDoc = Doc<"users">;
-
 export default function AdminUsersPage() {
   const allUsers = useQuery(api.users.listAll);
   const updateStatus = useMutation(api.users.updateStatus);
   const updateRoles = useMutation(api.users.updateRoles);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserDoc | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Doc<"users"> | null>(null);
   const [roleInput, setRoleInput] = useState("");
 
   if (allUsers === undefined) {
@@ -121,7 +119,7 @@ export default function AdminUsersPage() {
                     key={user._id}
                     className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
                     onClick={() => {
-                      setSelectedUser(user as UserDoc);
+                      setSelectedUser(user);
                       setRoleInput(user.roles.join(", "));
                     }}
                   >
