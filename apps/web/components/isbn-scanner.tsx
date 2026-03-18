@@ -15,13 +15,12 @@ export function IsbnScanner({ onScan }: IsbnScannerProps) {
   const [manualIsbn, setManualIsbn] = useState("");
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<unknown>(null);
+  const html5QrCodeRef = useRef<{ stop: () => Promise<void> } | null>(null);
 
   const stopScanner = useCallback(async () => {
     if (html5QrCodeRef.current) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (html5QrCodeRef.current as any).stop();
+        await html5QrCodeRef.current.stop();
       } catch {
         // scanner may already be stopped
       }
