@@ -58,7 +58,6 @@ function DashboardContent() {
 
   const [returnDialog, setReturnDialog] = useState<{
     copyId: Id<"copies">;
-    open: boolean;
   } | null>(null);
   const [returnLocationId, setReturnLocationId] = useState<string>("");
   const [returnCondition, setReturnCondition] = useState<string>("good");
@@ -244,7 +243,7 @@ function DashboardContent() {
                     className="h-7 rounded-lg text-[0.75rem]"
                     disabled={actionLoading === `return-${copy._id}`}
                     onClick={() =>
-                      setReturnDialog({ copyId: copy._id, open: true })
+                      setReturnDialog({ copyId: copy._id })
                     }
                   >
                     <Undo2 className="mr-1 h-3 w-3" /> Return
@@ -351,8 +350,7 @@ function DashboardContent() {
                     Copy #{copy._id.slice(-6)}
                   </Link>
                   <p className="text-[0.75rem] capitalize text-muted-foreground">
-                    {copy.ownershipType} &middot;{" "}
-                    {copy.status.replace("_", " ")}
+                    {copy.ownershipType}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -391,7 +389,7 @@ function DashboardContent() {
 
       {/* Return Dialog */}
       <Dialog
-        open={returnDialog?.open ?? false}
+        open={returnDialog !== null}
         onOpenChange={(open) => {
           if (!open) {
             setReturnDialog(null);
