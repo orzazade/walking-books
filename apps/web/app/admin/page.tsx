@@ -73,62 +73,30 @@ export default function AdminOverviewPage() {
           <AlertTriangle className="h-5 w-5 text-amber-500" /> Alerts
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Link href="/admin/users">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
-              <CardContent className="flex items-center gap-3 p-4">
-                <ShieldAlert className="h-8 w-8 text-destructive" />
-                <div>
-                  <p className="font-medium">Low Reputation Users</p>
-                  <p className="text-sm text-muted-foreground">
-                    {lowRepUsers.length} users with score &lt; 15
-                  </p>
-                </div>
-                {lowRepUsers.length > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
-                    {lowRepUsers.length}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/admin/locations">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
-              <CardContent className="flex items-center gap-3 p-4">
-                <MapPin className="h-8 w-8 text-amber-500" />
-                <div>
-                  <p className="font-medium">Pending Partners</p>
-                  <p className="text-sm text-muted-foreground">
-                    {pendingPartners.length} awaiting approval
-                  </p>
-                </div>
-                {pendingPartners.length > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {pendingPartners.length}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/admin/reports">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
-              <CardContent className="flex items-center gap-3 p-4">
-                <FileWarning className="h-8 w-8 text-orange-500" />
-                <div>
-                  <p className="font-medium">Damage Reports</p>
-                  <p className="text-sm text-muted-foreground">
-                    {damageReports.length} unresolved
-                  </p>
-                </div>
-                {damageReports.length > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
-                    {damageReports.length}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
+          {[
+            { href: "/admin/users", icon: ShieldAlert, iconColor: "text-destructive", title: "Low Reputation Users", count: lowRepUsers.length, desc: "users with score < 15", badgeVariant: "destructive" as const },
+            { href: "/admin/locations", icon: MapPin, iconColor: "text-amber-500", title: "Pending Partners", count: pendingPartners.length, desc: "awaiting approval", badgeVariant: "secondary" as const },
+            { href: "/admin/reports", icon: FileWarning, iconColor: "text-orange-500", title: "Damage Reports", count: damageReports.length, desc: "unresolved", badgeVariant: "destructive" as const },
+          ].map((alert) => (
+            <Link key={alert.href} href={alert.href}>
+              <Card className="cursor-pointer transition-shadow hover:shadow-md">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <alert.icon className={`h-8 w-8 ${alert.iconColor}`} />
+                  <div>
+                    <p className="font-medium">{alert.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {alert.count} {alert.desc}
+                    </p>
+                  </div>
+                  {alert.count > 0 && (
+                    <Badge variant={alert.badgeVariant} className="ml-auto">
+                      {alert.count}
+                    </Badge>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
       </section>
 
