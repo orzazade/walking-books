@@ -41,6 +41,10 @@ export const create = mutation({
     if (activeReservations.length >= restrictions.maxBooks)
       throw new Error("Maximum active reservations reached");
 
+    // Validate location exists
+    const location = await ctx.db.get(args.locationId);
+    if (!location) throw new Error("Location not found");
+
     // Check copy is available
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
