@@ -46,6 +46,11 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    const trimmed = args.description.trim();
+    if (!trimmed) throw new Error("Description is required");
+    if (trimmed.length > 2000)
+      throw new Error("Description must be 2000 characters or less");
+
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
 
@@ -54,7 +59,7 @@ export const create = mutation({
       reportedByUserId: user._id,
       type: args.type,
       photos: args.photos,
-      description: args.description,
+      description: trimmed,
       previousCondition: args.previousCondition,
       newCondition: args.newCondition,
       createdAt: Date.now(),
