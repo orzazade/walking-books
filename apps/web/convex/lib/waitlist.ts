@@ -1,8 +1,9 @@
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { DAY_MS } from "./lending";
 
 /** 24-hour window for a notified user to reserve before the slot moves on. */
-const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+const NOTIFICATION_WINDOW_MS = DAY_MS;
 
 /**
  * Expire stale notifications and notify the next waiting user for a book.
