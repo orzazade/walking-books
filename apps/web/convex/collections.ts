@@ -25,10 +25,14 @@ export const create = mutation({
     if (trimmed.length > 100)
       throw new Error("Collection name must be 100 characters or less");
 
+    const trimmedDesc = args.description?.trim() || undefined;
+    if (trimmedDesc && trimmedDesc.length > 500)
+      throw new Error("Collection description must be 500 characters or less");
+
     const id = await ctx.db.insert("collections", {
       userId: user._id,
       name: trimmed,
-      description: args.description?.trim() || undefined,
+      description: trimmedDesc,
       isPublic: args.isPublic,
       createdAt: Date.now(),
     });

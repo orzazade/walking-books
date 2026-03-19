@@ -190,6 +190,12 @@ export const returnCopy = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    if (args.readerNote !== undefined) {
+      const trimmedNote = args.readerNote.trim();
+      if (trimmedNote.length > 1000)
+        throw new Error("Reader note must be 1000 characters or less");
+    }
+
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
 
