@@ -28,14 +28,16 @@ export const myHistory = query({
     const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
 
     async function getBook(id: Id<"books">) {
-      if (bookCache.has(id)) return bookCache.get(id)!;
+      const cached = bookCache.get(id);
+      if (cached !== undefined) return cached;
       const b = await ctx.db.get(id);
       bookCache.set(id, b);
       return b;
     }
 
     async function getLocation(id: Id<"partnerLocations">) {
-      if (locationCache.has(id)) return locationCache.get(id)!;
+      const cached = locationCache.get(id);
+      if (cached !== undefined) return cached;
       const l = await ctx.db.get(id);
       locationCache.set(id, l);
       return l;
