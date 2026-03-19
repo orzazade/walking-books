@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { EmptyState } from "@/components/empty-state";
 import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -98,21 +99,18 @@ function CurrentlyReadingSection() {
 
   if (currentlyReading.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-12 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-          <BookOpen className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <h2 className="font-serif text-lg font-semibold">Nothing in progress</h2>
-        <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-          Pick up a book to start tracking your reading progress.
-        </p>
+      <EmptyState
+        icon={BookOpen}
+        title="Nothing in progress"
+        message="Pick up a book to start tracking your reading progress."
+      >
         <Link
           href="/browse"
           className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
         >
           Browse books
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
