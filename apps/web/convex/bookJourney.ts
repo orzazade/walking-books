@@ -36,37 +36,37 @@ export const forCopy = query({
     if (entries.length === 0) return [];
 
     // Collect unique IDs for batch lookup
-    const readerIds = new Set<string>();
-    const locationIds = new Set<string>();
+    const readerIds = new Set<Id<"users">>();
+    const locationIds = new Set<Id<"partnerLocations">>();
     for (const entry of entries) {
-      readerIds.add(entry.readerId as string);
-      locationIds.add(entry.pickupLocationId as string);
-      if (entry.dropoffLocationId) locationIds.add(entry.dropoffLocationId as string);
+      readerIds.add(entry.readerId);
+      locationIds.add(entry.pickupLocationId);
+      if (entry.dropoffLocationId) locationIds.add(entry.dropoffLocationId);
     }
 
     // Batch-fetch readers and locations
     const [readers, locations] = await Promise.all([
-      Promise.all([...readerIds].map((id) => ctx.db.get(id as Id<"users">))),
-      Promise.all([...locationIds].map((id) => ctx.db.get(id as Id<"partnerLocations">))),
+      Promise.all([...readerIds].map((id) => ctx.db.get(id))),
+      Promise.all([...locationIds].map((id) => ctx.db.get(id))),
     ]);
 
-    const readerMap = new Map<string, Doc<"users">>();
+    const readerMap = new Map<Id<"users">, Doc<"users">>();
     for (const r of readers) {
-      if (r) readerMap.set(r._id as string, r);
+      if (r) readerMap.set(r._id, r);
     }
-    const locationMap = new Map<string, Doc<"partnerLocations">>();
+    const locationMap = new Map<Id<"partnerLocations">, Doc<"partnerLocations">>();
     for (const l of locations) {
-      if (l) locationMap.set(l._id as string, l);
+      if (l) locationMap.set(l._id, l);
     }
 
     // Sort chronologically (oldest first)
     entries.sort((a, b) => a.pickedUpAt - b.pickedUpAt);
 
     return entries.map((entry) => {
-      const reader = readerMap.get(entry.readerId as string);
-      const pickupLoc = locationMap.get(entry.pickupLocationId as string);
+      const reader = readerMap.get(entry.readerId);
+      const pickupLoc = locationMap.get(entry.pickupLocationId);
       const returnLoc = entry.dropoffLocationId
-        ? locationMap.get(entry.dropoffLocationId as string)
+        ? locationMap.get(entry.dropoffLocationId)
         : null;
 
       const daysHeld = entry.returnedAt
@@ -107,15 +107,15 @@ export const summary = query({
 
     if (!copy) throw new Error("Copy not found");
 
-    const uniqueReaders = new Set<string>();
-    const uniqueLocations = new Set<string>();
+    const uniqueReaders = new Set<Id<"users">>();
+    const uniqueLocations = new Set<Id<"partnerLocations">>();
     let totalDaysLent = 0;
     let completedLendings = 0;
 
     for (const entry of entries) {
-      uniqueReaders.add(entry.readerId as string);
-      uniqueLocations.add(entry.pickupLocationId as string);
-      if (entry.dropoffLocationId) uniqueLocations.add(entry.dropoffLocationId as string);
+      uniqueReaders.add(entry.readerId);
+      uniqueLocations.add(entry.pickupLocationId);
+      if (entry.dropoffLocationId) uniqueLocations.add(entry.dropoffLocationId);
       if (entry.returnedAt) {
         totalDaysLent += Math.max(1, Math.round((entry.returnedAt - entry.pickedUpAt) / DAY_MS));
         completedLendings++;
