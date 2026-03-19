@@ -61,8 +61,10 @@ export const unreadCount = query({
 export const markRead = mutation({
   args: { notificationId: v.id("userNotifications") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const notification = await ctx.db.get(args.notificationId);
+    const [user, notification] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.notificationId),
+    ]);
     if (!notification) throw new Error("Notification not found");
     if (notification.userId !== user._id) throw new Error("Not authorized");
 
@@ -91,8 +93,10 @@ export const markAllRead = mutation({
 export const remove = mutation({
   args: { notificationId: v.id("userNotifications") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const notification = await ctx.db.get(args.notificationId);
+    const [user, notification] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.notificationId),
+    ]);
     if (!notification) throw new Error("Notification not found");
     if (notification.userId !== user._id) throw new Error("Not authorized");
 
