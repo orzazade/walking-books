@@ -73,42 +73,50 @@ export const getReview = query({
       bookDocs.filter((b) => b !== null).map((b) => [b._id, b]),
     );
 
-    // Total pages read
+    // Single pass over yearEntries: pages, genres, authors, monthly activity, locations, fastest read
     let totalPagesRead = 0;
-    for (const entry of yearEntries) {
-      const copy = copyMap.get(entry.copyId);
-      if (!copy) continue;
-      const book = bookMap.get(copy.bookId);
-      if (book) totalPagesRead += book.pageCount;
-    }
-
-    // Average days per book
-    const totalDays = yearEntries.reduce((sum, e) => {
-      return sum + (e.returnedAt - e.pickedUpAt) / DAY_MS;
-    }, 0);
-    const avgDaysPerBook =
-      Math.round((totalDays / totalBooksRead) * 10) / 10;
-
-    // Genre breakdown
+    let totalDays = 0;
     const genreCounts: Record<string, number> = {};
     const authorCounts: Record<string, number> = {};
+    const monthlyActivity = buildEmptyMonths(args.year);
+    const locationCounts = new Map<Id<"partnerLocations">, number>();
+    let fastestRead: { title: string; author: string; days: number } | null =
+      null;
+
     for (const entry of yearEntries) {
+      const days = (entry.returnedAt - entry.pickedUpAt) / DAY_MS;
+      totalDays += days;
+      monthlyActivity[new Date(entry.returnedAt).getMonth()].count++;
+      locationCounts.set(
+        entry.pickupLocationId,
+        (locationCounts.get(entry.pickupLocationId) || 0) + 1,
+      );
+
       const copy = copyMap.get(entry.copyId);
       if (!copy) continue;
       const book = bookMap.get(copy.bookId);
       if (!book) continue;
+
+      totalPagesRead += book.pageCount;
       for (const genre of book.categories) {
         genreCounts[genre] = (genreCounts[genre] || 0) + 1;
       }
       authorCounts[book.author] = (authorCounts[book.author] || 0) + 1;
+
+      const roundedDays = Math.round(days * 10) / 10;
+      if (!fastestRead || roundedDays < fastestRead.days) {
+        fastestRead = { title: book.title, author: book.author, days: roundedDays };
+      }
     }
+
+    const avgDaysPerBook =
+      Math.round((totalDays / totalBooksRead) * 10) / 10;
 
     const topGenres = Object.entries(genreCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([genre, count]) => ({ genre, count }));
 
-    // Most read author
     const authorEntries = Object.entries(authorCounts).sort(
       (a, b) => b[1] - a[1],
     );
@@ -117,20 +125,7 @@ export const getReview = query({
         ? { author: authorEntries[0][0], count: authorEntries[0][1] }
         : null;
 
-    // Monthly activity
-    const monthlyActivity = buildEmptyMonths(args.year);
-    for (const entry of yearEntries) {
-      const month = new Date(entry.returnedAt).getMonth();
-      monthlyActivity[month].count++;
-    }
-
-    // Locations visited
-    const locationCounts = new Map<Id<"partnerLocations">, number>();
-    for (const entry of yearEntries) {
-      const locId = entry.pickupLocationId;
-      locationCounts.set(locId, (locationCounts.get(locId) || 0) + 1);
-    }
-
+    // Resolve location names
     const locationIds = [...locationCounts.keys()];
     const locationDocs = await Promise.all(
       locationIds.map((id) => ctx.db.get(id)),
@@ -181,22 +176,6 @@ export const getReview = query({
             Math.round((totalBooksRead / goal.targetBooks) * 100),
           )
         : null;
-
-    // Fastest read
-    let fastestRead: { title: string; author: string; days: number } | null =
-      null;
-    for (const entry of yearEntries) {
-      const days =
-        Math.round(((entry.returnedAt - entry.pickedUpAt) / DAY_MS) * 10) /
-        10;
-      if (!fastestRead || days < fastestRead.days) {
-        const copy = copyMap.get(entry.copyId);
-        const book = copy ? bookMap.get(copy.bookId) : null;
-        if (book) {
-          fastestRead = { title: book.title, author: book.author, days };
-        }
-      }
-    }
 
     return {
       year: args.year,
