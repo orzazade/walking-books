@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireCurrentUser, getCurrentUser } from "./lib/auth";
+import { recalcAvgRating } from "./lib/ratings";
 
 export const create = mutation({
   args: {
@@ -44,16 +45,10 @@ export const create = mutation({
       });
 
       // Recalculate average with updated rating
-      if (location.reviewCount > 0) {
-        const newAvg =
-          (location.avgRating * location.reviewCount -
-            existing.rating +
-            args.rating) /
-          location.reviewCount;
-        await ctx.db.patch(args.locationId, {
-          avgRating: Math.round(newAvg * 10) / 10,
-        });
-      }
+      const updated = recalcAvgRating(
+        location.avgRating, location.reviewCount, args.rating, existing.rating,
+      );
+      await ctx.db.patch(args.locationId, { avgRating: updated.avgRating });
 
       return existing._id;
     }
@@ -66,13 +61,10 @@ export const create = mutation({
     });
 
     // Update location aggregate rating
-    const newCount = location.reviewCount + 1;
-    const newAvg =
-      (location.avgRating * location.reviewCount + args.rating) / newCount;
-    await ctx.db.patch(args.locationId, {
-      avgRating: Math.round(newAvg * 10) / 10,
-      reviewCount: newCount,
-    });
+    const { avgRating, reviewCount } = recalcAvgRating(
+      location.avgRating, location.reviewCount, args.rating,
+    );
+    await ctx.db.patch(args.locationId, { avgRating, reviewCount });
 
     return reviewId;
   },

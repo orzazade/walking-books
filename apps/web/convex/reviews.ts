@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireCurrentUser } from "./lib/auth";
+import { recalcAvgRating } from "./lib/ratings";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -47,14 +48,10 @@ export const create = mutation({
       });
 
       // Recalculate book average with updated rating
-      if (book.reviewCount > 0) {
-        const newAvg =
-          (book.avgRating * book.reviewCount - existing.rating + args.rating) /
-          book.reviewCount;
-        await ctx.db.patch(args.bookId, {
-          avgRating: Math.round(newAvg * 10) / 10,
-        });
-      }
+      const updated = recalcAvgRating(
+        book.avgRating, book.reviewCount, args.rating, existing.rating,
+      );
+      await ctx.db.patch(args.bookId, { avgRating: updated.avgRating });
 
       return existing._id;
     }
@@ -67,13 +64,10 @@ export const create = mutation({
     });
 
     // Update book aggregate rating
-    const newCount = book.reviewCount + 1;
-    const newAvg =
-      (book.avgRating * book.reviewCount + args.rating) / newCount;
-    await ctx.db.patch(args.bookId, {
-      avgRating: Math.round(newAvg * 10) / 10,
-      reviewCount: newCount,
-    });
+    const { avgRating, reviewCount } = recalcAvgRating(
+      book.avgRating, book.reviewCount, args.rating,
+    );
+    await ctx.db.patch(args.bookId, { avgRating, reviewCount });
 
     return reviewId;
   },
