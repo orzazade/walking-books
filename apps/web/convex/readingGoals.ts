@@ -53,28 +53,29 @@ export const getProgress = query({
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const goal = await ctx.db
-      .query("readingGoals")
-      .withIndex("by_user_year", (q) =>
-        q.eq("userId", user._id).eq("year", args.year),
-      )
-      .unique();
-
     // Count completed reads (journeyEntries with returnedAt) in the given year
     const yearStart = new Date(args.year, 0, 1).getTime();
     const yearEnd = new Date(args.year + 1, 0, 1).getTime();
 
-    const completedEntries = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_reader", (q) => q.eq("readerId", user._id))
-      .filter((q) =>
-        q.and(
-          q.neq(q.field("returnedAt"), undefined),
-          q.gte(q.field("returnedAt"), yearStart),
-          q.lt(q.field("returnedAt"), yearEnd),
-        ),
-      )
-      .collect();
+    const [goal, completedEntries] = await Promise.all([
+      ctx.db
+        .query("readingGoals")
+        .withIndex("by_user_year", (q) =>
+          q.eq("userId", user._id).eq("year", args.year),
+        )
+        .unique(),
+      ctx.db
+        .query("journeyEntries")
+        .withIndex("by_reader", (q) => q.eq("readerId", user._id))
+        .filter((q) =>
+          q.and(
+            q.neq(q.field("returnedAt"), undefined),
+            q.gte(q.field("returnedAt"), yearStart),
+            q.lt(q.field("returnedAt"), yearEnd),
+          ),
+        )
+        .collect(),
+    ]);
 
     const completedReads = completedEntries.length;
 
