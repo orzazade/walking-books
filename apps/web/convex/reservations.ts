@@ -119,11 +119,11 @@ export const create = mutation({
       status: "active",
     });
 
-    // Set copy to reserved
-    await ctx.db.patch(args.copyId, { status: "reserved" });
-
-    // Notify user that reservation is confirmed
-    const book = await ctx.db.get(copy.bookId);
+    // Set copy to reserved and fetch book title in parallel — independent operations
+    const [, book] = await Promise.all([
+      ctx.db.patch(args.copyId, { status: "reserved" }),
+      ctx.db.get(copy.bookId),
+    ]);
     const bookTitle = book?.title ?? "a book";
     await createNotification(ctx, {
       userId: user._id,
