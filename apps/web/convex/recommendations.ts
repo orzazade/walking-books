@@ -17,7 +17,7 @@ export const forMe = query({
     const readCopies = await Promise.all(
       journeyEntries.map((e) => ctx.db.get(e.copyId)),
     );
-    const readBookIds = new Set<string>();
+    const readBookIds = new Set<Id<"books">>();
     for (const copy of readCopies) {
       if (copy) readBookIds.add(copy.bookId);
     }
