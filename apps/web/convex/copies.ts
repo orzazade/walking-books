@@ -138,10 +138,11 @@ export const pickup = mutation({
     if (!restrictions.canReserve)
       throw new Error("Your reputation is too low to pick up books");
 
-    const location = await ctx.db.get(args.locationId);
+    const [location, copy] = await Promise.all([
+      ctx.db.get(args.locationId),
+      ctx.db.get(args.copyId),
+    ]);
     if (!location) throw new Error("Location not found");
-
-    const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
     if (copy.status !== "available" && copy.status !== "reserved")
       throw new Error("Copy not available for pickup");
@@ -259,10 +260,11 @@ export const returnCopy = mutation({
         throw new Error("Reader note must be 1000 characters or less");
     }
 
-    const location = await ctx.db.get(args.locationId);
+    const [location, copy] = await Promise.all([
+      ctx.db.get(args.locationId),
+      ctx.db.get(args.copyId),
+    ]);
     if (!location) throw new Error("Location not found");
-
-    const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
     if (copy.status !== "checked_out" && copy.status !== "recalled")
       throw new Error("Copy is not checked out");
