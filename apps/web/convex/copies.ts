@@ -90,6 +90,11 @@ export const pickup = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    // Check reputation restrictions — suspended users cannot pick up books
+    const restrictions = getUserRestrictions(user.reputationScore);
+    if (!restrictions.canReserve)
+      throw new Error("Your reputation is too low to pick up books");
+
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
 
@@ -129,7 +134,6 @@ export const pickup = mutation({
     );
 
     // Warning zone: cap at 14 days for users with score 30-49
-    const restrictions = getUserRestrictions(user.reputationScore);
     if (restrictions.tier === "warning") {
       lendingDays = Math.min(lendingDays, 14);
     }
