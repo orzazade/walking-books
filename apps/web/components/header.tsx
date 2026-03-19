@@ -22,6 +22,7 @@ import {
   BookOpen,
   Bell,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,7 @@ const AUTH_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/currently-reading", label: "Reading", icon: BookOpen },
   { href: "/activity", label: "Activity", icon: Rss },
+  { href: "/following", label: "Following", icon: Users },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/waitlist", label: "Waitlist", icon: Clock },
   { href: "/share", label: "Share", icon: Share2 },

@@ -1,6 +1,20 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import type { Doc } from "./_generated/dataModel";
+
+function toPublicProfile(user: Doc<"users">) {
+  return {
+    _id: user._id,
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    booksRead: user.booksRead,
+    booksShared: user.booksShared,
+    reputationScore: user.reputationScore,
+    favoriteGenres: user.favoriteGenres,
+  };
+}
 
 export const isFollowing = query({
   args: { targetUserId: v.id("users") },
@@ -60,5 +74,41 @@ export const following = query({
       .query("follows")
       .withIndex("by_follower", (q) => q.eq("followerId", args.userId))
       .collect();
+  },
+});
+
+export const myFollowingEnriched = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    const follows = await ctx.db
+      .query("follows")
+      .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+      .collect();
+    const users = await Promise.all(
+      follows.map((f) => ctx.db.get(f.followingId)),
+    );
+    return users
+      .filter((u) => u !== null)
+      .map(toPublicProfile);
+  },
+});
+
+export const myFollowersEnriched = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    const follows = await ctx.db
+      .query("follows")
+      .withIndex("by_following", (q) => q.eq("followingId", user._id))
+      .collect();
+    const users = await Promise.all(
+      follows.map((f) => ctx.db.get(f.followerId)),
+    );
+    return users
+      .filter((u) => u !== null)
+      .map(toPublicProfile);
   },
 });
