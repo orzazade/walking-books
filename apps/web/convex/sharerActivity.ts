@@ -35,11 +35,9 @@ export const feed = query({
 
     if (copies.length === 0) return [];
 
-    // Build copy lookup and book ID set
-    const copyMap = new Map<string, Doc<"copies">>();
+    // Build book ID set for batch review queries
     const bookIds = new Set<Id<"books">>();
     for (const copy of copies) {
-      copyMap.set(copy._id, copy);
       bookIds.add(copy.bookId);
     }
 
