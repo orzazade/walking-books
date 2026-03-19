@@ -93,7 +93,11 @@ export const update = mutation({
       updates.bio = trimmed || undefined;
     }
     if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
-    if (args.favoriteGenres !== undefined) updates.favoriteGenres = args.favoriteGenres;
+    if (args.favoriteGenres !== undefined) {
+      if (args.favoriteGenres.length > 20)
+        throw new Error("Maximum 20 favorite genres allowed");
+      updates.favoriteGenres = args.favoriteGenres;
+    }
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(user._id, updates);
     }

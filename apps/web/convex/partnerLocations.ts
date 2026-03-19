@@ -63,6 +63,8 @@ export const update = mutation({
       if (trimmed.length > 200) throw new Error("Email must be 200 characters or less");
       args = { ...args, contactEmail: trimmed };
     }
+    if (args.photos !== undefined && args.photos.length > 20)
+      throw new Error("Maximum 20 photos allowed");
     if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0))
       throw new Error("Shelf capacity must be a non-negative integer");
 
