@@ -192,15 +192,16 @@ export const getCollection = query({
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .collect();
 
-    const books = await Promise.all(
-      items.map(async (item) => {
-        const book = await ctx.db.get(item.bookId);
-        if (!book) return null;
-        return { ...item, book };
-      }),
-    );
-
-    const owner = await ctx.db.get(collection.userId);
+    const [books, owner] = await Promise.all([
+      Promise.all(
+        items.map(async (item) => {
+          const book = await ctx.db.get(item.bookId);
+          if (!book) return null;
+          return { ...item, book };
+        }),
+      ),
+      ctx.db.get(collection.userId),
+    ]);
 
     return {
       ...collection,
