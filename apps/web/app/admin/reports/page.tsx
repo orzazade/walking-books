@@ -9,13 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ReportDetailDialog } from "@/components/report-detail-dialog";
 import {
   FileWarning,
   Camera,
@@ -160,117 +154,11 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      {/* Report detail modal */}
-      <Dialog
-        open={selectedReport !== null}
-        onOpenChange={(open) => !open && setSelectedReport(null)}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileWarning className="h-5 w-5" />
-              {selectedReport ? REPORT_TYPE_LABELS[selectedReport.type as ReportType] : ""}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedReport && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Copy ID</span>
-                  <p className="font-mono text-xs">
-                    {selectedReport.copyId}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Reported By</span>
-                  <p className="font-medium">
-                    {getReporterName(selectedReport)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Date</span>
-                  <p className="font-medium">
-                    {new Date(selectedReport.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-sm">
-                <span className="text-muted-foreground">Description</span>
-                <p>{selectedReport.description}</p>
-              </div>
-
-              {/* Condition comparison */}
-              <div>
-                <p className="mb-2 text-sm font-medium">Condition Change</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 rounded-md border p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Before</p>
-                    <Badge
-                      variant={CONDITION_BADGE_VARIANT[
-                        selectedReport.previousCondition as Condition
-                      ]}
-                      className="mt-1"
-                    >
-                      {CONDITION_LABELS[selectedReport.previousCondition as Condition]}
-                    </Badge>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1 rounded-md border p-3 text-center">
-                    <p className="text-xs text-muted-foreground">After</p>
-                    <Badge
-                      variant={CONDITION_BADGE_VARIANT[
-                        selectedReport.newCondition as Condition
-                      ]}
-                      className="mt-1"
-                    >
-                      {CONDITION_LABELS[selectedReport.newCondition as Condition]}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Photos side by side */}
-              {selectedReport.photos.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Photos</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedReport.photos.map((photo, i) => (
-                        <img
-                          key={i}
-                          src={photo}
-                          alt={`Report photo ${i + 1}`}
-                          className="h-40 w-full rounded-md object-cover"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
-              {/* Actions */}
-              <div>
-                <p className="mb-2 text-sm font-medium">Actions</p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedReport(null)}
-                    className="gap-1"
-                  >
-                    <CheckCircle className="h-3 w-3" /> Dismiss Report
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ReportDetailDialog
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+        getReporterName={getReporterName}
+      />
     </>
   );
 }
