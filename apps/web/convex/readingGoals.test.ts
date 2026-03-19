@@ -234,7 +234,7 @@ describe("readingGoals", () => {
         year: 2026,
         targetBooks: 0,
       }),
-    ).rejects.toThrow("Target must be at least 1");
+    ).rejects.toThrow("Target must be between 1 and 1000");
   });
 
   it("progressPercent caps at 100 when goal is exceeded", async () => {

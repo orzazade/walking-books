@@ -6,8 +6,8 @@ export const setGoal = mutation({
   args: { year: v.number(), targetBooks: v.number() },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
-    if (!Number.isInteger(args.targetBooks) || args.targetBooks < 1)
-      throw new Error("Target must be at least 1");
+    if (!Number.isInteger(args.targetBooks) || args.targetBooks < 1 || args.targetBooks > 1000)
+      throw new Error("Target must be between 1 and 1000");
     if (!Number.isInteger(args.year) || args.year < 2000 || args.year > 2100)
       throw new Error("Invalid year");
 
