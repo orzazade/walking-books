@@ -80,21 +80,23 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
+    const updates: Record<string, unknown> = {};
     if (args.name !== undefined) {
       const trimmed = args.name.trim();
       if (trimmed.length === 0) throw new Error("Name cannot be empty");
       if (trimmed.length > 100) throw new Error("Name must be 100 characters or less");
-      args = { ...args, name: trimmed };
+      updates.name = trimmed;
     }
     if (args.bio !== undefined) {
       const trimmed = args.bio.trim();
       if (trimmed.length > 500) throw new Error("Bio must be 500 characters or less");
-      args = { ...args, bio: trimmed || undefined };
+      updates.bio = trimmed || undefined;
     }
-    const updates = Object.fromEntries(
-      Object.entries(args).filter(([, v]) => v !== undefined),
-    );
-    await ctx.db.patch(user._id, updates);
+    if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
+    if (args.favoriteGenres !== undefined) updates.favoriteGenres = args.favoriteGenres;
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(user._id, updates);
+    }
   },
 });
 
