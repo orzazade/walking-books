@@ -128,30 +128,34 @@ export const expireStale = internalMutation({
       )
       .collect();
 
+    // Expire all stale reservations and release their copies
     for (const reservation of staleReservations) {
-
-      // Expire reservation
       await ctx.db.patch(reservation._id, { status: "expired" });
 
-      // Fetch copy and user in parallel
-      const [copy, user] = await Promise.all([
-        ctx.db.get(reservation.copyId),
-        ctx.db.get(reservation.userId),
-      ]);
-
-      // Release copy
+      const copy = await ctx.db.get(reservation.copyId);
       if (copy && copy.status === "reserved") {
         await ctx.db.patch(reservation.copyId, { status: "available" });
       }
+    }
 
-      // Apply no-show penalty
-      if (user) {
-        await ctx.db.patch(user._id, {
-          reputationScore: clampScore(
-            user.reputationScore + REPUTATION.NO_SHOW,
-          ),
-        });
-      }
+    // Group penalties by user and apply cumulative no-show penalties
+    const penaltyByUser = new Map<typeof staleReservations[0]["userId"], number>();
+    for (const reservation of staleReservations) {
+      penaltyByUser.set(
+        reservation.userId,
+        (penaltyByUser.get(reservation.userId) ?? 0) + REPUTATION.NO_SHOW,
+      );
+    }
+
+    const userIds = [...penaltyByUser.keys()];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+
+    for (let i = 0; i < userIds.length; i++) {
+      const user = users[i];
+      if (!user) continue;
+      await ctx.db.patch(user._id, {
+        reputationScore: clampScore(user.reputationScore + penaltyByUser.get(userIds[i])!),
+      });
     }
   },
 });
