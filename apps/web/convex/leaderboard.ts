@@ -16,7 +16,7 @@ async function enrichTopUsers<T extends { userId: Id<"users"> }, R>(
       return mapFn(user, item);
     }),
   );
-  return results.filter((r) => r !== null) as R[];
+  return results.filter((r) => r !== null);
 }
 
 /**
