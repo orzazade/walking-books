@@ -1,4 +1,5 @@
 import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
+import { formatDate } from "@/lib/utils";
 
 interface JourneyEntry {
   pickupLocationId: string;
@@ -12,14 +13,6 @@ interface JourneyEntry {
 
 interface CopyJourneyProps {
   entries: JourneyEntry[];
-}
-
-function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export function CopyJourney({ entries }: CopyJourneyProps) {

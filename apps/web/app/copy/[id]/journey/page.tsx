@@ -15,14 +15,7 @@ import {
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/lib/utils";
 
 function JourneyContent({ copyId }: { copyId: Id<"copies"> }) {
   const summary = useQuery(api.bookJourney.summary, { copyId });

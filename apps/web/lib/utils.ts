@@ -21,3 +21,11 @@ export function timeAgo(timestamp: number): string {
   const months = Math.floor(days / 30);
   return `${months}mo ago`;
 }
+
+export function formatDate(ts: number): string {
+  return new Date(ts).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
