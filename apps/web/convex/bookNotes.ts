@@ -13,16 +13,16 @@ export const save = mutation({
     if (trimmed.length === 0) throw new Error("Note content is required");
     if (trimmed.length > 10000) throw new Error("Note must be 10000 characters or less");
 
-    const book = await ctx.db.get(args.bookId);
+    const [book, existing] = await Promise.all([
+      ctx.db.get(args.bookId),
+      ctx.db
+        .query("bookNotes")
+        .withIndex("by_user_book", (q) =>
+          q.eq("userId", user._id).eq("bookId", args.bookId),
+        )
+        .unique(),
+    ]);
     if (!book) throw new Error("Book not found");
-
-    // Upsert: one note per user per book
-    const existing = await ctx.db
-      .query("bookNotes")
-      .withIndex("by_user_book", (q) =>
-        q.eq("userId", user._id).eq("bookId", args.bookId),
-      )
-      .unique();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
