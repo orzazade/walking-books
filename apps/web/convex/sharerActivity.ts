@@ -25,7 +25,7 @@ export const feed = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    const limit = Math.min(args.limit ?? 20, 100);
+    const limit = Math.max(1, Math.min(args.limit ?? 20, 100));
 
     // Get all copies shared by this user
     const copies = await ctx.db

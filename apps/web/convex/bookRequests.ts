@@ -91,7 +91,7 @@ export const fulfill = mutation({
 export const active = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = Math.min(args.limit ?? 50, 100);
+    const limit = Math.max(1, Math.min(args.limit ?? 50, 100));
 
     const requests = await ctx.db
       .query("bookRequests")
