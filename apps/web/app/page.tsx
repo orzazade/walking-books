@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { buttonVariants } from "@/components/ui/button";
 import { BookCard } from "@/components/book-card";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -231,16 +232,11 @@ export default function Home() {
             <div className="animate-shimmer mx-auto h-4 w-32 rounded-md bg-muted" />
           </div>
         ) : featuredBooks.length === 0 ? (
-          <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <h3 className="font-serif text-lg font-semibold">
-              No books available yet
-            </h3>
-            <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-              Be the first to share a book and start the network.
-            </p>
+          <EmptyState
+            icon={BookOpen}
+            title="No books available yet"
+            message="Be the first to share a book and start the network."
+          >
             <Link
               href="/share"
               className={cn(
@@ -250,7 +246,7 @@ export default function Home() {
             >
               Share a book
             </Link>
-          </div>
+          </EmptyState>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {featuredBooks.slice(0, 4).map((book) => (
