@@ -115,6 +115,8 @@ export const currentlyReading = query({
           ctx.db.get(entry.copyId),
         ]);
         if (!book) return null;
+        // Skip entries where the user no longer holds the copy (e.g. returned)
+        if (!copy || copy.currentHolderId !== user._id) return null;
 
         const percentComplete =
           entry.totalPages > 0
