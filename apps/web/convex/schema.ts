@@ -56,7 +56,8 @@ export default defineSchema({
     reservationId: v.optional(v.id("reservations")),
   })
     .index("by_copy", ["copyId"])
-    .index("by_reader", ["readerId"]),
+    .index("by_reader", ["readerId"])
+    .index("by_pickedUpAt", ["pickedUpAt"]),
 
   users: defineTable({
     clerkId: v.string(),

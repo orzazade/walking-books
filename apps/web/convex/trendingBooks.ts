@@ -13,15 +13,11 @@ export const trending = query({
   handler: async (ctx) => {
     const thirtyDaysAgo = Date.now() - 30 * DAY_MS;
 
-    // Get all recent journey entries (pickups in last 30 days)
-    const recentEntries = await ctx.db
+    // Get recent journey entries using index (pickups in last 30 days)
+    const recentPickups = await ctx.db
       .query("journeyEntries")
+      .withIndex("by_pickedUpAt", (q) => q.gte("pickedUpAt", thirtyDaysAgo))
       .collect();
-
-    // Count pickups per copy in the last 30 days
-    const recentPickups = recentEntries.filter(
-      (e) => e.pickedUpAt >= thirtyDaysAgo,
-    );
 
     // Map copy IDs to book IDs, counting pickups per book
     const copyIds = new Set<Id<"copies">>();
