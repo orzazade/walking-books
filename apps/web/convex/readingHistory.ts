@@ -1,5 +1,4 @@
 import { query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { DAY_MS } from "./lib/lending";
 
@@ -19,59 +18,58 @@ export const myHistory = query({
         e.returnedAt !== undefined,
     );
 
-    // Batch-fetch copies, then cache books and locations to avoid redundant lookups
+    // Batch-fetch copies
     const copies = await Promise.all(
       completed.map((e) => ctx.db.get(e.copyId)),
     );
 
-    const bookCache = new Map<Id<"books">, Doc<"books"> | null>();
-    const locationCache = new Map<Id<"partnerLocations">, Doc<"partnerLocations"> | null>();
+    // Batch-fetch unique books and locations upfront (cache inside Promise.all is race-prone)
+    const bookIds = [...new Set(
+      copies.filter((c): c is NonNullable<typeof c> => c !== null).map((c) => c.bookId),
+    )];
+    const locationIds = [...new Set(
+      completed.flatMap((e) =>
+        [e.pickupLocationId, e.dropoffLocationId].filter(
+          (id): id is NonNullable<typeof id> => id !== undefined,
+        ),
+      ),
+    )];
 
-    async function getBook(id: Id<"books">) {
-      const cached = bookCache.get(id);
-      if (cached !== undefined) return cached;
-      const b = await ctx.db.get(id);
-      bookCache.set(id, b);
-      return b;
-    }
+    const [bookDocs, locationDocs] = await Promise.all([
+      Promise.all(bookIds.map((id) => ctx.db.get(id))),
+      Promise.all(locationIds.map((id) => ctx.db.get(id))),
+    ]);
 
-    async function getLocation(id: Id<"partnerLocations">) {
-      const cached = locationCache.get(id);
-      if (cached !== undefined) return cached;
-      const l = await ctx.db.get(id);
-      locationCache.set(id, l);
-      return l;
-    }
+    const bookMap = new Map(bookIds.map((id, i) => [id, bookDocs[i]] as const));
+    const locationMap = new Map(locationIds.map((id, i) => [id, locationDocs[i]] as const));
 
-    const history = await Promise.all(
-      completed.map(async (entry, i) => {
-        const copy = copies[i];
-        const book = copy ? await getBook(copy.bookId) : null;
-        const pickupLocation = await getLocation(entry.pickupLocationId);
-        const dropoffLocation = entry.dropoffLocationId
-          ? await getLocation(entry.dropoffLocationId)
-          : null;
+    const history = completed.map((entry, i) => {
+      const copy = copies[i];
+      const book = copy ? bookMap.get(copy.bookId) ?? null : null;
+      const pickupLocation = locationMap.get(entry.pickupLocationId);
+      const dropoffLocation = entry.dropoffLocationId
+        ? locationMap.get(entry.dropoffLocationId)
+        : null;
 
-        return {
-          _id: entry._id,
-          bookId: copy?.bookId,
-          title: book?.title ?? "Unknown",
-          author: book?.author ?? "Unknown",
-          coverImage: book?.coverImage ?? "",
-          categories: book?.categories ?? [],
-          pickedUpAt: entry.pickedUpAt,
-          returnedAt: entry.returnedAt,
-          daysHeld: Math.ceil(
-            (entry.returnedAt - entry.pickedUpAt) / DAY_MS,
-          ),
-          pickupLocation: pickupLocation?.name ?? "Unknown",
-          dropoffLocation: dropoffLocation?.name ?? null,
-          readerNote: entry.readerNote ?? null,
-          conditionAtPickup: entry.conditionAtPickup,
-          conditionAtReturn: entry.conditionAtReturn ?? null,
-        };
-      }),
-    );
+      return {
+        _id: entry._id,
+        bookId: copy?.bookId,
+        title: book?.title ?? "Unknown",
+        author: book?.author ?? "Unknown",
+        coverImage: book?.coverImage ?? "",
+        categories: book?.categories ?? [],
+        pickedUpAt: entry.pickedUpAt,
+        returnedAt: entry.returnedAt,
+        daysHeld: Math.ceil(
+          (entry.returnedAt - entry.pickedUpAt) / DAY_MS,
+        ),
+        pickupLocation: pickupLocation?.name ?? "Unknown",
+        dropoffLocation: dropoffLocation?.name ?? null,
+        readerNote: entry.readerNote ?? null,
+        conditionAtPickup: entry.conditionAtPickup,
+        conditionAtReturn: entry.conditionAtReturn ?? null,
+      };
+    });
 
     // Sort by most recently returned first
     return history.sort((a, b) => b.returnedAt - a.returnedAt);
