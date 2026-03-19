@@ -100,8 +100,20 @@ export const pickup = mutation({
     if (copy.currentLocationId !== args.locationId)
       throw new Error("Copy is not at the specified location");
 
-    // Fulfill reservation if provided
-    if (args.reservationId) {
+    // If copy is reserved, only the reserver can pick it up
+    if (copy.status === "reserved") {
+      if (!args.reservationId)
+        throw new Error("This copy is reserved — a reservation ID is required");
+      const reservation = await ctx.db.get(args.reservationId);
+      if (!reservation || reservation.status !== "active")
+        throw new Error("Reservation not found or not active");
+      if (reservation.userId !== user._id)
+        throw new Error("This copy is reserved by another user");
+      if (reservation.copyId !== args.copyId)
+        throw new Error("Reservation does not match this copy");
+      await ctx.db.patch(args.reservationId, { status: "fulfilled" });
+    } else if (args.reservationId) {
+      // Available copy with optional reservation — fulfill if valid
       const reservation = await ctx.db.get(args.reservationId);
       if (reservation && reservation.status === "active") {
         await ctx.db.patch(args.reservationId, { status: "fulfilled" });
