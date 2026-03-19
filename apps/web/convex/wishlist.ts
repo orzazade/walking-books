@@ -20,8 +20,10 @@ export const isWishlisted = query({
 export const toggle = mutation({
   args: { bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const book = await ctx.db.get(args.bookId);
+    const [user, book] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.bookId),
+    ]);
     if (!book) throw new Error("Book not found");
     const existing = await ctx.db
       .query("wishlist")
