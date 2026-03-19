@@ -84,6 +84,12 @@ export const register = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    if (!args.title.trim()) throw new Error("Title is required");
+    if (!args.author.trim()) throw new Error("Author is required");
+
+    const location = await ctx.db.get(args.locationId);
+    if (!location) throw new Error("Location not found");
+
     // Find or create book
     let bookId;
     if (args.isbn) {
