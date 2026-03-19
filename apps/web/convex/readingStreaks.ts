@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { toDateString, daysBetween } from "./lib/streaks";
 
 /** Get the current user's reading streak. */
 export const getStreak = query({
@@ -19,13 +20,8 @@ export const getStreak = query({
     }
 
     // Check if the streak is still active (last activity was today or yesterday)
-    const today = new Date();
-    const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
-    const lastActive = new Date(streak.lastActiveDate + "T00:00:00Z");
-    const todayDate = new Date(todayStr + "T00:00:00Z");
-    const gapDays = Math.round(
-      (todayDate.getTime() - lastActive.getTime()) / 86_400_000,
-    );
+    const todayStr = toDateString(Date.now());
+    const gapDays = daysBetween(streak.lastActiveDate, todayStr);
 
     return {
       currentStreak: gapDays <= 1 ? streak.currentStreak : 0,
@@ -51,13 +47,8 @@ export const forUser = query({
       return { currentStreak: 0, longestStreak: 0 };
     }
 
-    const today = new Date();
-    const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
-    const lastActive = new Date(streak.lastActiveDate + "T00:00:00Z");
-    const todayDate = new Date(todayStr + "T00:00:00Z");
-    const gapDays = Math.round(
-      (todayDate.getTime() - lastActive.getTime()) / 86_400_000,
-    );
+    const todayStr = toDateString(Date.now());
+    const gapDays = daysBetween(streak.lastActiveDate, todayStr);
 
     return {
       currentStreak: gapDays <= 1 ? streak.currentStreak : 0,

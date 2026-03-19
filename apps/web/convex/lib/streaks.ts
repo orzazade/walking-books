@@ -2,7 +2,7 @@ import { MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
 /** Format a timestamp as YYYY-MM-DD in UTC. */
-function toDateString(timestamp: number): string {
+export function toDateString(timestamp: number): string {
   const d = new Date(timestamp);
   const year = d.getUTCFullYear();
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -11,7 +11,7 @@ function toDateString(timestamp: number): string {
 }
 
 /** Compute the difference in calendar days between two YYYY-MM-DD strings. */
-function daysBetween(dateA: string, dateB: string): number {
+export function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA + "T00:00:00Z").getTime();
   const b = new Date(dateB + "T00:00:00Z").getTime();
   return Math.round(Math.abs(b - a) / 86_400_000);
