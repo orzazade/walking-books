@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Heart,
   Flame,
+  Trophy,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/browse", label: "Browse", icon: BookMarked },
   { href: "/trending", label: "Trending", icon: Flame },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/search", label: "Search", icon: Search },
   { href: "/locations", label: "Locations", icon: MapPin },
 ] as const;
