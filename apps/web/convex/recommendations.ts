@@ -1,4 +1,6 @@
+import { v } from "convex/values";
 import { query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { getBookCopyCounts } from "./lib/availability";
 
@@ -79,5 +81,99 @@ export const forMe = query({
       reviewCount: b.reviewCount,
       availableCopies: b.availableCopies,
     }));
+  },
+});
+
+/**
+ * "Readers also enjoyed" — collaborative filtering per book.
+ * Finds books commonly read by other readers who also read the given book.
+ */
+export const forBook = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const book = await ctx.db.get(args.bookId);
+    if (!book) return [];
+
+    // 1. Get all copies of this book
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+      .collect();
+    if (copies.length === 0) return [];
+
+    const copyIds = new Set(copies.map((c) => c._id));
+
+    // 2. Find readers who completed this book (have returnedAt set)
+    const readerIds = new Set<Id<"users">>();
+    for (const copy of copies) {
+      const entries = await ctx.db
+        .query("journeyEntries")
+        .withIndex("by_copy", (q) => q.eq("copyId", copy._id))
+        .collect();
+      for (const entry of entries) {
+        if (entry.returnedAt) {
+          readerIds.add(entry.readerId);
+        }
+      }
+    }
+    if (readerIds.size === 0) return [];
+
+    // 3. For each reader, find other books they've read (cap at 50 readers)
+    const bookFrequency = new Map<Id<"books">, number>();
+    const readerArray = [...readerIds].slice(0, 50);
+
+    for (const readerId of readerArray) {
+      const entries = await ctx.db
+        .query("journeyEntries")
+        .withIndex("by_reader", (q) => q.eq("readerId", readerId))
+        .collect();
+
+      const seenBooks = new Set<Id<"books">>();
+      const readerCopies = await Promise.all(
+        entries
+          .filter((e) => e.returnedAt && !copyIds.has(e.copyId))
+          .map((e) => ctx.db.get(e.copyId)),
+      );
+
+      for (const copy of readerCopies) {
+        if (copy && copy.bookId !== args.bookId && !seenBooks.has(copy.bookId)) {
+          seenBooks.add(copy.bookId);
+          bookFrequency.set(
+            copy.bookId,
+            (bookFrequency.get(copy.bookId) ?? 0) + 1,
+          );
+        }
+      }
+    }
+
+    if (bookFrequency.size === 0) return [];
+
+    // 4. Sort by frequency, take top 8
+    const sorted = [...bookFrequency.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    // 5. Fetch book details and availability
+    const copyCounts = await getBookCopyCounts(ctx);
+    const results = await Promise.all(
+      sorted.map(async ([bookId, readers]) => {
+        const b = await ctx.db.get(bookId);
+        if (!b) return null;
+        const available = copyCounts.get(b._id)?.availableCopies ?? 0;
+        return {
+          _id: b._id,
+          title: b.title,
+          author: b.author,
+          coverImage: b.coverImage,
+          categories: b.categories,
+          avgRating: b.avgRating,
+          reviewCount: b.reviewCount,
+          availableCopies: available,
+          sharedReaders: readers,
+        };
+      }),
+    );
+
+    return results.filter((r) => r !== null);
   },
 });

@@ -230,3 +230,348 @@ describe("recommendations", () => {
     expect(recs).toEqual([]);
   });
 });
+
+describe("recommendations.forBook", () => {
+  async function seedBase(t: ReturnType<typeof convexTest>) {
+    return await t.run(async (ctx) => {
+      const sharer = await ctx.db.insert("users", {
+        clerkId: "sharer_fb",
+        phone: "+1000000000",
+        name: "Sharer",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 50,
+        booksShared: 5,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const reader1 = await ctx.db.insert("users", {
+        clerkId: "reader1_fb",
+        phone: "+1000000001",
+        name: "Reader One",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 3,
+        favoriteGenres: [],
+      });
+      const reader2 = await ctx.db.insert("users", {
+        clerkId: "reader2_fb",
+        phone: "+1000000002",
+        name: "Reader Two",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 3,
+        favoriteGenres: [],
+      });
+      const location = await ctx.db.insert("partnerLocations", {
+        name: "Test Library",
+        address: "1 Book St",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+0000000000",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 10,
+        managedByUserId: sharer,
+        staffUserIds: [],
+      });
+      return { sharer, reader1, reader2, location };
+    });
+  }
+
+  function makeBook(title: string, categories: string[] = ["fiction"]) {
+    return {
+      title,
+      author: `Author of ${title}`,
+      coverImage: "",
+      description: "",
+      categories,
+      pageCount: 200,
+      language: "English",
+      avgRating: 4.0,
+      reviewCount: 5,
+    };
+  }
+
+  it("returns books commonly read by readers of the same book", async () => {
+    const t = convexTest(schema, modules);
+    const { sharer, reader1, reader2, location } = await seedBase(t);
+
+    const { targetBookId, commonBookId } = await t.run(async (ctx) => {
+      // The source book
+      const targetBook = await ctx.db.insert("books", makeBook("Target Book"));
+      const targetCopy = await ctx.db.insert("copies", {
+        bookId: targetBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // A book both readers also read
+      const commonBook = await ctx.db.insert("books", makeBook("Common Book"));
+      const commonCopy = await ctx.db.insert("copies", {
+        bookId: commonBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // A book only reader1 read
+      const uniqueBook = await ctx.db.insert("books", makeBook("Unique Book"));
+      const uniqueCopy = await ctx.db.insert("copies", {
+        bookId: uniqueBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // Reader 1: read target + common + unique
+      await ctx.db.insert("journeyEntries", {
+        copyId: targetCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 1000, returnedAt: 2000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: commonCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 3000, returnedAt: 4000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: uniqueCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 5000, returnedAt: 6000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      // Reader 2: read target + common (not unique)
+      await ctx.db.insert("journeyEntries", {
+        copyId: targetCopy, readerId: reader2, pickupLocationId: location,
+        pickedUpAt: 7000, returnedAt: 8000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: commonCopy, readerId: reader2, pickupLocationId: location,
+        pickedUpAt: 9000, returnedAt: 10000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      return { targetBookId: targetBook, commonBookId: commonBook };
+    });
+
+    const recs = await t.query(api.recommendations.forBook, { bookId: targetBookId });
+
+    // Both Common Book and Unique Book should appear
+    expect(recs).toHaveLength(2);
+    // Common Book was read by 2 readers — should rank first
+    expect(recs[0].title).toBe("Common Book");
+    expect(recs[0].sharedReaders).toBe(2);
+    // Unique Book read by 1 reader — second
+    expect(recs[1].title).toBe("Unique Book");
+    expect(recs[1].sharedReaders).toBe(1);
+  });
+
+  it("excludes readers who haven't finished the book (no returnedAt)", async () => {
+    const t = convexTest(schema, modules);
+    const { sharer, reader1, location } = await seedBase(t);
+
+    const { targetBookId } = await t.run(async (ctx) => {
+      const targetBook = await ctx.db.insert("books", makeBook("Target"));
+      const targetCopy = await ctx.db.insert("copies", {
+        bookId: targetBook,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentHolderId: reader1,
+      });
+
+      const otherBook = await ctx.db.insert("books", makeBook("Other"));
+      const otherCopy = await ctx.db.insert("copies", {
+        bookId: otherBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // Reader1 still reading target (no returnedAt)
+      await ctx.db.insert("journeyEntries", {
+        copyId: targetCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 1000, conditionAtPickup: "good",
+        pickupPhotos: [], returnPhotos: [],
+      });
+      // Reader1 has read another book
+      await ctx.db.insert("journeyEntries", {
+        copyId: otherCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 2000, returnedAt: 3000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      return { targetBookId: targetBook };
+    });
+
+    const recs = await t.query(api.recommendations.forBook, { bookId: targetBookId });
+    // Reader1 hasn't finished target book, so no collaborative data
+    expect(recs).toHaveLength(0);
+  });
+
+  it("returns empty for a book with no copies", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "u_empty",
+        phone: "+5555555555",
+        name: "Nobody",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const bid = await ctx.db.insert("books", {
+        title: "Lonely Book",
+        author: "Solo Author",
+        coverImage: "",
+        description: "",
+        categories: ["fiction"],
+        pageCount: 100,
+        language: "English",
+        avgRating: 3.0,
+        reviewCount: 0,
+      });
+      return { bookId: bid };
+    });
+
+    const recs = await t.query(api.recommendations.forBook, { bookId });
+    expect(recs).toHaveLength(0);
+  });
+
+  it("does not include the source book in results", async () => {
+    const t = convexTest(schema, modules);
+    const { sharer, reader1, location } = await seedBase(t);
+
+    const { targetBookId } = await t.run(async (ctx) => {
+      const targetBook = await ctx.db.insert("books", makeBook("Self Ref"));
+      const copy1 = await ctx.db.insert("copies", {
+        bookId: targetBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+      // A second copy of the same book
+      const copy2 = await ctx.db.insert("copies", {
+        bookId: targetBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // Reader read copy1, then "read" copy2 (same book, different copy)
+      await ctx.db.insert("journeyEntries", {
+        copyId: copy1, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 1000, returnedAt: 2000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: copy2, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 3000, returnedAt: 4000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      return { targetBookId: targetBook };
+    });
+
+    const recs = await t.query(api.recommendations.forBook, { bookId: targetBookId });
+    // Should not recommend itself
+    expect(recs).toHaveLength(0);
+  });
+
+  it("includes sharedReaders count and availableCopies in results", async () => {
+    const t = convexTest(schema, modules);
+    const { sharer, reader1, location } = await seedBase(t);
+
+    await t.run(async (ctx) => {
+      const targetBook = await ctx.db.insert("books", makeBook("Source"));
+      const targetCopy = await ctx.db.insert("copies", {
+        bookId: targetBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      const recBook = await ctx.db.insert("books", makeBook("Recommended"));
+      await ctx.db.insert("copies", {
+        bookId: recBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+      const recCopy2 = await ctx.db.insert("copies", {
+        bookId: recBook,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharer,
+        qrCodeUrl: "",
+        currentLocationId: location,
+      });
+
+      // Reader read both books
+      await ctx.db.insert("journeyEntries", {
+        copyId: targetCopy, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 1000, returnedAt: 2000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: recCopy2, readerId: reader1, pickupLocationId: location,
+        pickedUpAt: 3000, returnedAt: 4000, conditionAtPickup: "good",
+        conditionAtReturn: "good", pickupPhotos: [], returnPhotos: [],
+      });
+    });
+
+    // Need the bookId — query by title workaround: query forBook for first book
+    const allBooks = await t.run(async (ctx) => {
+      return await ctx.db.query("books").collect();
+    });
+    const sourceBook = allBooks.find((b: { title: string }) => b.title === "Source")!;
+
+    const recs = await t.query(api.recommendations.forBook, { bookId: sourceBook._id });
+    expect(recs).toHaveLength(1);
+    expect(recs[0].title).toBe("Recommended");
+    expect(recs[0].sharedReaders).toBe(1);
+    expect(recs[0].availableCopies).toBe(2);
+    expect(recs[0]).toHaveProperty("author");
+    expect(recs[0]).toHaveProperty("coverImage");
+    expect(recs[0]).toHaveProperty("avgRating");
+  });
+});
