@@ -101,15 +101,23 @@ export const register = mutation({
       throw new Error("Lending period must be between 1 and 365 days");
     if (args.categories.length > 10)
       throw new Error("Maximum 10 categories allowed");
-    for (const cat of args.categories) {
-      if (cat.length > 100)
+    const categories = args.categories.map((cat) => {
+      const trimmed = cat.trim();
+      if (trimmed.length > 100)
         throw new Error("Each category must be 100 characters or less");
-    }
-    if (args.coverImage.length > 2000)
+      return trimmed;
+    });
+    const coverImage = args.coverImage.trim();
+    if (coverImage.length > 2000)
       throw new Error("Cover image URL must be 2000 characters or less");
-    if (args.language.length > 50)
+    const language = args.language.trim();
+    if (language.length > 50)
       throw new Error("Language must be 50 characters or less");
-    if (args.publisher !== undefined && args.publisher.length > 200)
+    const isbn = args.isbn?.trim() || undefined;
+    if (isbn !== undefined && isbn.length > 20)
+      throw new Error("ISBN must be 20 characters or less");
+    const publisher = args.publisher?.trim() || undefined;
+    if (publisher !== undefined && publisher.length > 200)
       throw new Error("Publisher must be 200 characters or less");
 
     const location = await ctx.db.get(args.locationId);
@@ -117,10 +125,10 @@ export const register = mutation({
 
     // Find or create book
     let bookId;
-    if (args.isbn) {
+    if (isbn) {
       const existing = await ctx.db
         .query("books")
-        .withIndex("by_isbn", (q) => q.eq("isbn", args.isbn))
+        .withIndex("by_isbn", (q) => q.eq("isbn", isbn))
         .unique();
       if (existing) {
         bookId = existing._id;
@@ -131,13 +139,13 @@ export const register = mutation({
       bookId = await ctx.db.insert("books", {
         title,
         author,
-        isbn: args.isbn,
-        coverImage: args.coverImage,
+        isbn,
+        coverImage,
         description,
-        categories: args.categories,
+        categories,
         pageCount: args.pageCount,
-        language: args.language,
-        publisher: args.publisher,
+        language,
+        publisher,
         avgRating: 0,
         reviewCount: 0,
       });
