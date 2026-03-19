@@ -183,7 +183,7 @@ describe("leaderboard", () => {
           readerId: userId,
           pickupLocationId: locId,
           pickedUpAt: thirtyOneDaysAgo,
-          returnedAt: thirtyOneDaysAgo + 86_400_000,
+          returnedAt: thirtyOneDaysAgo + 3_600_000,
           pickupPhotos: [],
           returnPhotos: [],
           conditionAtPickup: "good" as const,
