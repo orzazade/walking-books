@@ -65,8 +65,8 @@ export const update = mutation({
     }
     if (args.photos !== undefined && args.photos.length > 20)
       throw new Error("Maximum 20 photos allowed");
-    if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0))
-      throw new Error("Shelf capacity must be a non-negative integer");
+    if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0 || args.shelfCapacity > 10000))
+      throw new Error("Shelf capacity must be a non-negative integer up to 10000");
 
     const { locationId, ...rest } = args;
     const updates = Object.fromEntries(

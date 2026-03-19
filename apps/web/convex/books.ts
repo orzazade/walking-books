@@ -95,10 +95,10 @@ export const register = mutation({
     const description = args.description.trim();
     if (description.length > 2000)
       throw new Error("Description must be 2000 characters or less");
-    if (!Number.isInteger(args.pageCount) || args.pageCount < 0)
-      throw new Error("Page count must be a non-negative integer");
-    if (args.sharerMaxLendingDays !== undefined && (!Number.isInteger(args.sharerMaxLendingDays) || args.sharerMaxLendingDays < 1))
-      throw new Error("Lending period must be an integer of at least 1 day");
+    if (!Number.isInteger(args.pageCount) || args.pageCount < 0 || args.pageCount > 10000)
+      throw new Error("Page count must be a non-negative integer up to 10000");
+    if (args.sharerMaxLendingDays !== undefined && (!Number.isInteger(args.sharerMaxLendingDays) || args.sharerMaxLendingDays < 1 || args.sharerMaxLendingDays > 365))
+      throw new Error("Lending period must be between 1 and 365 days");
     if (args.categories.length > 10)
       throw new Error("Maximum 10 categories allowed");
     for (const cat of args.categories) {
