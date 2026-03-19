@@ -254,6 +254,49 @@ export const featuredCatalog = query({
   },
 });
 
+export const atLocationCatalog = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_location", (q) =>
+        q.eq("currentLocationId", args.locationId).eq("status", "available"),
+      )
+      .collect();
+
+    if (copies.length === 0) return [];
+
+    // Count copies per book at this location
+    const copiesPerBook = new Map<string, number>();
+    for (const copy of copies) {
+      copiesPerBook.set(
+        copy.bookId,
+        (copiesPerBook.get(copy.bookId) ?? 0) + 1,
+      );
+    }
+
+    // Fetch unique books
+    const bookIds = [...copiesPerBook.keys()];
+    const books = await Promise.all(
+      bookIds.map((id) => ctx.db.get(id as Id<"books">)),
+    );
+
+    return books
+      .filter((b): b is NonNullable<typeof b> => b !== null)
+      .map((book) => ({
+        ...book,
+        availableCopies: copiesPerBook.get(book._id) ?? 0,
+        totalCopies: copiesPerBook.get(book._id) ?? 0,
+      }))
+      .sort((a, b) => {
+        if (b.availableCopies !== a.availableCopies)
+          return b.availableCopies - a.availableCopies;
+        if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating;
+        return a.title.localeCompare(b.title);
+      });
+  },
+});
+
 export const byId = query({
   args: { bookId: v.id("books") },
   handler: async (ctx, args) => {
