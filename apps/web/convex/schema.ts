@@ -201,6 +201,14 @@ export default defineSchema({
     .index("by_status", ["status", "createdAt"])
     .index("by_user", ["userId"]),
 
+  reviewVotes: defineTable({
+    reviewId: v.id("reviews"),
+    userId: v.id("users"),
+    helpful: v.boolean(),
+  })
+    .index("by_review", ["reviewId"])
+    .index("by_user_review", ["userId", "reviewId"]),
+
   readingProgress: defineTable({
     userId: v.id("users"),
     copyId: v.id("copies"),

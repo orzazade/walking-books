@@ -30,6 +30,7 @@ import type * as readingProgress from "../readingProgress.js";
 import type * as readingStats from "../readingStats.js";
 import type * as recommendations from "../recommendations.js";
 import type * as reservations from "../reservations.js";
+import type * as reviewVotes from "../reviewVotes.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as sharerStats from "../sharerStats.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   readingStats: typeof readingStats;
   recommendations: typeof recommendations;
   reservations: typeof reservations;
+  reviewVotes: typeof reviewVotes;
   reviews: typeof reviews;
   seed: typeof seed;
   sharerStats: typeof sharerStats;
