@@ -464,14 +464,12 @@ export const processOverdue = internalMutation({
       );
     }
 
-    const holderIds = [...penaltyByHolder.keys()];
-    const holders = await Promise.all(holderIds.map((id) => ctx.db.get(id)));
-
     await Promise.all(
-      holders.map((user, i) => {
+      [...penaltyByHolder.entries()].map(async ([holderId, penalty]) => {
+        const user = await ctx.db.get(holderId);
         if (!user) return;
         return ctx.db.patch(user._id, {
-          reputationScore: clampScore(user.reputationScore + penaltyByHolder.get(holderIds[i])!),
+          reputationScore: clampScore(user.reputationScore + penalty),
         });
       }),
     );
