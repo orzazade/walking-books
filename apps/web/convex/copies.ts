@@ -186,9 +186,10 @@ export const returnCopy = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    if (args.readerNote !== undefined) {
-      const trimmedNote = args.readerNote.trim();
-      if (trimmedNote.length > 1000)
+    let readerNote = args.readerNote;
+    if (readerNote !== undefined) {
+      readerNote = readerNote.trim() || undefined;
+      if (readerNote && readerNote.length > 1000)
         throw new Error("Reader note must be 1000 characters or less");
     }
 
@@ -206,7 +207,7 @@ export const returnCopy = mutation({
     const repChange = calculateReturnRepChange({
       isOnTime: !copy.returnDeadline || now <= copy.returnDeadline,
       condition: args.conditionAtReturn,
-      hasNote: !!args.readerNote,
+      hasNote: !!readerNote,
     });
 
     // Keep recalled status if owner recalled; otherwise make available again
@@ -256,7 +257,7 @@ export const returnCopy = mutation({
           conditionAtReturn: args.conditionAtReturn,
           dropoffLocationId: args.locationId,
           returnPhotos: args.photos,
-          readerNote: args.readerNote,
+          readerNote,
         }),
       );
     } else {
