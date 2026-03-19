@@ -14,21 +14,19 @@ export const topReaders = query({
   handler: async (ctx) => {
     const thirtyDaysAgo = Date.now() - 30 * DAY_MS;
 
-    // Get recently completed journey entries (returned in last 30 days)
+    // Get journey entries returned in the last 30 days using by_returnedAt index
     const recentReturns = await ctx.db
       .query("journeyEntries")
-      .withIndex("by_pickedUpAt", (q) => q.gte("pickedUpAt", thirtyDaysAgo))
+      .withIndex("by_returnedAt", (q) => q.gte("returnedAt", thirtyDaysAgo))
       .collect();
 
     // Count completed reads per reader
     const readerCounts = new Map<Id<"users">, number>();
     for (const entry of recentReturns) {
-      if (entry.returnedAt !== undefined) {
-        readerCounts.set(
-          entry.readerId,
-          (readerCounts.get(entry.readerId) ?? 0) + 1,
-        );
-      }
+      readerCounts.set(
+        entry.readerId,
+        (readerCounts.get(entry.readerId) ?? 0) + 1,
+      );
     }
 
     if (readerCounts.size === 0) return [];

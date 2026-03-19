@@ -57,7 +57,8 @@ export default defineSchema({
   })
     .index("by_copy", ["copyId"])
     .index("by_reader", ["readerId"])
-    .index("by_pickedUpAt", ["pickedUpAt"]),
+    .index("by_pickedUpAt", ["pickedUpAt"])
+    .index("by_returnedAt", ["returnedAt"]),
 
   users: defineTable({
     clerkId: v.string(),
