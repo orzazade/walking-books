@@ -43,8 +43,16 @@ export const update = mutation({
 
     if (args.name !== undefined && !args.name.trim())
       throw new Error("Location name cannot be empty");
+    if (args.name !== undefined && args.name.trim().length > 200)
+      throw new Error("Location name must be 200 characters or less");
     if (args.address !== undefined && !args.address.trim())
       throw new Error("Address cannot be empty");
+    if (args.address !== undefined && args.address.trim().length > 500)
+      throw new Error("Address must be 500 characters or less");
+    if (args.contactPhone !== undefined && args.contactPhone.length > 30)
+      throw new Error("Phone number must be 30 characters or less");
+    if (args.contactEmail !== undefined && args.contactEmail.length > 200)
+      throw new Error("Email must be 200 characters or less");
     if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0))
       throw new Error("Shelf capacity must be a non-negative integer");
 
