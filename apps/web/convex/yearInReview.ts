@@ -23,7 +23,7 @@ export const getReview = query({
       .collect();
 
     const yearEntries = allEntries.filter(
-      (e) =>
+      (e): e is typeof e & { returnedAt: number } =>
         e.returnedAt !== undefined &&
         e.returnedAt >= yearStart &&
         e.returnedAt < yearEnd,
@@ -84,7 +84,7 @@ export const getReview = query({
 
     // Average days per book
     const totalDays = yearEntries.reduce((sum, e) => {
-      return sum + (e.returnedAt! - e.pickedUpAt) / DAY_MS;
+      return sum + (e.returnedAt - e.pickedUpAt) / DAY_MS;
     }, 0);
     const avgDaysPerBook =
       Math.round((totalDays / totalBooksRead) * 10) / 10;
@@ -120,7 +120,7 @@ export const getReview = query({
     // Monthly activity
     const monthlyActivity = buildEmptyMonths(args.year);
     for (const entry of yearEntries) {
-      const month = new Date(entry.returnedAt!).getMonth();
+      const month = new Date(entry.returnedAt).getMonth();
       monthlyActivity[month].count++;
     }
 
@@ -191,7 +191,7 @@ export const getReview = query({
       null;
     for (const entry of yearEntries) {
       const days =
-        Math.round(((entry.returnedAt! - entry.pickedUpAt) / DAY_MS) * 10) /
+        Math.round(((entry.returnedAt - entry.pickedUpAt) / DAY_MS) * 10) /
         10;
       if (!fastestRead || days < fastestRead.days) {
         const copy = copyMap.get(entry.copyId);
