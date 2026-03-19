@@ -35,13 +35,14 @@ export const getStreak = query({
 export const forUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
+    const [user, streak] = await Promise.all([
+      ctx.db.get(args.userId),
+      ctx.db
+        .query("readingStreaks")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .first(),
+    ]);
     if (!user) return null;
-
-    const streak = await ctx.db
-      .query("readingStreaks")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
 
     if (!streak) {
       return { currentStreak: 0, longestStreak: 0 };
