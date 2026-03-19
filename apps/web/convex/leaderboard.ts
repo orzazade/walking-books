@@ -1,7 +1,23 @@
-import { query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import { query, type QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { DAY_MS } from "./lib/lending";
 import { toDateString, daysBetween } from "./lib/streaks";
+
+/** Fetch user docs for ranked entries, shape results, and filter deleted users. */
+async function enrichTopUsers<T extends { userId: Id<"users"> }, R>(
+  ctx: QueryCtx,
+  items: T[],
+  mapFn: (user: Doc<"users">, item: T) => R,
+): Promise<R[]> {
+  const results = await Promise.all(
+    items.map(async (item) => {
+      const user = await ctx.db.get(item.userId);
+      if (!user) return null;
+      return mapFn(user, item);
+    }),
+  );
+  return results.filter((r) => r !== null) as R[];
+}
 
 /**
  * Community leaderboard — public rankings that drive engagement.
@@ -34,24 +50,17 @@ export const topReaders = query({
     // Sort by count descending, take top 10
     const sorted = [...readerCounts.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .slice(0, 10)
+      .map(([userId, completedReads]) => ({ userId, completedReads }));
 
-    const results = await Promise.all(
-      sorted.map(async ([userId, completedReads]) => {
-        const user = await ctx.db.get(userId);
-        if (!user) return null;
-        return {
-          userId: user._id,
-          name: user.name,
-          avatarUrl: user.avatarUrl,
-          completedReads,
-          booksRead: user.booksRead,
-          reputationScore: user.reputationScore,
-        };
-      }),
-    );
-
-    return results.filter((r) => r !== null);
+    return enrichTopUsers(ctx, sorted, (user, { completedReads }) => ({
+      userId: user._id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      completedReads,
+      booksRead: user.booksRead,
+      reputationScore: user.reputationScore,
+    }));
   },
 });
 
@@ -94,24 +103,17 @@ export const topSharers = query({
 
     const sorted = [...sharerCounts.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .slice(0, 10)
+      .map(([userId, booksLent]) => ({ userId, booksLent }));
 
-    const results = await Promise.all(
-      sorted.map(async ([userId, booksLent]) => {
-        const user = await ctx.db.get(userId);
-        if (!user) return null;
-        return {
-          userId: user._id,
-          name: user.name,
-          avatarUrl: user.avatarUrl,
-          booksLent,
-          booksShared: user.booksShared,
-          reputationScore: user.reputationScore,
-        };
-      }),
-    );
-
-    return results.filter((r) => r !== null);
+    return enrichTopUsers(ctx, sorted, (user, { booksLent }) => ({
+      userId: user._id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      booksLent,
+      booksShared: user.booksShared,
+      reputationScore: user.reputationScore,
+    }));
   },
 });
 
@@ -146,20 +148,12 @@ export const topStreaks = query({
 
     if (sorted.length === 0) return [];
 
-    const results = await Promise.all(
-      sorted.map(async (streak) => {
-        const user = await ctx.db.get(streak.userId);
-        if (!user) return null;
-        return {
-          userId: user._id,
-          name: user.name,
-          avatarUrl: user.avatarUrl,
-          currentStreak: streak.currentStreak,
-          longestStreak: streak.longestStreak,
-        };
-      }),
-    );
-
-    return results.filter((r) => r !== null);
+    return enrichTopUsers(ctx, sorted, (user, streak) => ({
+      userId: user._id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+    }));
   },
 });
