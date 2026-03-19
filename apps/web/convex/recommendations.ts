@@ -9,11 +9,19 @@ export const forMe = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    // Collect book IDs the user has already read
-    const journeyEntries = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_reader", (q) => q.eq("readerId", user._id))
-      .collect();
+    // Fetch all independent data sources in parallel
+    const [journeyEntries, checkedOutCopies, copyCounts, allBooks] = await Promise.all([
+      ctx.db.query("journeyEntries")
+        .withIndex("by_reader", (q) => q.eq("readerId", user._id))
+        .collect(),
+      ctx.db.query("copies")
+        .withIndex("by_holder", (q) => q.eq("currentHolderId", user._id))
+        .collect(),
+      getBookCopyCounts(ctx),
+      ctx.db.query("books").collect(),
+    ]);
+
+    // Resolve read copies (depends on journeyEntries)
     const readCopies = await Promise.all(
       journeyEntries.map((e) => ctx.db.get(e.copyId)),
     );
@@ -21,21 +29,9 @@ export const forMe = query({
     for (const copy of readCopies) {
       if (copy) readBookIds.add(copy.bookId);
     }
-
-    // Collect book IDs the user currently has checked out
-    const checkedOutCopies = await ctx.db
-      .query("copies")
-      .withIndex("by_holder", (q) => q.eq("currentHolderId", user._id))
-      .collect();
     for (const copy of checkedOutCopies) {
       readBookIds.add(copy.bookId);
     }
-
-    // Get availability counts
-    const copyCounts = await getBookCopyCounts(ctx);
-
-    // Get all books, exclude already-read ones
-    const allBooks = await ctx.db.query("books").collect();
     const candidates = allBooks.filter((b) => !readBookIds.has(b._id));
 
     const genres = new Set(user.favoriteGenres);
