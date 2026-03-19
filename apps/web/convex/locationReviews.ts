@@ -20,7 +20,15 @@ export const create = mutation({
     if (trimmedText.length > 5000)
       throw new Error("Review text must be 5000 characters or less");
 
-    const location = await ctx.db.get(args.locationId);
+    const [location, existing] = await Promise.all([
+      ctx.db.get(args.locationId),
+      ctx.db
+        .query("locationReviews")
+        .withIndex("by_user_location", (q) =>
+          q.eq("userId", user._id).eq("locationId", args.locationId),
+        )
+        .unique(),
+    ]);
     if (!location) throw new Error("Location not found");
 
     // Prevent staff/manager from reviewing their own location
@@ -29,14 +37,6 @@ export const create = mutation({
       location.staffUserIds.includes(user._id)
     )
       throw new Error("You cannot review a location you manage or work at");
-
-    // Upsert: one review per user per location
-    const existing = await ctx.db
-      .query("locationReviews")
-      .withIndex("by_user_location", (q) =>
-        q.eq("userId", user._id).eq("locationId", args.locationId),
-      )
-      .unique();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
