@@ -97,6 +97,8 @@ export const pickup = mutation({
     if (!copy) throw new Error("Copy not found");
     if (copy.status !== "available" && copy.status !== "reserved")
       throw new Error("Copy not available for pickup");
+    if (copy.currentLocationId !== args.locationId)
+      throw new Error("Copy is not at the specified location");
 
     // Fulfill reservation if provided
     if (args.reservationId) {
