@@ -5,7 +5,7 @@ import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } 
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { HeaderActionLink } from "@/components/header-action-link";
-import { Target, BookOpen, Flame, Trash2 } from "lucide-react";
+import { Target, BookOpen, Flame, Trash2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 import { SignInPrompt } from "@/components/sign-in-prompt";
@@ -293,6 +293,10 @@ export default function ReadingGoalsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
+          <HeaderActionLink href="/year-in-review">
+            <Calendar className="h-3.5 w-3.5" />
+            Year in Review
+          </HeaderActionLink>
           <HeaderActionLink href="/reading-streaks">
             <Flame className="h-3.5 w-3.5 text-orange-500" />
             Streaks
