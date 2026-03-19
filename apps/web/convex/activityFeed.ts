@@ -17,7 +17,7 @@ export const feed = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    const limit = args.limit ?? 20;
+    const limit = Math.min(args.limit ?? 20, 100);
 
     // Get all users this person follows
     const followRows = await ctx.db
