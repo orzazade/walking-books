@@ -11,12 +11,20 @@ export const getStats = query({
   handler: async (ctx) => {
     const thirtyDaysAgo = Date.now() - 30 * DAY_MS;
 
-    // Total books registered (all-time)
-    const allBooks = await ctx.db.query("books").collect();
-    const totalBooks = allBooks.length;
+    // Fetch all independent data sources in parallel
+    const [allBooks, allCopies, allReturns, recentPickups, allReviews, allLocations] =
+      await Promise.all([
+        ctx.db.query("books").collect(),
+        ctx.db.query("copies").collect(),
+        ctx.db.query("journeyEntries").withIndex("by_returnedAt").collect(),
+        ctx.db.query("journeyEntries")
+          .withIndex("by_pickedUpAt", (q) => q.gte("pickedUpAt", thirtyDaysAgo))
+          .collect(),
+        ctx.db.query("reviews").collect(),
+        ctx.db.query("partnerLocations").collect(),
+      ]);
 
-    // Total copies in circulation (all-time)
-    const allCopies = await ctx.db.query("copies").collect();
+    const totalBooks = allBooks.length;
     const totalCopies = allCopies.length;
     const availableCopies = allCopies.filter((c) => c.status === "available").length;
     const checkedOutCopies = allCopies.filter((c) => c.status === "checked_out").length;
@@ -27,11 +35,6 @@ export const getStats = query({
       sharerIds.add(copy.originalSharerId);
     }
 
-    // Total completed reads (returned journey entries, all-time)
-    const allReturns = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_returnedAt")
-      .collect();
     // Filter to only entries that have returnedAt (index includes null entries at start)
     const completedReads = allReturns.filter(
       (e): e is typeof e & { returnedAt: number } => e.returnedAt !== undefined,
@@ -43,21 +46,9 @@ export const getStats = query({
       readerIds.add(entry.readerId);
     }
 
-    // Recent activity (last 30 days)
-    const recentPickups = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_pickedUpAt", (q) => q.gte("pickedUpAt", thirtyDaysAgo))
-      .collect();
-
     const recentReturns = completedReads.filter(
       (e) => e.returnedAt >= thirtyDaysAgo,
     );
-
-    // Total reviews written
-    const allReviews = await ctx.db.query("reviews").collect();
-
-    // Total partner locations
-    const allLocations = await ctx.db.query("partnerLocations").collect();
 
     // Most active location (most pickups all-time)
     const locationPickups = new Map<Id<"partnerLocations">, number>();
