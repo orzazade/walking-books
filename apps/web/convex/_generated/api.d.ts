@@ -21,6 +21,7 @@ import type * as crons from "../crons.js";
 import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as journeyEntries from "../journeyEntries.js";
+import type * as leaderboard from "../leaderboard.js";
 import type * as lib_lending from "../lib/lending.js";
 import type * as locationReviews from "../locationReviews.js";
 import type * as lib_reputation from "../lib/reputation.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   follows: typeof follows;
   http: typeof http;
   journeyEntries: typeof journeyEntries;
+  leaderboard: typeof leaderboard;
   "lib/lending": typeof lib_lending;
   locationReviews: typeof locationReviews;
   "lib/reputation": typeof lib_reputation;
