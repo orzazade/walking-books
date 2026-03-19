@@ -67,7 +67,11 @@ export const currentUser = query({
 export const profile = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    // Exclude sensitive fields (phone, clerkId) from public profile
+    const { phone: _, clerkId: __, ...publicProfile } = user;
+    return publicProfile;
   },
 });
 
