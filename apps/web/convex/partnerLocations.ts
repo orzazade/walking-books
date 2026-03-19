@@ -53,10 +53,16 @@ export const update = mutation({
       if (trimmed.length > 500) throw new Error("Address must be 500 characters or less");
       args = { ...args, address: trimmed };
     }
-    if (args.contactPhone !== undefined && args.contactPhone.length > 30)
-      throw new Error("Phone number must be 30 characters or less");
-    if (args.contactEmail !== undefined && args.contactEmail.length > 200)
-      throw new Error("Email must be 200 characters or less");
+    if (args.contactPhone !== undefined) {
+      const trimmed = args.contactPhone.trim();
+      if (trimmed.length > 30) throw new Error("Phone number must be 30 characters or less");
+      args = { ...args, contactPhone: trimmed };
+    }
+    if (args.contactEmail !== undefined) {
+      const trimmed = args.contactEmail.trim();
+      if (trimmed.length > 200) throw new Error("Email must be 200 characters or less");
+      args = { ...args, contactEmail: trimmed };
+    }
     if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0))
       throw new Error("Shelf capacity must be a non-negative integer");
 
