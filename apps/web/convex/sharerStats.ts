@@ -73,38 +73,37 @@ export const getStats = query({
       );
     }
 
-    let mostPopularBook: { title: string; author: string; timesLent: number } | null = null;
+    // Determine top book and top locations (synchronous from in-memory data)
+    let topBookId: Id<"books"> | null = null;
+    let topCount = 0;
     if (lendCountByBook.size > 0) {
-      const [topBookId, topCount] = [...lendCountByBook.entries()]
+      const top = [...lendCountByBook.entries()]
         .filter(([, count]) => count > 0)
-        .sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
-      if (topBookId && topCount > 0) {
-        const book = await ctx.db.get(topBookId);
-        if (book) {
-          mostPopularBook = {
-            title: book.title,
-            author: book.author,
-            timesLent: topCount,
-          };
-        }
+        .sort((a, b) => b[1] - a[1])[0];
+      if (top) {
+        [topBookId, topCount] = top;
       }
     }
 
-    // Top locations where shared books currently sit
     const locationCounts = new Map<Id<"partnerLocations">, number>();
     for (const copy of copies) {
       if (copy.currentLocationId) {
         locationCounts.set(copy.currentLocationId, (locationCounts.get(copy.currentLocationId) ?? 0) + 1);
       }
     }
-
     const topLocationEntries = [...locationCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    const locationDocs = await Promise.all(
-      topLocationEntries.map(([locId]) => ctx.db.get(locId)),
-    );
+    // Fetch top book and location docs concurrently
+    const [topBook, locationDocs] = await Promise.all([
+      topBookId ? ctx.db.get(topBookId) : null,
+      Promise.all(topLocationEntries.map(([locId]) => ctx.db.get(locId))),
+    ]);
+
+    const mostPopularBook = topBook && topCount > 0
+      ? { title: topBook.title, author: topBook.author, timesLent: topCount }
+      : null;
 
     const topLocations = topLocationEntries
       .map(([, count], i) => {
