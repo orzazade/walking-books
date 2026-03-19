@@ -19,19 +19,23 @@ export const list = query({
       .order("desc")
       .take(limit);
 
-    // Enrich with book titles where available
-    const enriched = await Promise.all(
-      notifications.map(async (n) => {
-        let bookTitle: string | undefined;
-        if (n.relatedBookId) {
-          const book = await ctx.db.get(n.relatedBookId);
-          bookTitle = book?.title;
-        }
-        return { ...n, bookTitle };
-      }),
+    // Batch-fetch unique books to avoid redundant lookups
+    const bookIds = [...new Set(
+      notifications
+        .map((n) => n.relatedBookId)
+        .filter((id): id is typeof id & string => id !== undefined),
+    )];
+    const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
+    const bookMap = new Map(
+      bookIds.map((id, i) => [id, books[i]] as const),
     );
 
-    return enriched;
+    return notifications.map((n) => ({
+      ...n,
+      bookTitle: n.relatedBookId
+        ? bookMap.get(n.relatedBookId)?.title
+        : undefined,
+    }));
   },
 });
 
