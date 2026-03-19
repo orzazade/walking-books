@@ -14,6 +14,7 @@ import {
   Share2,
   LayoutDashboard,
   Heart,
+  Clock,
   Flame,
   Trophy,
   Rss,
@@ -41,6 +42,7 @@ const AUTH_ITEMS = [
   { href: "/currently-reading", label: "Reading", icon: BookOpen },
   { href: "/activity", label: "Activity", icon: Rss },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
+  { href: "/waitlist", label: "Waitlist", icon: Clock },
   { href: "/share", label: "Share", icon: Share2 },
 ] as const;
 
