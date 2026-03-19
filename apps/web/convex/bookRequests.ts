@@ -60,8 +60,10 @@ export const create = mutation({
 export const cancel = mutation({
   args: { requestId: v.id("bookRequests") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const request = await ctx.db.get(args.requestId);
+    const [user, request] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.requestId),
+    ]);
     if (!request) throw new Error("Request not found");
     if (request.userId !== user._id) throw new Error("Not your request");
     if (request.status !== "open") throw new Error("Request is not open");
@@ -74,8 +76,10 @@ export const cancel = mutation({
 export const fulfill = mutation({
   args: { requestId: v.id("bookRequests") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-    const request = await ctx.db.get(args.requestId);
+    const [user, request] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.requestId),
+    ]);
     if (!request) throw new Error("Request not found");
     if (request.status !== "open") throw new Error("Request is not open");
 
