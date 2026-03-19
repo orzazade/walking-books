@@ -85,7 +85,13 @@ export const register = mutation({
     const user = await requireCurrentUser(ctx);
 
     if (!args.title.trim()) throw new Error("Title is required");
+    if (args.title.trim().length > 300)
+      throw new Error("Title must be 300 characters or less");
     if (!args.author.trim()) throw new Error("Author is required");
+    if (args.author.trim().length > 200)
+      throw new Error("Author must be 200 characters or less");
+    if (args.description.length > 2000)
+      throw new Error("Description must be 2000 characters or less");
     if (!Number.isInteger(args.pageCount) || args.pageCount < 0)
       throw new Error("Page count must be a non-negative integer");
     if (args.sharerMaxLendingDays !== undefined && (!Number.isInteger(args.sharerMaxLendingDays) || args.sharerMaxLendingDays < 1))
