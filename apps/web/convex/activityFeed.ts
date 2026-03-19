@@ -101,11 +101,12 @@ export const feed = query({
       for (const entry of journeyArrays[i]) {
         const copy = await getCopy(entry.copyId);
         if (!copy) continue;
-        const book = await getBook(copy.bookId);
-        const followedUser = await getUser(followedId);
+        const [book, followedUser, pickupLocation] = await Promise.all([
+          getBook(copy.bookId),
+          getUser(followedId),
+          getLocation(entry.pickupLocationId),
+        ]);
         if (!book || !followedUser) continue;
-
-        const pickupLocation = await getLocation(entry.pickupLocationId);
 
         // Pickup event
         items.push({
@@ -154,8 +155,10 @@ export const feed = query({
     for (let i = 0; i < followedArray.length; i++) {
       const followedId = followedArray[i];
       for (const review of reviewArrays[i]) {
-        const book = await getBook(review.bookId);
-        const reviewer = await getUser(followedId);
+        const [book, reviewer] = await Promise.all([
+          getBook(review.bookId),
+          getUser(followedId),
+        ]);
         if (!book || !reviewer) continue;
 
         items.push({
