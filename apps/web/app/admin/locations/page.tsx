@@ -6,16 +6,11 @@ import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LocationDetailDialog } from "@/components/location-detail-dialog";
+import { LocationDetailDialog, utilizationPercent } from "@/components/location-detail-dialog";
 import {
   MapPin,
   Search,
 } from "lucide-react";
-
-function utilizationPercent(loc: Doc<"partnerLocations">) {
-  if (loc.shelfCapacity === 0) return 0;
-  return Math.round((loc.currentBookCount / loc.shelfCapacity) * 100);
-}
 
 function utilizationColor(pct: number) {
   if (pct >= 90) return "text-destructive";

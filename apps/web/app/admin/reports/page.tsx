@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ReportDetailDialog } from "@/components/report-detail-dialog";
+import { ReportDetailDialog, CONDITION_BADGE_VARIANT } from "@/components/report-detail-dialog";
 import {
   FileWarning,
   Camera,
@@ -17,13 +17,6 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-
-const CONDITION_BADGE_VARIANT: Record<Condition, "default" | "secondary" | "destructive"> = {
-  like_new: "default",
-  good: "secondary",
-  fair: "secondary",
-  worn: "destructive",
-};
 
 export default function AdminReportsPage() {
   const allReports = useQuery(api.conditionReports.listAll);

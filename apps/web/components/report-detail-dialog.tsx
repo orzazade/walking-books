@@ -17,7 +17,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-const CONDITION_BADGE_VARIANT: Record<Condition, "default" | "secondary" | "destructive"> = {
+export const CONDITION_BADGE_VARIANT: Record<Condition, "default" | "secondary" | "destructive"> = {
   like_new: "default",
   good: "secondary",
   fair: "secondary",

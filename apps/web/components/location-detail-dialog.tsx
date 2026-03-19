@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { MapPin, Phone, Mail, Users } from "lucide-react";
 
-function utilizationPercent(loc: Doc<"partnerLocations">) {
+export function utilizationPercent(loc: Doc<"partnerLocations">) {
   if (loc.shelfCapacity === 0) return 0;
   return Math.round((loc.currentBookCount / loc.shelfCapacity) * 100);
 }
