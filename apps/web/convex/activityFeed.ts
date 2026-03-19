@@ -2,7 +2,15 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
 import { createEntityCache } from "./lib/entityCache";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
+
+function makeUserRef(u: Doc<"users">) {
+  return { _id: u._id, name: u.name, avatarUrl: u.avatarUrl };
+}
+
+function makeBookRef(b: Doc<"books">) {
+  return { _id: b._id, title: b.title, author: b.author, coverImage: b.coverImage };
+}
 
 type FeedItem = {
   type: "pickup" | "return" | "review";
@@ -71,21 +79,15 @@ export const feed = query({
         ]);
         if (!book || !followedUser) continue;
 
+        const userRef = makeUserRef(followedUser);
+        const bookRef = makeBookRef(book);
+
         // Pickup event
         items.push({
           type: "pickup",
           timestamp: entry.pickedUpAt,
-          user: {
-            _id: followedUser._id,
-            name: followedUser.name,
-            avatarUrl: followedUser.avatarUrl,
-          },
-          book: {
-            _id: book._id,
-            title: book.title,
-            author: book.author,
-            coverImage: book.coverImage,
-          },
+          user: userRef,
+          book: bookRef,
           detail: { locationName: pickupLocation?.name },
         });
 
@@ -97,17 +99,8 @@ export const feed = query({
           items.push({
             type: "return",
             timestamp: entry.returnedAt,
-            user: {
-              _id: followedUser._id,
-              name: followedUser.name,
-              avatarUrl: followedUser.avatarUrl,
-            },
-            book: {
-              _id: book._id,
-              title: book.title,
-              author: book.author,
-              coverImage: book.coverImage,
-            },
+            user: userRef,
+            book: bookRef,
             detail: { locationName: dropoffLocation?.name },
           });
         }
@@ -127,17 +120,8 @@ export const feed = query({
         items.push({
           type: "review",
           timestamp: review._creationTime,
-          user: {
-            _id: reviewer._id,
-            name: reviewer.name,
-            avatarUrl: reviewer.avatarUrl,
-          },
-          book: {
-            _id: book._id,
-            title: book.title,
-            author: book.author,
-            coverImage: book.coverImage,
-          },
+          user: makeUserRef(reviewer),
+          book: makeBookRef(book),
           detail: { rating: review.rating, reviewText: review.text },
         });
       }
