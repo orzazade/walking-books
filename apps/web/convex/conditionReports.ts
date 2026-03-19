@@ -60,7 +60,7 @@ export const create = mutation({
       type: args.type,
       photos: args.photos,
       description: trimmed,
-      previousCondition: args.previousCondition,
+      previousCondition: copy.condition,
       newCondition: args.newCondition,
       createdAt: Date.now(),
     });
