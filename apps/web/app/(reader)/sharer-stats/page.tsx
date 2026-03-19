@@ -14,6 +14,7 @@ import {
   MapPin,
   Trophy,
   ArrowRight,
+  Rss,
 } from "lucide-react";
 
 function StatsContent() {
@@ -188,6 +189,13 @@ export default function SharerStatsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
+          <Link
+            href="/sharer-activity"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <Rss className="h-3.5 w-3.5" />
+            Activity
+          </Link>
           <Link
             href="/share"
             className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
