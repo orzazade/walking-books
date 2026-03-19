@@ -2,7 +2,7 @@ import { MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { NotificationType } from "./validators";
 
-/** Create an in-app notification for a user. */
+/** Create an in-app notification for a user, respecting their preferences. */
 export async function createNotification(
   ctx: MutationCtx,
   args: {
@@ -15,6 +15,17 @@ export async function createNotification(
     relatedLocationId?: Id<"partnerLocations">;
   },
 ): Promise<void> {
+  // Check user's notification preferences
+  const prefs = await ctx.db
+    .query("notificationPreferences")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .unique();
+
+  // If preferences exist and this type is disabled, skip
+  if (prefs && prefs[args.type] === false) {
+    return;
+  }
+
   await ctx.db.insert("userNotifications", {
     userId: args.userId,
     type: args.type,

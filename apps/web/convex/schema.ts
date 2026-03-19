@@ -245,6 +245,21 @@ export default defineSchema({
     .index("by_user", ["userId", "createdAt"])
     .index("by_user_read", ["userId", "read", "createdAt"]),
 
+  notificationPreferences: defineTable({
+    userId: v.id("users"),
+    reservation_confirmed: v.boolean(),
+    reservation_expired: v.boolean(),
+    book_picked_up: v.boolean(),
+    book_returned: v.boolean(),
+    book_recalled: v.boolean(),
+    waitlist_notified: v.boolean(),
+    waitlist_available: v.boolean(),
+    reputation_milestone: v.boolean(),
+    achievement_unlocked: v.boolean(),
+    book_request_fulfilled: v.boolean(),
+  })
+    .index("by_user", ["userId"]),
+
   readingProgress: defineTable({
     userId: v.id("users"),
     copyId: v.id("copies"),
