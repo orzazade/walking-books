@@ -29,6 +29,9 @@ export const create = mutation({
     if (trimmedText.length > 5000)
       throw new Error("Review text must be 5000 characters or less");
 
+    const book = await ctx.db.get(args.bookId);
+    if (!book) throw new Error("Book not found");
+
     // Upsert: one review per user per book
     const existing = await ctx.db
       .query("reviews")
@@ -44,8 +47,6 @@ export const create = mutation({
       });
 
       // Recalculate book average with updated rating
-      const book = await ctx.db.get(args.bookId);
-      if (!book) throw new Error("Book not found");
       if (book.reviewCount > 0) {
         const newAvg =
           (book.avgRating * book.reviewCount - existing.rating + args.rating) /
@@ -66,8 +67,6 @@ export const create = mutation({
     });
 
     // Update book aggregate rating
-    const book = await ctx.db.get(args.bookId);
-    if (!book) throw new Error("Book not found");
     const newCount = book.reviewCount + 1;
     const newAvg =
       (book.avgRating * book.reviewCount + args.rating) / newCount;
