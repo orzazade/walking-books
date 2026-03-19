@@ -199,9 +199,10 @@ export const returnCopy = mutation({
     // Keep recalled status if owner recalled; otherwise make available again
     const newStatus = copy.status === "recalled" ? "recalled" : "available";
 
-    // Update copy
+    // Update copy — set condition to what the returner observed
     await ctx.db.patch(args.copyId, {
       status: newStatus,
+      condition: args.conditionAtReturn,
       currentHolderId: undefined,
       currentLocationId: args.locationId,
       returnDeadline: undefined,
