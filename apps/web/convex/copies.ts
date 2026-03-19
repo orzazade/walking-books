@@ -118,9 +118,9 @@ export const pickup = mutation({
         throw new Error("Reservation does not match this copy");
       await ctx.db.patch(args.reservationId, { status: "fulfilled" });
     } else if (args.reservationId) {
-      // Available copy with optional reservation — fulfill if valid
+      // Available copy with optional reservation — fulfill if valid and for this copy
       const reservation = await ctx.db.get(args.reservationId);
-      if (reservation && reservation.status === "active") {
+      if (reservation && reservation.status === "active" && reservation.copyId === args.copyId) {
         await ctx.db.patch(args.reservationId, { status: "fulfilled" });
       }
     }
