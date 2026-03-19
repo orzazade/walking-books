@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
+import { useQuery, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   BookOpen,

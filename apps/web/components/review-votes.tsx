@@ -5,8 +5,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { getErrorMessage, cn } from "@/lib/utils";
 
 export function ReviewVoteButtons({
   reviewId,

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { Authenticated, Unauthenticated } from "convex/react";
+import { useQuery, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
