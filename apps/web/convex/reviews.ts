@@ -21,6 +21,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    if (args.rating < 1 || args.rating > 5 || !Number.isInteger(args.rating))
+      throw new Error("Rating must be an integer between 1 and 5");
+
     // Upsert: one review per user per book
     const existing = await ctx.db
       .query("reviews")
