@@ -6,7 +6,7 @@ import { type Id } from "@/convex/_generated/dataModel";
 import { type CopyStatus, CONDITION_LABELS, COPY_STATUS_LABELS, type Condition } from "@/convex/lib/validators";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { ReturnDialog } from "@/components/return-dialog";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReservationTimer } from "@/components/reservation-timer";
@@ -361,7 +361,7 @@ function DashboardContent() {
                   {copy.returnDeadline && (
                     <p className="text-[0.75rem] text-muted-foreground">
                       Due:{" "}
-                      {new Date(copy.returnDeadline).toLocaleDateString()}
+                      {formatDate(copy.returnDeadline)}
                     </p>
                   )}
                 </div>

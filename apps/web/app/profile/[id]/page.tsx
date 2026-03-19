@@ -5,7 +5,7 @@ import { useQuery, useMutation, useConvexAuth, Authenticated } from "convex/reac
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -254,9 +254,7 @@ export default function ProfilePage() {
                         {entry.returnedAt ? "Returned" : "Picked up"} a book
                       </p>
                       <p className="text-[0.75rem] text-muted-foreground">
-                        {new Date(
-                          entry.returnedAt ?? entry.pickedUpAt,
-                        ).toLocaleDateString()}
+                        {formatDate(entry.returnedAt ?? entry.pickedUpAt)}
                       </p>
                     </div>
                     <Badge

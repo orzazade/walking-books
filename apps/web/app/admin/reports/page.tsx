@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc } from "@/convex/_generated/dataModel";
 import { type Condition, type ReportType, CONDITION_LABELS, REPORT_TYPE_LABELS } from "@/convex/lib/validators";
+import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +151,7 @@ export default function AdminReportsPage() {
                   )}
 
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(report.createdAt).toLocaleDateString()}
+                    {formatDate(report.createdAt)}
                   </span>
                 </div>
               </CardContent>

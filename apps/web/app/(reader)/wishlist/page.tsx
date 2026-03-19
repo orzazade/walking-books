@@ -10,7 +10,7 @@ import { Heart, Trash2, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, formatDate } from "@/lib/utils";
 
 function WishlistContent() {
   const { isAuthenticated } = useConvexAuth();
@@ -90,7 +90,7 @@ function WishlistContent() {
                   : "Unavailable"}
               </Badge>
               <span className="text-[0.6875rem] text-muted-foreground">
-                Added {new Date(entry.addedAt).toLocaleDateString()}
+                Added {formatDate(entry.addedAt)}
               </span>
             </div>
           </div>

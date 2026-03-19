@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc, type Id } from "@/convex/_generated/dataModel";
 import { type UserStatus } from "@/convex/lib/validators";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -255,9 +255,7 @@ export default function AdminUsersPage() {
                 <div>
                   <span className="text-muted-foreground">Joined</span>
                   <p className="font-medium">
-                    {new Date(
-                      selectedUser._creationTime,
-                    ).toLocaleDateString()}
+                    {formatDate(selectedUser._creationTime)}
                   </p>
                 </div>
               </div>

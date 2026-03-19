@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { type Condition, type CopyStatus, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
 import { QrScanner } from "@/components/qr-scanner";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,7 +171,7 @@ function ScannedCopyActions({
           {copy.returnDeadline && (
             <p className="text-sm text-muted-foreground">
               Return deadline:{" "}
-              {new Date(copy.returnDeadline).toLocaleDateString()}
+              {formatDate(copy.returnDeadline)}
             </p>
           )}
         </CardContent>

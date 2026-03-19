@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
+import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -255,9 +256,7 @@ export default function AdminLocationsPage() {
               <div>
                 <p className="mb-1 text-sm text-muted-foreground">
                   Created{" "}
-                  {new Date(
-                    selectedLocation._creationTime,
-                  ).toLocaleDateString()}
+                  {formatDate(selectedLocation._creationTime)}
                 </p>
               </div>
             </div>

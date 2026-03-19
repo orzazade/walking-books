@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { formatDate } from "@/lib/utils";
 import { StatCard } from "@/components/stat-card";
 import {
   BookOpen,
@@ -125,7 +126,7 @@ export default function AdminOverviewPage() {
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">
-                    {new Date(report.createdAt).toLocaleDateString()}
+                    {formatDate(report.createdAt)}
                   </span>
                 </CardContent>
               </Card>
