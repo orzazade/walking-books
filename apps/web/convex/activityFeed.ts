@@ -65,17 +65,36 @@ export const feed = query({
       return l;
     }
 
+    const followedArray = [...followedIds];
+
+    // Batch-fetch all journey entries and reviews across followed users in parallel
+    const [journeyArrays, reviewArrays] = await Promise.all([
+      Promise.all(
+        followedArray.map((id) =>
+          ctx.db
+            .query("journeyEntries")
+            .withIndex("by_reader", (q) => q.eq("readerId", id))
+            .order("desc")
+            .take(limit),
+        ),
+      ),
+      Promise.all(
+        followedArray.map((id) =>
+          ctx.db
+            .query("reviews")
+            .withIndex("by_user", (q) => q.eq("userId", id))
+            .order("desc")
+            .take(limit),
+        ),
+      ),
+    ]);
+
     const items: FeedItem[] = [];
 
-    // Collect journey entries (pickups & returns) from followed users
-    for (const followedId of followedIds) {
-      const entries = await ctx.db
-        .query("journeyEntries")
-        .withIndex("by_reader", (q) => q.eq("readerId", followedId))
-        .order("desc")
-        .take(limit);
-
-      for (const entry of entries) {
+    // Process journey entries (pickups & returns)
+    for (let i = 0; i < followedArray.length; i++) {
+      const followedId = followedArray[i];
+      for (const entry of journeyArrays[i]) {
         const copy = await getCopy(entry.copyId);
         if (!copy) continue;
         const book = await getBook(copy.bookId);
@@ -127,15 +146,10 @@ export const feed = query({
       }
     }
 
-    // Collect reviews from followed users via index lookup per user
-    for (const followedId of followedIds) {
-      const reviews = await ctx.db
-        .query("reviews")
-        .withIndex("by_user", (q) => q.eq("userId", followedId))
-        .order("desc")
-        .take(limit);
-
-      for (const review of reviews) {
+    // Process reviews
+    for (let i = 0; i < followedArray.length; i++) {
+      const followedId = followedArray[i];
+      for (const review of reviewArrays[i]) {
         const book = await getBook(review.bookId);
         const reviewer = await getUser(followedId);
         if (!book || !reviewer) continue;
