@@ -11,6 +11,7 @@ export const save = mutation({
     const user = await requireCurrentUser(ctx);
     const trimmed = args.content.trim();
     if (trimmed.length === 0) throw new Error("Note content is required");
+    if (trimmed.length > 10000) throw new Error("Note must be 10000 characters or less");
 
     const book = await ctx.db.get(args.bookId);
     if (!book) throw new Error("Book not found");
