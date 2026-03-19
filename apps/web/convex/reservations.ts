@@ -199,14 +199,12 @@ export const expireStale = internalMutation({
       );
     }
 
-    const userIds = [...penaltyByUser.keys()];
-    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-
     await Promise.all(
-      users.map((user, i) => {
+      [...penaltyByUser.entries()].map(async ([userId, penalty]) => {
+        const user = await ctx.db.get(userId);
         if (!user) return;
         return ctx.db.patch(user._id, {
-          reputationScore: clampScore(user.reputationScore + penaltyByUser.get(userIds[i])!),
+          reputationScore: clampScore(user.reputationScore + penalty),
         });
       }),
     );
