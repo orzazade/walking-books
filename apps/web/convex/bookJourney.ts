@@ -81,7 +81,7 @@ export const forCopy = query({
           name: pickupLoc?.name ?? "Unknown location",
         },
         returnLocation: returnLoc
-          ? { _id: entry.dropoffLocationId!, name: returnLoc.name }
+          ? { _id: returnLoc._id, name: returnLoc.name }
           : null,
         pickedUpAt: entry.pickedUpAt,
         returnedAt: entry.returnedAt ?? null,
