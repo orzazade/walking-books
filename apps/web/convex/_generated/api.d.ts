@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as achievements from "../achievements.js";
 import type * as activityFeed from "../activityFeed.js";
 import type * as bookNotes from "../bookNotes.js";
+import type * as bookRequests from "../bookRequests.js";
 import type * as books from "../books.js";
 import type * as collections from "../collections.js";
 import type * as conditionReports from "../conditionReports.js";
@@ -24,11 +26,13 @@ import type * as notifications from "../notifications.js";
 import type * as partnerLocations from "../partnerLocations.js";
 import type * as readingGoals from "../readingGoals.js";
 import type * as readingHistory from "../readingHistory.js";
+import type * as readingProgress from "../readingProgress.js";
 import type * as readingStats from "../readingStats.js";
 import type * as recommendations from "../recommendations.js";
 import type * as reservations from "../reservations.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
+import type * as sharerStats from "../sharerStats.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 import type * as wishlist from "../wishlist.js";
@@ -40,8 +44,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  achievements: typeof achievements;
   activityFeed: typeof activityFeed;
   bookNotes: typeof bookNotes;
+  bookRequests: typeof bookRequests;
   books: typeof books;
   collections: typeof collections;
   conditionReports: typeof conditionReports;
@@ -56,11 +62,13 @@ declare const fullApi: ApiFromModules<{
   partnerLocations: typeof partnerLocations;
   readingGoals: typeof readingGoals;
   readingHistory: typeof readingHistory;
+  readingProgress: typeof readingProgress;
   readingStats: typeof readingStats;
   recommendations: typeof recommendations;
   reservations: typeof reservations;
   reviews: typeof reviews;
   seed: typeof seed;
+  sharerStats: typeof sharerStats;
   users: typeof users;
   waitlist: typeof waitlist;
   wishlist: typeof wishlist;
