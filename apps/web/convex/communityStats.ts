@@ -61,8 +61,7 @@ export const getStats = query({
 
     // Most active location (most pickups all-time)
     const locationPickups = new Map<Id<"partnerLocations">, number>();
-    const allJourneys = await ctx.db.query("journeyEntries").collect();
-    for (const entry of allJourneys) {
+    for (const entry of allReturns) {
       locationPickups.set(
         entry.pickupLocationId,
         (locationPickups.get(entry.pickupLocationId) ?? 0) + 1,
