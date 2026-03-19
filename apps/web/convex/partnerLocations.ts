@@ -41,6 +41,10 @@ export const update = mutation({
     if (location.managedByUserId !== user._id)
       throw new Error("Only the manager can update location settings");
 
+    if (args.name !== undefined && !args.name.trim())
+      throw new Error("Location name cannot be empty");
+    if (args.address !== undefined && !args.address.trim())
+      throw new Error("Address cannot be empty");
     if (args.shelfCapacity !== undefined && args.shelfCapacity < 0)
       throw new Error("Shelf capacity cannot be negative");
 
