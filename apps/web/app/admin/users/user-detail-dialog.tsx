@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Doc, type Id } from "@/convex/_generated/dataModel";
 import { type UserStatus } from "@/convex/lib/validators";
 import { getErrorMessage, formatDate } from "@/lib/utils";
+import { USER_STATUS_BADGE, repColor } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -34,18 +35,6 @@ const MODAL_STATUS_ACTIONS: Array<{
   { status: "restricted", icon: ShieldAlert, label: "Restrict", activeVariant: "default" },
   { status: "banned", icon: Ban, label: "Ban", activeVariant: "destructive" },
 ];
-
-const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructive"> = {
-  active: "default",
-  restricted: "secondary",
-  banned: "destructive",
-};
-
-function repColor(score: number) {
-  if (score >= 70) return "text-green-600";
-  if (score >= 30) return "text-amber-600";
-  return "text-destructive";
-}
 
 export function UserDetailDialog({
   user,

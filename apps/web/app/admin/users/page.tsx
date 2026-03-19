@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Doc, type Id } from "@/convex/_generated/dataModel";
 import { type UserStatus } from "@/convex/lib/validators";
 import { getErrorMessage } from "@/lib/utils";
+import { USER_STATUS_BADGE, repColor } from "./shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,23 +20,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const USER_STATUS_BADGE: Record<UserStatus, "default" | "secondary" | "destructive"> = {
-  active: "default",
-  restricted: "secondary",
-  banned: "destructive",
-};
-
 const TABLE_STATUS_ACTIONS: Array<{ status: UserStatus; icon: typeof RotateCcw; title: string }> = [
   { status: "active", icon: RotateCcw, title: "Restore" },
   { status: "restricted", icon: ShieldAlert, title: "Restrict" },
   { status: "banned", icon: Ban, title: "Ban" },
 ];
-
-function repColor(score: number) {
-  if (score >= 70) return "text-green-600";
-  if (score >= 30) return "text-amber-600";
-  return "text-destructive";
-}
 
 export default function AdminUsersPage() {
   const allUsers = useQuery(api.users.listAll);
