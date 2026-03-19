@@ -30,16 +30,17 @@ export const create = mutation({
     if (trimmedText.length > 5000)
       throw new Error("Review text must be 5000 characters or less");
 
-    const book = await ctx.db.get(args.bookId);
-    if (!book) throw new Error("Book not found");
-
     // Upsert: one review per user per book
-    const existing = await ctx.db
-      .query("reviews")
-      .withIndex("by_user_book", (q) =>
-        q.eq("userId", user._id).eq("bookId", args.bookId),
-      )
-      .unique();
+    const [book, existing] = await Promise.all([
+      ctx.db.get(args.bookId),
+      ctx.db
+        .query("reviews")
+        .withIndex("by_user_book", (q) =>
+          q.eq("userId", user._id).eq("bookId", args.bookId),
+        )
+        .unique(),
+    ]);
+    if (!book) throw new Error("Book not found");
 
     if (existing) {
       await ctx.db.patch(existing._id, {

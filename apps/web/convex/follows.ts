@@ -34,11 +34,13 @@ export const isFollowing = query({
 export const toggle = mutation({
   args: { targetUserId: v.id("users") },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
+    const [user, target] = await Promise.all([
+      requireCurrentUser(ctx),
+      ctx.db.get(args.targetUserId),
+    ]);
+    if (!target) throw new Error("User not found");
     if (user._id === args.targetUserId)
       throw new Error("Cannot follow yourself");
-    const target = await ctx.db.get(args.targetUserId);
-    if (!target) throw new Error("User not found");
     const existing = await ctx.db
       .query("follows")
       .withIndex("by_pair", (q) =>
