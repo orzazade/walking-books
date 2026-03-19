@@ -16,7 +16,15 @@ export const update = mutation({
     if (!Number.isInteger(args.currentPage) || args.currentPage < 0)
       throw new Error("Current page must be a non-negative integer");
 
-    const copy = await ctx.db.get(args.copyId);
+    const [copy, existing] = await Promise.all([
+      ctx.db.get(args.copyId),
+      ctx.db
+        .query("readingProgress")
+        .withIndex("by_user_copy", (q) =>
+          q.eq("userId", user._id).eq("copyId", args.copyId),
+        )
+        .first(),
+    ]);
     if (!copy) throw new Error("Copy not found");
     if (copy.currentHolderId !== user._id)
       throw new Error("You are not the current holder of this copy");
@@ -30,13 +38,6 @@ export const update = mutation({
       );
 
     const now = Date.now();
-
-    const existing = await ctx.db
-      .query("readingProgress")
-      .withIndex("by_user_copy", (q) =>
-        q.eq("userId", user._id).eq("copyId", args.copyId),
-      )
-      .first();
 
     const isFinished = args.currentPage === book.pageCount;
 
