@@ -41,14 +41,18 @@ export const update = mutation({
     if (location.managedByUserId !== user._id)
       throw new Error("Only the manager can update location settings");
 
-    if (args.name !== undefined && !args.name.trim())
-      throw new Error("Location name cannot be empty");
-    if (args.name !== undefined && args.name.trim().length > 200)
-      throw new Error("Location name must be 200 characters or less");
-    if (args.address !== undefined && !args.address.trim())
-      throw new Error("Address cannot be empty");
-    if (args.address !== undefined && args.address.trim().length > 500)
-      throw new Error("Address must be 500 characters or less");
+    if (args.name !== undefined) {
+      const trimmed = args.name.trim();
+      if (!trimmed) throw new Error("Location name cannot be empty");
+      if (trimmed.length > 200) throw new Error("Location name must be 200 characters or less");
+      args = { ...args, name: trimmed };
+    }
+    if (args.address !== undefined) {
+      const trimmed = args.address.trim();
+      if (!trimmed) throw new Error("Address cannot be empty");
+      if (trimmed.length > 500) throw new Error("Address must be 500 characters or less");
+      args = { ...args, address: trimmed };
+    }
     if (args.contactPhone !== undefined && args.contactPhone.length > 30)
       throw new Error("Phone number must be 30 characters or less");
     if (args.contactEmail !== undefined && args.contactEmail.length > 200)

@@ -84,11 +84,13 @@ export const register = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    if (!args.title.trim()) throw new Error("Title is required");
-    if (args.title.trim().length > 300)
+    const title = args.title.trim();
+    if (!title) throw new Error("Title is required");
+    if (title.length > 300)
       throw new Error("Title must be 300 characters or less");
-    if (!args.author.trim()) throw new Error("Author is required");
-    if (args.author.trim().length > 200)
+    const author = args.author.trim();
+    if (!author) throw new Error("Author is required");
+    if (author.length > 200)
       throw new Error("Author must be 200 characters or less");
     if (args.description.length > 2000)
       throw new Error("Description must be 2000 characters or less");
@@ -114,8 +116,8 @@ export const register = mutation({
 
     if (!bookId) {
       bookId = await ctx.db.insert("books", {
-        title: args.title,
-        author: args.author,
+        title,
+        author,
         isbn: args.isbn,
         coverImage: args.coverImage,
         description: args.description,
