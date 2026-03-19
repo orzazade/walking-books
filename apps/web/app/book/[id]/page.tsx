@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/star-rating";
 import { getErrorMessage } from "@/lib/utils";
 import { ReservationTimer } from "@/components/reservation-timer";
+import { ReviewVoteButtons } from "@/components/review-votes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
@@ -347,6 +348,9 @@ export default function BookDetailPage() {
                 <p className="mt-2 text-[0.8125rem] leading-relaxed">
                   {review.text}
                 </p>
+                <div className="mt-2.5">
+                  <ReviewVoteButtons reviewId={review._id} />
+                </div>
               </div>
             ))}
           </div>
