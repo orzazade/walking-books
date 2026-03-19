@@ -35,15 +35,18 @@ export const join = mutation({
     if (!book) throw new Error("Book not found");
 
     // Check not already on waitlist for this book
-    const existing = await ctx.db
+    const activeEntry = await ctx.db
       .query("waitlist")
       .withIndex("by_user_book", (q) =>
         q.eq("userId", user._id).eq("bookId", args.bookId),
       )
-      .collect();
-    const activeEntry = existing.find(
-      (e) => e.status === "waiting" || e.status === "notified",
-    );
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "notified"),
+        ),
+      )
+      .first();
     if (activeEntry) throw new Error("Already on waitlist for this book");
 
     // Check there are no available copies — waitlist is for unavailable books
@@ -72,15 +75,18 @@ export const leave = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    const entries = await ctx.db
+    const activeEntry = await ctx.db
       .query("waitlist")
       .withIndex("by_user_book", (q) =>
         q.eq("userId", user._id).eq("bookId", args.bookId),
       )
-      .collect();
-    const activeEntry = entries.find(
-      (e) => e.status === "waiting" || e.status === "notified",
-    );
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "notified"),
+        ),
+      )
+      .first();
     if (!activeEntry) throw new Error("Not on waitlist for this book");
 
     await ctx.db.patch(activeEntry._id, { status: "cancelled" });
@@ -135,15 +141,18 @@ export const position = query({
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const entries = await ctx.db
+    const activeEntry = await ctx.db
       .query("waitlist")
       .withIndex("by_user_book", (q) =>
         q.eq("userId", user._id).eq("bookId", args.bookId),
       )
-      .collect();
-    const activeEntry = entries.find(
-      (e) => e.status === "waiting" || e.status === "notified",
-    );
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "notified"),
+        ),
+      )
+      .first();
     if (!activeEntry) return null;
 
     if (activeEntry.status === "notified") {
