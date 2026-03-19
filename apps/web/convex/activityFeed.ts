@@ -29,41 +29,39 @@ export const feed = query({
 
     const followedIds = new Set(followRows.map((f) => f.followingId));
 
-    // Cache for users, books, copies, and locations to avoid redundant lookups
-    const userCache = new Map<string, Doc<"users">>();
-    const bookCache = new Map<string, Doc<"books">>();
-    const copyCache = new Map<string, Doc<"copies">>();
-    const locationCache = new Map<string, Doc<"partnerLocations">>();
+    // Cache for users, books, copies, and locations to avoid redundant lookups.
+    // Use has() checks so null results (deleted entities) are also cached,
+    // preventing repeated DB queries for the same missing entity.
+    const userCache = new Map<string, Doc<"users"> | null>();
+    const bookCache = new Map<string, Doc<"books"> | null>();
+    const copyCache = new Map<string, Doc<"copies"> | null>();
+    const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
 
     async function getUser(id: Id<"users">) {
-      const cached = userCache.get(id);
-      if (cached) return cached;
+      if (userCache.has(id)) return userCache.get(id) ?? null;
       const u = await ctx.db.get(id);
-      if (u) userCache.set(id, u);
+      userCache.set(id, u);
       return u;
     }
 
     async function getBook(id: Id<"books">) {
-      const cached = bookCache.get(id);
-      if (cached) return cached;
+      if (bookCache.has(id)) return bookCache.get(id) ?? null;
       const b = await ctx.db.get(id);
-      if (b) bookCache.set(id, b);
+      bookCache.set(id, b);
       return b;
     }
 
     async function getCopy(id: Id<"copies">) {
-      const cached = copyCache.get(id);
-      if (cached) return cached;
+      if (copyCache.has(id)) return copyCache.get(id) ?? null;
       const c = await ctx.db.get(id);
-      if (c) copyCache.set(id, c);
+      copyCache.set(id, c);
       return c;
     }
 
     async function getLocation(id: Id<"partnerLocations">) {
-      const cached = locationCache.get(id);
-      if (cached) return cached;
+      if (locationCache.has(id)) return locationCache.get(id) ?? null;
       const l = await ctx.db.get(id);
-      if (l) locationCache.set(id, l);
+      locationCache.set(id, l);
       return l;
     }
 
