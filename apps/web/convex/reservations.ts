@@ -52,6 +52,8 @@ export const create = mutation({
       throw new Error("Copy is not available for reservation");
     if (copy.currentLocationId !== args.locationId)
       throw new Error("Copy is not at the specified location");
+    if (copy.originalSharerId === user._id)
+      throw new Error("Cannot reserve your own book — use recall instead");
 
     // Check no existing reservation by this user for this copy
     const existingReservation = await ctx.db
