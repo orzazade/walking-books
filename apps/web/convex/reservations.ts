@@ -132,15 +132,22 @@ export const expireStale = internalMutation({
       )
       .collect();
 
-    // Expire all stale reservations and release their copies
-    for (const reservation of staleReservations) {
-      await ctx.db.patch(reservation._id, { status: "expired" });
+    // Batch-fetch all copies for stale reservations
+    const copies = await Promise.all(
+      staleReservations.map((r) => ctx.db.get(r.copyId)),
+    );
 
-      const copy = await ctx.db.get(reservation.copyId);
-      if (copy && copy.status === "reserved") {
-        await ctx.db.patch(reservation.copyId, { status: "available" });
-      }
-    }
+    // Expire all stale reservations and release their copies in parallel
+    await Promise.all(
+      staleReservations.flatMap((reservation, i) => {
+        const ops = [ctx.db.patch(reservation._id, { status: "expired" as const })];
+        const copy = copies[i];
+        if (copy && copy.status === "reserved") {
+          ops.push(ctx.db.patch(reservation.copyId, { status: "available" as const }));
+        }
+        return ops;
+      }),
+    );
 
     // Group penalties by user and apply cumulative no-show penalties
     const penaltyByUser = new Map<typeof staleReservations[0]["userId"], number>();
@@ -154,12 +161,13 @@ export const expireStale = internalMutation({
     const userIds = [...penaltyByUser.keys()];
     const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
 
-    for (let i = 0; i < userIds.length; i++) {
-      const user = users[i];
-      if (!user) continue;
-      await ctx.db.patch(user._id, {
-        reputationScore: clampScore(user.reputationScore + penaltyByUser.get(userIds[i])!),
-      });
-    }
+    await Promise.all(
+      users.map((user, i) => {
+        if (!user) return;
+        return ctx.db.patch(user._id, {
+          reputationScore: clampScore(user.reputationScore + penaltyByUser.get(userIds[i])!),
+        });
+      }),
+    );
   },
 });
