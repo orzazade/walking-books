@@ -74,22 +74,20 @@ export const create = mutation({
     if (!restrictions.canReserve)
       throw new Error("Your reputation is too low to reserve books");
 
-    // Check max books
-    const activeReservations = await ctx.db
-      .query("reservations")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", user._id).eq("status", "active"),
-      )
-      .collect();
+    // Fetch active reservations, location, and copy in parallel — all independent after auth
+    const [activeReservations, location, copy] = await Promise.all([
+      ctx.db
+        .query("reservations")
+        .withIndex("by_user", (q) =>
+          q.eq("userId", user._id).eq("status", "active"),
+        )
+        .collect(),
+      ctx.db.get(args.locationId),
+      ctx.db.get(args.copyId),
+    ]);
     if (activeReservations.length >= restrictions.maxBooks)
       throw new Error("Maximum active reservations reached");
-
-    // Validate location exists
-    const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
-
-    // Check copy is available at the specified location
-    const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
     if (copy.status !== "available")
       throw new Error("Copy is not available for reservation");
