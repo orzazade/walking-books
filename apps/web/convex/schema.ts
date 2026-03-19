@@ -170,7 +170,8 @@ export default defineSchema({
     isPublic: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_public", ["isPublic", "createdAt"]),
 
   collectionItems: defineTable({
     collectionId: v.id("collections"),

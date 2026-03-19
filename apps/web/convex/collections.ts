@@ -148,11 +148,11 @@ export const containingBook = query({
 
 export const publicCollections = query({
   handler: async (ctx) => {
-    const allCollections = await ctx.db.query("collections").collect();
-    const publicOnes = allCollections
-      .filter((c) => c.isPublic)
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 20);
+    const publicOnes = await ctx.db
+      .query("collections")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .order("desc")
+      .take(20);
 
     return Promise.all(
       publicOnes.map(async (c) => {
