@@ -33,6 +33,8 @@ function makeLocation(managedByUserId: string) {
     currentBookCount: 0,
     managedByUserId,
     staffUserIds: [],
+    avgRating: 0,
+    reviewCount: 0,
   };
 }
 

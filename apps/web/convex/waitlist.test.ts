@@ -213,6 +213,8 @@ describe("waitlist", () => {
           currentBookCount: 5,
           managedByUserId: holdId,
           staffUserIds: [],
+          avgRating: 0,
+          reviewCount: 0,
         });
         const bId = await ctx.db.insert("books", makeBook());
         const cId = await ctx.db.insert("copies", {

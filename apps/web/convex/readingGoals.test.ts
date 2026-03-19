@@ -107,6 +107,8 @@ describe("readingGoals", () => {
         currentBookCount: 0,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: locId };
     });
@@ -254,6 +256,8 @@ describe("readingGoals", () => {
         currentBookCount: 0,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: locId };
     });

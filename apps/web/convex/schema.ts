@@ -87,8 +87,20 @@ export default defineSchema({
     currentBookCount: v.number(),
     managedByUserId: v.id("users"),
     staffUserIds: v.array(v.id("users")),
+    avgRating: v.number(),
+    reviewCount: v.number(),
   })
     .index("by_manager", ["managedByUserId"]),
+
+  locationReviews: defineTable({
+    locationId: v.id("partnerLocations"),
+    userId: v.id("users"),
+    rating: v.number(),
+    text: v.string(),
+  })
+    .index("by_location", ["locationId"])
+    .index("by_user", ["userId"])
+    .index("by_user_location", ["userId", "locationId"]),
 
   reservations: defineTable({
     copyId: v.id("copies"),

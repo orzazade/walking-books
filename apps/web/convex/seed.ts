@@ -110,6 +110,8 @@ export const run = internalMutation({
         ...loc,
         managedByUserId: seedUserId,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       locationIds.push(id);
     }

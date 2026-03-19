@@ -33,6 +33,8 @@ describe("readingHistory", () => {
         currentBookCount: 10,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: lid };
     });
@@ -152,6 +154,8 @@ describe("readingHistory", () => {
         currentBookCount: 5,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: lid };
     });

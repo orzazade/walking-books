@@ -33,6 +33,8 @@ describe("recommendations", () => {
         currentBookCount: 10,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: lid };
     });
@@ -178,6 +180,8 @@ describe("recommendations", () => {
         currentBookCount: 2,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
 
       // High-rated available book
@@ -279,6 +283,8 @@ describe("recommendations.forBook", () => {
         currentBookCount: 10,
         managedByUserId: sharer,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { sharer, reader1, reader2, location };
     });

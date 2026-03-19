@@ -48,6 +48,8 @@ function makeLocation(managedByUserId: string, overrides: Record<string, unknown
     currentBookCount: 5,
     managedByUserId,
     staffUserIds: [],
+    avgRating: 0,
+    reviewCount: 0,
     ...overrides,
   };
 }

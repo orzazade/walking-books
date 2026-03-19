@@ -62,6 +62,8 @@ describe("readingStats", () => {
         currentBookCount: 0,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       const loc2 = await ctx.db.insert("partnerLocations", {
         name: "Library B",
@@ -75,6 +77,8 @@ describe("readingStats", () => {
         currentBookCount: 0,
         managedByUserId: uid,
         staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
       });
       return { userId: uid, locationId: loc1, locationId2: loc2 };
     });

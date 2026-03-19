@@ -49,6 +49,8 @@ function makeLocation(managedByUserId: Id<"users">) {
     managedByUserId,
     staffUserIds: [],
     operatingHours: {},
+    avgRating: 0,
+    reviewCount: 0,
   };
 }
 

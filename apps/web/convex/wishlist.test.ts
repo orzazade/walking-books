@@ -144,6 +144,8 @@ describe("wishlist", () => {
           currentBookCount: 5,
           managedByUserId: userId,
           staffUserIds: [],
+          avgRating: 0,
+          reviewCount: 0,
         });
 
         const b1 = await ctx.db.insert("books", {
