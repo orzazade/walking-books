@@ -38,28 +38,32 @@ export const feed = query({
     const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
 
     async function getUser(id: Id<"users">) {
-      if (userCache.has(id)) return userCache.get(id) ?? null;
+      const cached = userCache.get(id);
+      if (cached !== undefined) return cached;
       const u = await ctx.db.get(id);
       userCache.set(id, u);
       return u;
     }
 
     async function getBook(id: Id<"books">) {
-      if (bookCache.has(id)) return bookCache.get(id) ?? null;
+      const cached = bookCache.get(id);
+      if (cached !== undefined) return cached;
       const b = await ctx.db.get(id);
       bookCache.set(id, b);
       return b;
     }
 
     async function getCopy(id: Id<"copies">) {
-      if (copyCache.has(id)) return copyCache.get(id) ?? null;
+      const cached = copyCache.get(id);
+      if (cached !== undefined) return cached;
       const c = await ctx.db.get(id);
       copyCache.set(id, c);
       return c;
     }
 
     async function getLocation(id: Id<"partnerLocations">) {
-      if (locationCache.has(id)) return locationCache.get(id) ?? null;
+      const cached = locationCache.get(id);
+      if (cached !== undefined) return cached;
       const l = await ctx.db.get(id);
       locationCache.set(id, l);
       return l;
