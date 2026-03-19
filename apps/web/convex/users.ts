@@ -92,7 +92,11 @@ export const update = mutation({
       if (trimmed.length > 500) throw new Error("Bio must be 500 characters or less");
       updates.bio = trimmed || undefined;
     }
-    if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
+    if (args.avatarUrl !== undefined) {
+      if (args.avatarUrl.length > 2000)
+        throw new Error("Avatar URL must be 2000 characters or less");
+      updates.avatarUrl = args.avatarUrl;
+    }
     if (args.favoriteGenres !== undefined) {
       if (args.favoriteGenres.length > 20)
         throw new Error("Maximum 20 favorite genres allowed");
@@ -143,9 +147,11 @@ export const updateRoles = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const validRoles = ["reader", "partner", "admin"];
+    if (args.roles.length === 0) throw new Error("At least one role required");
+    if (args.roles.length > validRoles.length)
+      throw new Error(`Maximum ${validRoles.length} roles allowed`);
     const invalid = args.roles.filter((r) => !validRoles.includes(r));
     if (invalid.length > 0) throw new Error(`Invalid roles: ${invalid.join(", ")}`);
-    if (args.roles.length === 0) throw new Error("At least one role required");
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
     await ctx.db.patch(args.userId, { roles: args.roles });
