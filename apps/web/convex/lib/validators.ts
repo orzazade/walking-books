@@ -67,8 +67,6 @@ export const copyStatusValidator = v.union(
   v.literal("recalled"),
 );
 
-export type ReservationStatus = "active" | "fulfilled" | "expired" | "cancelled";
-
 export const reservationStatusValidator = v.union(
   v.literal("active"),
   v.literal("fulfilled"),
@@ -76,16 +74,12 @@ export const reservationStatusValidator = v.union(
   v.literal("cancelled"),
 );
 
-export type WaitlistStatus = "waiting" | "notified" | "fulfilled" | "cancelled";
-
 export const waitlistStatusValidator = v.union(
   v.literal("waiting"),
   v.literal("notified"),
   v.literal("fulfilled"),
   v.literal("cancelled"),
 );
-
-export type ReadingProgressStatus = "reading" | "finished" | "abandoned";
 
 export const readingProgressStatusValidator = v.union(
   v.literal("reading"),
@@ -105,19 +99,6 @@ export type NotificationType =
   | "achievement_unlocked"
   | "book_request_fulfilled";
 
-export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
-  reservation_confirmed: "Reservation Confirmed",
-  reservation_expired: "Reservation Expired",
-  book_picked_up: "Book Picked Up",
-  book_returned: "Book Returned",
-  book_recalled: "Book Recalled",
-  waitlist_notified: "Waitlist Update",
-  waitlist_available: "Book Available",
-  reputation_milestone: "Reputation Milestone",
-  achievement_unlocked: "Achievement Unlocked",
-  book_request_fulfilled: "Request Fulfilled",
-};
-
 export const notificationTypeValidator = v.union(
   v.literal("reservation_confirmed"),
   v.literal("reservation_expired"),
@@ -130,8 +111,6 @@ export const notificationTypeValidator = v.union(
   v.literal("achievement_unlocked"),
   v.literal("book_request_fulfilled"),
 );
-
-export type BookRequestStatus = "open" | "fulfilled" | "cancelled";
 
 export const bookRequestStatusValidator = v.union(
   v.literal("open"),
