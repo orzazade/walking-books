@@ -100,3 +100,13 @@ export const bookRequestStatusValidator = v.union(
   v.literal("fulfilled"),
   v.literal("cancelled"),
 );
+
+/** Validate a photos array — shared by copies, conditionReports, and partnerLocations. */
+export function validatePhotos(photos: string[]): void {
+  if (photos.length > 20)
+    throw new Error("Maximum 20 photos allowed");
+  for (const url of photos) {
+    if (url.length > 2000)
+      throw new Error("Each photo URL must be 2000 characters or less");
+  }
+}

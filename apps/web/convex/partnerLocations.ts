@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { validatePhotos } from "./lib/validators";
 
 export const myLocation = query({
   args: {},
@@ -66,12 +67,7 @@ export const update = mutation({
     if (args.staffUserIds !== undefined && args.staffUserIds.length > 50)
       throw new Error("Maximum 50 staff members allowed");
     if (args.photos !== undefined) {
-      if (args.photos.length > 20)
-        throw new Error("Maximum 20 photos allowed");
-      for (const url of args.photos) {
-        if (url.length > 2000)
-          throw new Error("Each photo URL must be 2000 characters or less");
-      }
+      validatePhotos(args.photos);
     }
     if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0 || args.shelfCapacity > 10000))
       throw new Error("Shelf capacity must be a non-negative integer up to 10000");

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { conditionValidator, reportTypeValidator } from "./lib/validators";
+import { conditionValidator, reportTypeValidator, validatePhotos } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 export const byLocation = query({
@@ -46,12 +46,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    if (args.photos.length > 20)
-      throw new Error("Maximum 20 photos allowed");
-    for (const url of args.photos) {
-      if (url.length > 2000)
-        throw new Error("Each photo URL must be 2000 characters or less");
-    }
+    validatePhotos(args.photos);
 
     const trimmed = args.description.trim();
     if (!trimmed) throw new Error("Description is required");

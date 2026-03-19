@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lending";
 import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions } from "./lib/reputation";
-import { conditionValidator, CONDITION_LABELS } from "./lib/validators";
+import { conditionValidator, CONDITION_LABELS, validatePhotos } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { notifyNextWaiter } from "./lib/waitlist";
 
@@ -90,12 +90,7 @@ export const pickup = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    if (args.photos.length > 20)
-      throw new Error("Maximum 20 photos allowed");
-    for (const url of args.photos) {
-      if (url.length > 2000)
-        throw new Error("Each photo URL must be 2000 characters or less");
-    }
+    validatePhotos(args.photos);
 
     // Check reputation restrictions — suspended users cannot pick up books
     const restrictions = getUserRestrictions(user.reputationScore);
@@ -200,12 +195,7 @@ export const returnCopy = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    if (args.photos.length > 20)
-      throw new Error("Maximum 20 photos allowed");
-    for (const url of args.photos) {
-      if (url.length > 2000)
-        throw new Error("Each photo URL must be 2000 characters or less");
-    }
+    validatePhotos(args.photos);
 
     let readerNote = args.readerNote;
     if (readerNote !== undefined) {
