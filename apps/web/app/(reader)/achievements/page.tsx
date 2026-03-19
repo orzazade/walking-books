@@ -112,9 +112,7 @@ function AchievementsContent() {
             Locked
           </h2>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {locked.map((a) => {
-              const Icon = ACHIEVEMENT_ICONS[a.key] ?? Trophy;
-              return (
+            {locked.map((a) => (
                 <div
                   key={a.key}
                   className="rounded-xl border border-border/40 bg-card/60 p-4 opacity-60"
@@ -133,8 +131,7 @@ function AchievementsContent() {
                     </div>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       )}
