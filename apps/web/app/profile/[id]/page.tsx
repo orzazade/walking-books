@@ -11,14 +11,39 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BookOpen,
+  BookCheck,
   Share2,
   Users,
   UserPlus,
   UserMinus,
   Award,
+  Flame,
+  Trophy,
+  PenLine,
+  Star,
+  Compass,
+  MapPin,
+  Target,
+  Library,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+const ACHIEVEMENT_ICONS: Record<string, typeof BookOpen> = {
+  first_read: BookOpen,
+  books_read_5: BookCheck,
+  books_read_25: Library,
+  books_shared_1: Share2,
+  books_shared_5: Users,
+  first_review: PenLine,
+  reviews_10: Star,
+  genres_3: Compass,
+  genres_5: Compass,
+  locations_3: MapPin,
+  first_follow: Users,
+  goal_completed: Target,
+  collection_created: Library,
+};
 
 export default function ProfilePage() {
   const params = useParams();
@@ -38,6 +63,8 @@ export default function ProfilePage() {
   const journeyEntries = useQuery(api.journeyEntries.byReader, {
     readerId: userId,
   });
+  const achievements = useQuery(api.achievements.forUser, { userId });
+  const streak = useQuery(api.readingStreaks.forUser, { userId });
 
   const toggleFollow = useMutation(api.follows.toggle);
   const [toggling, setToggling] = useState(false);
@@ -215,6 +242,68 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* Reading Streak */}
+      {streak !== undefined && streak !== null && (streak.currentStreak > 0 || streak.longestStreak > 0) && (
+        <div className="mt-8 rounded-xl border border-border/40 bg-card/60 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Flame className={`h-4 w-4 ${streak.currentStreak > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
+            <h2 className="font-serif text-[1rem] font-semibold">Reading Streak</h2>
+          </div>
+          <div className="flex gap-6">
+            <div>
+              <span className="font-serif text-[1.5rem] font-semibold">{streak.currentStreak}</span>
+              <span className="ml-1.5 text-[0.75rem] text-muted-foreground">
+                {streak.currentStreak === 1 ? "day" : "days"} current
+              </span>
+            </div>
+            <div>
+              <span className="font-serif text-[1.5rem] font-semibold">{streak.longestStreak}</span>
+              <span className="ml-1.5 text-[0.75rem] text-muted-foreground">
+                {streak.longestStreak === 1 ? "day" : "days"} longest
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Achievements */}
+      {achievements !== undefined && achievements.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            <h2 className="font-serif text-[1rem] font-semibold">
+              Achievements
+            </h2>
+            <span className="text-[0.75rem] text-muted-foreground">
+              {achievements.length} unlocked
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {achievements.map((a) => {
+              const Icon = ACHIEVEMENT_ICONS[a.key] ?? Trophy;
+              return (
+                <div
+                  key={a.key}
+                  className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 transition-colors hover:bg-amber-500/10"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+                      <Icon className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-[0.8125rem] font-medium">{a.name}</h3>
+                      <p className="text-[0.6875rem] text-muted-foreground">
+                        {a.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="editorial-divider my-8">
