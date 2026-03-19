@@ -140,40 +140,36 @@ export const pickup = mutation({
         ? now + lendingDays * DAY_MS
         : undefined;
 
-    // Update copy
-    await ctx.db.patch(args.copyId, {
-      status: "checked_out",
-      currentHolderId: user._id,
-      returnDeadline,
-      lendingPeriodDays: lendingDays,
-    });
-
-    // Create journey entry
-    await ctx.db.insert("journeyEntries", {
-      copyId: args.copyId,
-      readerId: user._id,
-      pickupLocationId: args.locationId,
-      pickedUpAt: now,
-      conditionAtPickup: args.conditionAtPickup,
-      pickupPhotos: args.photos,
-      returnPhotos: [],
-      reservationId: args.reservationId,
-    });
-
-    // Create condition report
-    await ctx.db.insert("conditionReports", {
-      copyId: args.copyId,
-      reportedByUserId: user._id,
-      type: "pickup_check",
-      photos: args.photos,
-      description: `Pickup condition: ${CONDITION_LABELS[args.conditionAtPickup]}`,
-      previousCondition: copy.condition,
-      newCondition: args.conditionAtPickup,
-      createdAt: now,
-    });
-
-    // Update user booksRead
-    await ctx.db.patch(user._id, { booksRead: user.booksRead + 1 });
+    // Update copy, create journey + condition report, update user — all independent
+    await Promise.all([
+      ctx.db.patch(args.copyId, {
+        status: "checked_out",
+        currentHolderId: user._id,
+        returnDeadline,
+        lendingPeriodDays: lendingDays,
+      }),
+      ctx.db.insert("journeyEntries", {
+        copyId: args.copyId,
+        readerId: user._id,
+        pickupLocationId: args.locationId,
+        pickedUpAt: now,
+        conditionAtPickup: args.conditionAtPickup,
+        pickupPhotos: args.photos,
+        returnPhotos: [],
+        reservationId: args.reservationId,
+      }),
+      ctx.db.insert("conditionReports", {
+        copyId: args.copyId,
+        reportedByUserId: user._id,
+        type: "pickup_check",
+        photos: args.photos,
+        description: `Pickup condition: ${CONDITION_LABELS[args.conditionAtPickup]}`,
+        previousCondition: copy.condition,
+        newCondition: args.conditionAtPickup,
+        createdAt: now,
+      }),
+      ctx.db.patch(user._id, { booksRead: user.booksRead + 1 }),
+    ]);
 
     return { success: true };
   },
@@ -206,69 +202,72 @@ export const returnCopy = mutation({
 
     const now = Date.now();
 
-    // Calculate and apply reputation change
+    // Calculate reputation change
     const repChange = calculateReturnRepChange({
       isOnTime: !copy.returnDeadline || now <= copy.returnDeadline,
       condition: args.conditionAtReturn,
       hasNote: !!args.readerNote,
     });
-    await ctx.db.patch(user._id, {
-      reputationScore: clampScore(user.reputationScore + repChange),
-    });
 
     // Keep recalled status if owner recalled; otherwise make available again
     const newStatus = copy.status === "recalled" ? "recalled" : "available";
 
-    // Update copy — set condition to what the returner observed
-    await ctx.db.patch(args.copyId, {
-      status: newStatus,
-      condition: args.conditionAtReturn,
-      currentHolderId: undefined,
-      currentLocationId: args.locationId,
-      returnDeadline: undefined,
-    });
+    // Parallel: update user rep, update copy, and find open journey entry
+    const [, , openEntry] = await Promise.all([
+      ctx.db.patch(user._id, {
+        reputationScore: clampScore(user.reputationScore + repChange),
+      }),
+      ctx.db.patch(args.copyId, {
+        status: newStatus,
+        condition: args.conditionAtReturn,
+        currentHolderId: undefined,
+        currentLocationId: args.locationId,
+        returnDeadline: undefined,
+      }),
+      ctx.db
+        .query("journeyEntries")
+        .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("readerId"), user._id),
+            q.eq(q.field("returnedAt"), undefined),
+          ),
+        )
+        .first(),
+    ]);
 
-    // Close journey entry — filter + first to avoid collecting all history
-    const openEntry = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("readerId"), user._id),
-          q.eq(q.field("returnedAt"), undefined),
-        ),
-      )
-      .first();
+    // Parallel: close journey entry, create condition report, notify waitlist
+    const secondaryOps: Promise<unknown>[] = [
+      ctx.db.insert("conditionReports", {
+        copyId: args.copyId,
+        reportedByUserId: user._id,
+        type: "return_check",
+        photos: args.photos,
+        description: `Return condition: ${CONDITION_LABELS[args.conditionAtReturn]}`,
+        previousCondition: copy.condition,
+        newCondition: args.conditionAtReturn,
+        createdAt: now,
+      }),
+    ];
     if (openEntry) {
-      await ctx.db.patch(openEntry._id, {
-        returnedAt: now,
-        conditionAtReturn: args.conditionAtReturn,
-        dropoffLocationId: args.locationId,
-        returnPhotos: args.photos,
-        readerNote: args.readerNote,
-      });
+      secondaryOps.push(
+        ctx.db.patch(openEntry._id, {
+          returnedAt: now,
+          conditionAtReturn: args.conditionAtReturn,
+          dropoffLocationId: args.locationId,
+          returnPhotos: args.photos,
+          readerNote: args.readerNote,
+        }),
+      );
     } else {
       console.warn(
         `returnCopy: no open journey entry found for copy ${args.copyId} and user ${user._id}`,
       );
     }
-
-    // Create condition report
-    await ctx.db.insert("conditionReports", {
-      copyId: args.copyId,
-      reportedByUserId: user._id,
-      type: "return_check",
-      photos: args.photos,
-      description: `Return condition: ${CONDITION_LABELS[args.conditionAtReturn]}`,
-      previousCondition: copy.condition,
-      newCondition: args.conditionAtReturn,
-      createdAt: now,
-    });
-
-    // Notify the next person on the waitlist if the copy is now available
     if (newStatus === "available") {
-      await notifyNextWaiter(ctx, copy.bookId, args.copyId, now);
+      secondaryOps.push(notifyNextWaiter(ctx, copy.bookId, args.copyId, now));
     }
+    await Promise.all(secondaryOps);
 
     return { success: true, reputationChange: repChange };
   },
