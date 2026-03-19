@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Trophy, BookOpen, Share2, Flame, Medal, Award } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
