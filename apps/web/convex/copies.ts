@@ -46,6 +46,45 @@ export const byLocation = query({
   },
 });
 
+export const byLocationWithBooks = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_location", (q) =>
+        q.eq("currentLocationId", args.locationId).eq("status", "available"),
+      )
+      .collect();
+
+    if (copies.length === 0) return [];
+
+    // Deduplicate bookIds, fetch books in parallel
+    const bookIds = [...new Set(copies.map((c) => c.bookId))];
+    const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
+    const bookMap = new Map(
+      books.filter((b) => b !== null).map((b) => [b._id, b]),
+    );
+
+    return copies
+      .map((copy) => {
+        const book = bookMap.get(copy.bookId);
+        if (!book) return null;
+        return {
+          ...copy,
+          book: {
+            _id: book._id,
+            title: book.title,
+            author: book.author,
+            coverImage: book.coverImage,
+            avgRating: book.avgRating,
+            categories: book.categories,
+          },
+        };
+      })
+      .filter((c) => c !== null);
+  },
+});
+
 export const allAtLocation = query({
   args: { locationId: v.id("partnerLocations") },
   handler: async (ctx, args) => {

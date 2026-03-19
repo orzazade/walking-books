@@ -130,7 +130,7 @@ export default function LocationDetailPage() {
   const locationId = params.id as Id<"partnerLocations">;
 
   const location = useQuery(api.partnerLocations.byId, { locationId });
-  const copies = useQuery(api.copies.byLocation, { locationId });
+  const copies = useQuery(api.copies.byLocationWithBooks, { locationId });
 
   if (location === undefined) {
     return (
@@ -262,17 +262,30 @@ export default function LocationDetailPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {copies.map((copy) => (
-            <Link key={copy._id} href={`/copy/${copy._id}`}>
+            <Link key={copy._id} href={`/book/${copy.book._id}`}>
               <Card className="cursor-pointer transition-shadow hover:shadow-md">
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium">Copy #{copy._id.slice(-6)}</p>
-                    <p className="text-sm text-muted-foreground">
+                <CardContent className="flex items-center gap-3 p-4">
+                  {copy.book.coverImage ? (
+                    <img
+                      src={copy.book.coverImage}
+                      alt={copy.book.title}
+                      className="h-16 w-11 flex-shrink-0 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-11 flex-shrink-0 items-center justify-center rounded bg-muted">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{copy.book.title}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {copy.book.author}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {CONDITION_LABELS[copy.condition as Condition]} &middot;{" "}
                       {copy.ownershipType}
                     </p>
                   </div>
-                  <Badge>{copy.status}</Badge>
                 </CardContent>
               </Card>
             </Link>
