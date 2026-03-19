@@ -151,13 +151,18 @@ export const cancel = mutation({
     if (user._id !== reservation.userId)
       throw new Error("Not your reservation");
 
-    await ctx.db.patch(args.reservationId, { status: "cancelled" });
+    // Cancel reservation and fetch copy in parallel — independent operations
+    const [, copy] = await Promise.all([
+      ctx.db.patch(args.reservationId, { status: "cancelled" }),
+      ctx.db.get(reservation.copyId),
+    ]);
 
-    // Release copy and notify waitlist
-    const copy = await ctx.db.get(reservation.copyId);
+    // Release copy and notify waitlist in parallel
     if (copy && copy.status === "reserved") {
-      await ctx.db.patch(reservation.copyId, { status: "available" });
-      await notifyNextWaiter(ctx, copy.bookId, reservation.copyId, Date.now());
+      await Promise.all([
+        ctx.db.patch(reservation.copyId, { status: "available" }),
+        notifyNextWaiter(ctx, copy.bookId, reservation.copyId, Date.now()),
+      ]);
     }
 
     return { success: true };
