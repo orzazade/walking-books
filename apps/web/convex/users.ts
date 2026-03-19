@@ -125,6 +125,10 @@ export const updateRoles = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    const validRoles = ["reader", "partner", "admin"];
+    const invalid = args.roles.filter((r) => !validRoles.includes(r));
+    if (invalid.length > 0) throw new Error(`Invalid roles: ${invalid.join(", ")}`);
+    if (args.roles.length === 0) throw new Error("At least one role required");
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
     await ctx.db.patch(args.userId, { roles: args.roles });
