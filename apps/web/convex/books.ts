@@ -9,14 +9,14 @@ import { getBookCopyCounts, getBookCopyCountsFor } from "./lib/availability";
 
 async function enrichWithAvailability<
   T extends {
-    _id: string;
+    _id: Id<"books">;
     title: string;
     avgRating: number;
   },
 >(ctx: QueryCtx, books: Array<T>) {
   // Use indexed per-book lookup for small lists; full scan for large catalogs
   const counts = books.length > 0 && books.length <= 50
-    ? await getBookCopyCountsFor(ctx, books.map((b) => b._id as Id<"books">))
+    ? await getBookCopyCountsFor(ctx, books.map((b) => b._id))
     : await getBookCopyCounts(ctx);
 
   return books
