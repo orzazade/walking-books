@@ -143,11 +143,20 @@ export const getReview = query({
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
 
-    // Reviews written this year
-    const reviews = await ctx.db
-      .query("reviews")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    // Reviews, streak, and goal are independent — fetch in parallel
+    const [reviews, streak, goal] = await Promise.all([
+      ctx.db.query("reviews")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db.query("readingStreaks")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .first(),
+      ctx.db.query("readingGoals")
+        .withIndex("by_user_year", (q) =>
+          q.eq("userId", user._id).eq("year", args.year),
+        )
+        .unique(),
+    ]);
 
     const yearReviews = reviews.filter(
       (r) => r._creationTime >= yearStart && r._creationTime < yearEnd,
@@ -162,20 +171,7 @@ export const getReview = query({
           ) / 10
         : null;
 
-    // Reading streak (longest this year from readingStreaks table)
-    const streak = await ctx.db
-      .query("readingStreaks")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
     const longestStreak = streak?.longestStreak ?? 0;
-
-    // Reading goal for this year
-    const goal = await ctx.db
-      .query("readingGoals")
-      .withIndex("by_user_year", (q) =>
-        q.eq("userId", user._id).eq("year", args.year),
-      )
-      .unique();
 
     const goalTarget = goal?.targetBooks ?? null;
     const goalProgress =
