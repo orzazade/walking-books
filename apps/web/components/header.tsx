@@ -91,7 +91,7 @@ export function Header() {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  const mobileItems = [...NAV_ITEMS, ...AUTH_ITEMS, { href: "/notifications", label: "Notifications", icon: Bell }];
+  const mobileAuthItems = [...AUTH_ITEMS, { href: "/notifications", label: "Notifications", icon: Bell }] as const;
 
   function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof BookMarked }) {
     return (
@@ -180,7 +180,7 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-border/40 bg-background/98 px-5 py-5 backdrop-blur-xl md:hidden">
           <nav className="grid gap-1">
-            {mobileItems.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -195,6 +195,24 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            <Authenticated>
+              <div className="my-1 border-t border-border/40" />
+              {mobileAuthItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                    isActive(item.href)
+                      ? "bg-primary/8 text-primary"
+                      : "text-foreground hover:bg-muted",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </Authenticated>
           </nav>
           <div className="mt-4 border-t border-border/40 pt-4">
             <Authenticated>
