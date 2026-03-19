@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { DAY_MS } from "./lib/lending";
 
@@ -61,9 +62,9 @@ export const getStats = query({
 
     // Most popular book (most journey entries)
     const lendCountByBook = new Map<string, number>();
-    for (const copy of copies) {
-      const bookId = copy.bookId.toString();
-      const copyJourneys = journeyArrays[copies.indexOf(copy)];
+    for (let i = 0; i < copies.length; i++) {
+      const bookId = copies[i].bookId.toString();
+      const copyJourneys = journeyArrays[i];
       lendCountByBook.set(
         bookId,
         (lendCountByBook.get(bookId) ?? 0) + copyJourneys.length,
@@ -88,11 +89,10 @@ export const getStats = query({
     }
 
     // Top locations where shared books currently sit
-    const locationCounts = new Map<string, number>();
+    const locationCounts = new Map<Id<"partnerLocations">, number>();
     for (const copy of copies) {
       if (copy.currentLocationId) {
-        const locId = copy.currentLocationId.toString();
-        locationCounts.set(locId, (locationCounts.get(locId) ?? 0) + 1);
+        locationCounts.set(copy.currentLocationId, (locationCounts.get(copy.currentLocationId) ?? 0) + 1);
       }
     }
 
@@ -101,9 +101,7 @@ export const getStats = query({
       .slice(0, 5);
 
     const locationDocs = await Promise.all(
-      topLocationEntries.map(([locId]) =>
-        ctx.db.get(copies.find((c) => c.currentLocationId?.toString() === locId)!.currentLocationId!),
-      ),
+      topLocationEntries.map(([locId]) => ctx.db.get(locId)),
     );
 
     const topLocations = topLocationEntries
