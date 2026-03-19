@@ -169,9 +169,9 @@ export const expireStale = internalMutation({
     );
 
     // Notify waitlist for each released copy
-    for (const { bookId, copyId } of releasedCopies) {
-      await notifyNextWaiter(ctx, bookId, copyId, now);
-    }
+    await Promise.all(
+      releasedCopies.map(({ bookId, copyId }) => notifyNextWaiter(ctx, bookId, copyId, now)),
+    );
 
     // Notify users that their reservations expired — reuse already-fetched copies
     const bookIds = new Set<Id<"books">>();
@@ -183,20 +183,22 @@ export const expireStale = internalMutation({
       bookDocs.filter((b) => b !== null).map((b) => [b._id, b]),
     );
 
-    for (let i = 0; i < staleReservations.length; i++) {
-      const copy = copies[i];
-      if (!copy) continue;
-      const book = bookMap.get(copy.bookId);
-      const bookTitle = book?.title ?? "a book";
-      await createNotification(ctx, {
-        userId: staleReservations[i].userId,
-        type: "reservation_expired",
-        title: "Reservation expired",
-        message: `Your reservation for "${bookTitle}" has expired. You can reserve again or join the waitlist.`,
-        relatedBookId: copy.bookId,
-        relatedCopyId: staleReservations[i].copyId,
-      });
-    }
+    await Promise.all(
+      staleReservations.map((reservation, i) => {
+        const copy = copies[i];
+        if (!copy) return;
+        const book = bookMap.get(copy.bookId);
+        const bookTitle = book?.title ?? "a book";
+        return createNotification(ctx, {
+          userId: reservation.userId,
+          type: "reservation_expired",
+          title: "Reservation expired",
+          message: `Your reservation for "${bookTitle}" has expired. You can reserve again or join the waitlist.`,
+          relatedBookId: copy.bookId,
+          relatedCopyId: reservation.copyId,
+        });
+      }),
+    );
 
     // Group penalties by user and apply cumulative no-show penalties
     const penaltyByUser = new Map<Id<"users">, number>();
