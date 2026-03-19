@@ -3,19 +3,12 @@
 import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type Condition, type CopyStatus, CONDITIONS, CONDITION_LABELS, COPY_STATUS_LABELS } from "@/convex/lib/validators";
+import { type CopyStatus, CONDITION_LABELS, COPY_STATUS_LABELS, type Condition } from "@/convex/lib/validators";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { ReturnDialog } from "@/components/return-dialog";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { ReservationTimer } from "@/components/reservation-timer";
 import {
   BookOpen,
@@ -45,22 +38,14 @@ function DashboardContent() {
   const heldCopies = useQuery(api.copies.byHolder, isAuthenticated ? {} : "skip");
   const activeReservations = useQuery(api.reservations.active, isAuthenticated ? {} : "skip");
   const sharedCopies = useQuery(api.copies.bySharer, isAuthenticated ? {} : "skip");
-  const locations = useQuery(api.partnerLocations.list, isAuthenticated ? {} : "skip");
 
   const extendCopy = useMutation(api.copies.extend);
   const cancelReservation = useMutation(api.reservations.cancel);
   const recallCopy = useMutation(api.copies.recall);
   const pickupCopy = useMutation(api.copies.pickup);
-  const returnCopy = useMutation(api.copies.returnCopy);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const [returnDialog, setReturnDialog] = useState<{
-    copyId: Id<"copies">;
-  } | null>(null);
-  const [returnLocationId, setReturnLocationId] = useState<string>("");
-  const [returnCondition, setReturnCondition] = useState<Condition>("good");
-  const [returnNote, setReturnNote] = useState("");
+  const [returnCopyId, setReturnCopyId] = useState<Id<"copies"> | null>(null);
 
   if (user === undefined) {
     return (
@@ -117,27 +102,7 @@ function DashboardContent() {
     });
   }
 
-  async function handleReturn() {
-    if (!returnDialog || !returnLocationId) return;
-    await handleAction(`return-${returnDialog.copyId}`, async () => {
-      const result = await returnCopy({
-        copyId: returnDialog.copyId,
-        locationId: returnLocationId as Id<"partnerLocations">,
-        conditionAtReturn: returnCondition,
-        photos: [],
-        readerNote: returnNote.trim() || undefined,
-      });
-      const repChange = result.reputationChange;
-      const sign = repChange >= 0 ? "+" : "";
-      toast.success(
-        `Book returned! Reputation ${sign}${repChange}`,
-      );
-      setReturnDialog(null);
-      setReturnLocationId("");
-      setReturnCondition("good");
-      setReturnNote("");
-    });
-  }
+
 
   return (
     <>
@@ -421,10 +386,7 @@ function DashboardContent() {
                   <Button
                     size="sm"
                     className="h-7 rounded-lg text-[0.75rem]"
-                    disabled={actionLoading === `return-${copy._id}`}
-                    onClick={() =>
-                      setReturnDialog({ copyId: copy._id })
-                    }
+                    onClick={() => setReturnCopyId(copy._id)}
                   >
                     <Undo2 className="mr-1 h-3 w-3" /> Return
                   </Button>
@@ -568,114 +530,7 @@ function DashboardContent() {
       </section>
 
       {/* Return Dialog */}
-      <Dialog
-        open={returnDialog !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setReturnDialog(null);
-            setReturnLocationId("");
-            setReturnCondition("good");
-            setReturnNote("");
-          }
-        }}
-      >
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-serif">Return Book</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-[0.8125rem] font-medium">
-                Return Location
-              </label>
-              {locations === undefined ? (
-                <div className="animate-shimmer h-4 w-32 rounded-md bg-muted" />
-              ) : (
-                <div className="max-h-48 space-y-1.5 overflow-y-auto">
-                  {locations.map((loc) => (
-                    <button
-                      key={loc._id}
-                      type="button"
-                      onClick={() => setReturnLocationId(loc._id)}
-                      className={`flex w-full items-center gap-2.5 rounded-lg border p-3 text-left text-[0.8125rem] transition-colors ${
-                        returnLocationId === loc._id
-                          ? "border-primary bg-primary/5"
-                          : "border-border/50 hover:bg-muted"
-                      }`}
-                    >
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
-                      <div>
-                        <p className="font-medium">{loc.name}</p>
-                        <p className="text-[0.75rem] text-muted-foreground">
-                          {loc.address}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[0.8125rem] font-medium">
-                Book Condition
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {CONDITIONS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setReturnCondition(c)}
-                    className={`rounded-lg border px-3 py-2 text-[0.8125rem] transition-colors ${
-                      returnCondition === c
-                        ? "border-primary bg-primary/5 font-medium"
-                        : "border-border/50 hover:bg-muted"
-                    }`}
-                  >
-                    {CONDITION_LABELS[c]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[0.8125rem] font-medium">
-                Note (optional)
-              </label>
-              <Textarea
-                placeholder="Leave a note for the next reader..."
-                value={returnNote}
-                onChange={(e) => setReturnNote(e.target.value)}
-                rows={2}
-                className="rounded-lg text-[0.8125rem]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="rounded-lg"
-              onClick={() => setReturnDialog(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-lg"
-              onClick={handleReturn}
-              disabled={
-                !returnLocationId ||
-                actionLoading === `return-${returnDialog?.copyId}`
-              }
-            >
-              {actionLoading === `return-${returnDialog?.copyId}`
-                ? "Returning..."
-                : "Confirm Return"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReturnDialog copyId={returnCopyId} onClose={() => setReturnCopyId(null)} />
     </>
   );
 }
