@@ -170,10 +170,13 @@ export const register = mutation({
       sharerMaxLendingDays: args.sharerMaxLendingDays,
     });
 
-    // Update user stats and create condition report — independent of each other
+    // Update user stats, location count, and create condition report — independent of each other
     await Promise.all([
       ctx.db.patch(user._id, {
         booksShared: user.booksShared + 1,
+      }),
+      ctx.db.patch(args.locationId, {
+        currentBookCount: location.currentBookCount + 1,
       }),
       ctx.db.insert("conditionReports", {
         copyId,

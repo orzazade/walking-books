@@ -151,13 +151,16 @@ export const pickup = mutation({
         ? now + lendingDays * DAY_MS
         : undefined;
 
-    // Update copy, create journey + condition report, update user — all independent
+    // Update copy, location count, create journey + condition report, update user — all independent
     await Promise.all([
       ctx.db.patch(args.copyId, {
         status: "checked_out",
         currentHolderId: user._id,
         returnDeadline,
         lendingPeriodDays: lendingDays,
+      }),
+      ctx.db.patch(args.locationId, {
+        currentBookCount: Math.max(0, location.currentBookCount - 1),
       }),
       ctx.db.insert("journeyEntries", {
         copyId: args.copyId,
@@ -233,8 +236,8 @@ export const returnCopy = mutation({
     // Keep recalled status if owner recalled; otherwise make available again
     const newStatus = copy.status === "recalled" ? "recalled" : "available";
 
-    // Parallel: update user rep, update copy, and find open journey entry
-    const [, , openEntry] = await Promise.all([
+    // Parallel: update user rep, update copy, update location count, and find open journey entry
+    const [, , , openEntry] = await Promise.all([
       ctx.db.patch(user._id, {
         reputationScore: clampScore(user.reputationScore + repChange),
       }),
@@ -244,6 +247,9 @@ export const returnCopy = mutation({
         currentHolderId: undefined,
         currentLocationId: args.locationId,
         returnDeadline: undefined,
+      }),
+      ctx.db.patch(args.locationId, {
+        currentBookCount: location.currentBookCount + 1,
       }),
       ctx.db
         .query("journeyEntries")
