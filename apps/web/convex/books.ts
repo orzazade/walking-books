@@ -149,22 +149,22 @@ export const register = mutation({
       sharerMaxLendingDays: args.sharerMaxLendingDays,
     });
 
-    // Update user stats
-    await ctx.db.patch(user._id, {
-      booksShared: user.booksShared + 1,
-    });
-
-    // Create initial condition report
-    await ctx.db.insert("conditionReports", {
-      copyId,
-      reportedByUserId: user._id,
-      type: "pickup_check",
-      photos: [],
-      description: `Initial condition: ${CONDITION_LABELS[args.condition]}`,
-      previousCondition: args.condition,
-      newCondition: args.condition,
-      createdAt: Date.now(),
-    });
+    // Update user stats and create condition report — independent of each other
+    await Promise.all([
+      ctx.db.patch(user._id, {
+        booksShared: user.booksShared + 1,
+      }),
+      ctx.db.insert("conditionReports", {
+        copyId,
+        reportedByUserId: user._id,
+        type: "pickup_check",
+        photos: [],
+        description: `Initial condition: ${CONDITION_LABELS[args.condition]}`,
+        previousCondition: args.condition,
+        newCondition: args.condition,
+        createdAt: Date.now(),
+      }),
+    ]);
 
     return { bookId, copyId };
   },
