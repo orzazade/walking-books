@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
+import { DAY_MS } from "./lib/lending";
 
 /**
  * Book Journey — trace the complete travel history of a book copy.
@@ -58,8 +59,6 @@ export const forCopy = query({
       if (l) locationMap.set(l._id as string, l);
     }
 
-    const DAY_MS = 86_400_000;
-
     // Sort chronologically (oldest first)
     entries.sort((a, b) => a.pickedUpAt - b.pickedUpAt);
 
@@ -112,7 +111,6 @@ export const summary = query({
     const uniqueLocations = new Set<string>();
     let totalDaysLent = 0;
     let completedLendings = 0;
-    const DAY_MS = 86_400_000;
 
     for (const entry of entries) {
       uniqueReaders.add(entry.readerId as string);
