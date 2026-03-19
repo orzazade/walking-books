@@ -10,18 +10,18 @@ export const vote = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
-    const review = await ctx.db.get(args.reviewId);
+    const [review, existing] = await Promise.all([
+      ctx.db.get(args.reviewId),
+      ctx.db
+        .query("reviewVotes")
+        .withIndex("by_user_review", (q) =>
+          q.eq("userId", user._id).eq("reviewId", args.reviewId),
+        )
+        .unique(),
+    ]);
     if (!review) throw new Error("Review not found");
-
     if (review.userId === user._id)
       throw new Error("You cannot vote on your own review");
-
-    const existing = await ctx.db
-      .query("reviewVotes")
-      .withIndex("by_user_review", (q) =>
-        q.eq("userId", user._id).eq("reviewId", args.reviewId),
-      )
-      .unique();
 
     if (existing) {
       await ctx.db.patch(existing._id, { helpful: args.helpful });
