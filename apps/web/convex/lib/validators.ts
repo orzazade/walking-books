@@ -84,3 +84,11 @@ export const waitlistStatusValidator = v.union(
   v.literal("fulfilled"),
   v.literal("cancelled"),
 );
+
+export type BookRequestStatus = "open" | "fulfilled" | "cancelled";
+
+export const bookRequestStatusValidator = v.union(
+  v.literal("open"),
+  v.literal("fulfilled"),
+  v.literal("cancelled"),
+);

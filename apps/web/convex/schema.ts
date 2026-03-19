@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { conditionValidator, copyStatusValidator, ownershipTypeValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
+import { bookRequestStatusValidator, conditionValidator, copyStatusValidator, ownershipTypeValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -186,5 +186,18 @@ export default defineSchema({
   })
     .index("by_book_status", ["bookId", "status", "joinedAt"])
     .index("by_user_book", ["userId", "bookId"])
+    .index("by_user", ["userId"]),
+
+  bookRequests: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    author: v.optional(v.string()),
+    note: v.optional(v.string()),
+    status: bookRequestStatusValidator,
+    createdAt: v.number(),
+    fulfilledBy: v.optional(v.id("users")),
+    fulfilledAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status", "createdAt"])
     .index("by_user", ["userId"]),
 });
