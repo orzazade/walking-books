@@ -6,9 +6,9 @@ export type BookCopyCounts = { totalCopies: number; availableCopies: number };
 /** Query all copies and return per-book total/available counts. */
 export async function getBookCopyCounts(
   ctx: QueryCtx,
-): Promise<Map<string, BookCopyCounts>> {
+): Promise<Map<Id<"books">, BookCopyCounts>> {
   const copies = await ctx.db.query("copies").collect();
-  const counts = new Map<string, BookCopyCounts>();
+  const counts = new Map<Id<"books">, BookCopyCounts>();
 
   for (const copy of copies) {
     const current = counts.get(copy.bookId) ?? {
@@ -29,7 +29,7 @@ export async function getBookCopyCounts(
 export async function getBookCopyCountsFor(
   ctx: QueryCtx,
   bookIds: Id<"books">[],
-): Promise<Map<string, BookCopyCounts>> {
+): Promise<Map<Id<"books">, BookCopyCounts>> {
   const copyArrays = await Promise.all(
     bookIds.map((bookId) =>
       ctx.db
@@ -38,7 +38,7 @@ export async function getBookCopyCountsFor(
         .collect(),
     ),
   );
-  const counts = new Map<string, BookCopyCounts>();
+  const counts = new Map<Id<"books">, BookCopyCounts>();
   for (let i = 0; i < bookIds.length; i++) {
     let totalCopies = 0;
     let availableCopies = 0;

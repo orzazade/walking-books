@@ -24,8 +24,8 @@ export const myHistory = query({
       completed.map((e) => ctx.db.get(e.copyId)),
     );
 
-    const bookCache = new Map<string, Doc<"books"> | null>();
-    const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
+    const bookCache = new Map<Id<"books">, Doc<"books"> | null>();
+    const locationCache = new Map<Id<"partnerLocations">, Doc<"partnerLocations"> | null>();
 
     async function getBook(id: Id<"books">) {
       const cached = bookCache.get(id);
