@@ -31,5 +31,6 @@ export async function requireCurrentUser(
     .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
     .unique();
   if (!user) throw new Error("User not found");
+  if (user.status === "banned") throw new Error("Your account has been suspended");
   return user;
 }
