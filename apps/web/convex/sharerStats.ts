@@ -45,7 +45,9 @@ export const getStats = query({
     );
     const allJourneys = journeyArrays.flat();
 
-    const completedLends = allJourneys.filter((j) => j.returnedAt !== undefined);
+    const completedLends = allJourneys.filter(
+      (j): j is typeof j & { returnedAt: number } => j.returnedAt !== undefined,
+    );
     const currentlyLent = copies.filter((c) => c.status === "checked_out").length;
 
     // Unique readers
@@ -55,7 +57,7 @@ export const getStats = query({
     let avgLendingDays: number | null = null;
     if (completedLends.length > 0) {
       const totalDays = completedLends.reduce((sum, j) => {
-        return sum + (j.returnedAt! - j.pickedUpAt) / DAY_MS;
+        return sum + (j.returnedAt - j.pickedUpAt) / DAY_MS;
       }, 0);
       avgLendingDays = Math.round((totalDays / completedLends.length) * 10) / 10;
     }

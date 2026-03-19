@@ -20,14 +20,16 @@ export const getStats = query({
       .withIndex("by_reader", (q) => q.eq("readerId", targetUserId))
       .collect();
 
-    const completedReads = entries.filter((e) => e.returnedAt !== undefined);
+    const completedReads = entries.filter(
+      (e): e is typeof e & { returnedAt: number } => e.returnedAt !== undefined,
+    );
     const inProgress = entries.filter((e) => e.returnedAt === undefined);
 
     // Average days per book (completed reads only)
     let avgDaysPerBook: number | null = null;
     if (completedReads.length > 0) {
       const totalDays = completedReads.reduce((sum, e) => {
-        const days = (e.returnedAt! - e.pickedUpAt) / DAY_MS;
+        const days = (e.returnedAt - e.pickedUpAt) / DAY_MS;
         return sum + days;
       }, 0);
       avgDaysPerBook = Math.round((totalDays / completedReads.length) * 10) / 10;
@@ -73,7 +75,7 @@ export const getStats = query({
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
 
       const count = completedReads.filter(
-        (e) => e.returnedAt! >= monthStart && e.returnedAt! < monthEnd,
+        (e) => e.returnedAt >= monthStart && e.returnedAt < monthEnd,
       ).length;
 
       const label = new Date(monthStart).toLocaleDateString("en-US", {

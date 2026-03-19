@@ -143,7 +143,7 @@ async function gatherStats(
     ]);
 
   const completedReads = journeyEntries.filter(
-    (e) => e.returnedAt !== undefined,
+    (e): e is typeof e & { returnedAt: number } => e.returnedAt !== undefined,
   );
 
   // Genre count from completed reads
@@ -174,7 +174,7 @@ async function gatherStats(
     const yearStart = new Date(goal.year, 0, 1).getTime();
     const yearEnd = new Date(goal.year + 1, 0, 1).getTime();
     const yearReads = completedReads.filter(
-      (e) => e.returnedAt! >= yearStart && e.returnedAt! < yearEnd,
+      (e) => e.returnedAt >= yearStart && e.returnedAt < yearEnd,
     ).length;
     if (yearReads >= goal.targetBooks) {
       goalCompleted = true;
