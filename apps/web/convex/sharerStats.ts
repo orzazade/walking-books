@@ -61,9 +61,9 @@ export const getStats = query({
     }
 
     // Most popular book (most journey entries)
-    const lendCountByBook = new Map<string, number>();
+    const lendCountByBook = new Map<Id<"books">, number>();
     for (let i = 0; i < copies.length; i++) {
-      const bookId = copies[i].bookId.toString();
+      const bookId = copies[i].bookId;
       const copyJourneys = journeyArrays[i];
       lendCountByBook.set(
         bookId,
@@ -77,7 +77,7 @@ export const getStats = query({
         .filter(([, count]) => count > 0)
         .sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
       if (topBookId && topCount > 0) {
-        const book = await ctx.db.get(copies.find((c) => c.bookId.toString() === topBookId)!.bookId);
+        const book = await ctx.db.get(topBookId);
         if (book) {
           mostPopularBook = {
             title: book.title,

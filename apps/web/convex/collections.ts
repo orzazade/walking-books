@@ -50,10 +50,7 @@ export const remove = mutation({
       .query("collectionItems")
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .collect();
-    for (const item of items) {
-      await ctx.db.delete(item._id);
-    }
-
+    await Promise.all(items.map((item) => ctx.db.delete(item._id)));
     await ctx.db.delete(args.collectionId);
   },
 });
