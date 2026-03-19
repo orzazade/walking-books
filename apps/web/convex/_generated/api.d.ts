@@ -38,6 +38,7 @@ import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as sharerActivity from "../sharerActivity.js";
 import type * as sharerStats from "../sharerStats.js";
+import type * as suggestedFollows from "../suggestedFollows.js";
 import type * as trendingBooks from "../trendingBooks.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   sharerActivity: typeof sharerActivity;
   sharerStats: typeof sharerStats;
+  suggestedFollows: typeof suggestedFollows;
   trendingBooks: typeof trendingBooks;
   users: typeof users;
   waitlist: typeof waitlist;
