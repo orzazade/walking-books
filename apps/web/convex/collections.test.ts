@@ -300,4 +300,116 @@ describe("collections", () => {
     const result = await t.query(api.collections.containingBook, { bookId });
     expect(result).toEqual([]);
   });
+
+  it("publicCollections returns only public collections", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Public List",
+        description: "Visible to all",
+        isPublic: true,
+        createdAt: 1000,
+      });
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Secret List",
+        isPublic: false,
+        createdAt: 2000,
+      });
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Another Public",
+        isPublic: true,
+        createdAt: 3000,
+      });
+    });
+
+    // No auth required
+    const result = await t.query(api.collections.publicCollections, {});
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Another Public");
+    expect(result[1].name).toBe("Public List");
+    expect(result[0].ownerName).toBe("Collection User");
+  });
+
+  it("publicCollections includes book counts", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const colId = await ctx.db.insert("collections", {
+        userId: uid,
+        name: "With Books",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      const bookId = await ctx.db.insert("books", makeBook());
+      const bookId2 = await ctx.db.insert("books", makeBook({ title: "Book 2" }));
+      await ctx.db.insert("collectionItems", {
+        collectionId: colId,
+        bookId,
+        addedAt: Date.now(),
+      });
+      await ctx.db.insert("collectionItems", {
+        collectionId: colId,
+        bookId: bookId2,
+        addedAt: Date.now(),
+      });
+    });
+
+    const result = await t.query(api.collections.publicCollections, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].bookCount).toBe(2);
+  });
+
+  it("publicCollections returns empty when no public collections exist", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Private Only",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+    });
+
+    const result = await t.query(api.collections.publicCollections, {});
+    expect(result).toHaveLength(0);
+  });
+
+  it("publicCollections shows collections from multiple users", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const uid1 = await ctx.db.insert("users", makeUser());
+      const uid2 = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_coll2", name: "Other Reader", phone: "+9999999999" }),
+      );
+      await ctx.db.insert("collections", {
+        userId: uid1,
+        name: "Alice Picks",
+        isPublic: true,
+        createdAt: 1000,
+      });
+      await ctx.db.insert("collections", {
+        userId: uid2,
+        name: "Bob Picks",
+        isPublic: true,
+        createdAt: 2000,
+      });
+    });
+
+    const result = await t.query(api.collections.publicCollections, {});
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Bob Picks");
+    expect(result[0].ownerName).toBe("Other Reader");
+    expect(result[1].name).toBe("Alice Picks");
+    expect(result[1].ownerName).toBe("Collection User");
+  });
 });

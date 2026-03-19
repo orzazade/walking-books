@@ -15,6 +15,7 @@ import {
   Lock,
   BookOpen,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
@@ -167,6 +168,68 @@ function CollectionCard({
   );
 }
 
+function CommunityCollections() {
+  const collections = useQuery(api.collections.publicCollections);
+
+  if (collections === undefined) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-border/40 bg-card/60 p-4"
+          >
+            <div className="animate-shimmer h-4 w-40 rounded-md bg-muted" />
+            <div className="animate-shimmer mt-2 h-3 w-24 rounded-md bg-muted" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (collections.length === 0) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="No community collections yet"
+        message="Be the first to create a public collection for others to discover."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {collections.map((collection) => (
+        <Link
+          key={collection._id}
+          href={`/collections/${collection._id}`}
+          className="group block rounded-xl border border-border/40 bg-card/60 p-4 transition-colors hover:bg-card/80"
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-[0.9375rem] font-medium">
+              {collection.name}
+            </h3>
+            <Globe className="h-3 w-3 shrink-0 text-muted-foreground" />
+          </div>
+          {collection.description && (
+            <p className="mt-0.5 line-clamp-1 text-[0.8125rem] text-muted-foreground">
+              {collection.description}
+            </p>
+          )}
+          <div className="mt-2 flex items-center gap-3 text-[0.75rem] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3 w-3" />
+              {collection.bookCount} {collection.bookCount === 1 ? "book" : "books"}
+            </span>
+            <span>by {collection.ownerName}</span>
+            <ChevronRight className="ml-auto h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function CollectionsContent() {
   const { isAuthenticated } = useConvexAuth();
   const collections = useQuery(
@@ -261,13 +324,24 @@ export default function CollectionsPage() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* My Collections (auth-gated) */}
       <Authenticated>
         <CollectionsContent />
       </Authenticated>
       <Unauthenticated>
         <SignInPrompt message="Sign in to create and manage your book collections." />
       </Unauthenticated>
+
+      {/* Community Collections (public) */}
+      <div className="mt-10">
+        <h2 className="mb-4 font-serif text-[1.25rem] font-semibold tracking-[-0.01em]">
+          Community Collections
+        </h2>
+        <p className="mb-5 text-[0.8125rem] text-muted-foreground">
+          Public reading lists curated by the community
+        </p>
+        <CommunityCollections />
+      </div>
     </main>
   );
 }

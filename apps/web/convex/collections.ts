@@ -146,6 +146,35 @@ export const containingBook = query({
   },
 });
 
+export const publicCollections = query({
+  handler: async (ctx) => {
+    const allCollections = await ctx.db.query("collections").collect();
+    const publicOnes = allCollections
+      .filter((c) => c.isPublic)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 20);
+
+    return Promise.all(
+      publicOnes.map(async (c) => {
+        const items = await ctx.db
+          .query("collectionItems")
+          .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
+          .collect();
+        const owner = await ctx.db.get(c.userId);
+        return {
+          _id: c._id,
+          name: c.name,
+          description: c.description,
+          bookCount: items.length,
+          createdAt: c.createdAt,
+          ownerName: owner?.name ?? "Unknown",
+          ownerId: c.userId,
+        };
+      }),
+    );
+  },
+});
+
 export const getCollection = query({
   args: { collectionId: v.id("collections") },
   handler: async (ctx, args) => {
