@@ -198,6 +198,8 @@ export const returnCopy = mutation({
 
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
+    if (copy.status !== "checked_out" && copy.status !== "recalled")
+      throw new Error("Copy is not checked out");
     if (copy.currentHolderId !== user._id)
       throw new Error("You are not the current holder");
 
