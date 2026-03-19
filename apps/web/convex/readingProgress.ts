@@ -168,11 +168,12 @@ export const myReadings = query({
     if (!user) return [];
 
     let entries;
-    if (args.status) {
+    const { status } = args;
+    if (status) {
       entries = await ctx.db
         .query("readingProgress")
         .withIndex("by_user_status", (q) =>
-          q.eq("userId", user._id).eq("status", args.status!),
+          q.eq("userId", user._id).eq("status", status),
         )
         .collect();
     } else {
