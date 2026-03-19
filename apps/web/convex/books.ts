@@ -86,9 +86,10 @@ export const register = mutation({
 
     if (!args.title.trim()) throw new Error("Title is required");
     if (!args.author.trim()) throw new Error("Author is required");
-    if (args.pageCount < 0) throw new Error("Page count cannot be negative");
-    if (args.sharerMaxLendingDays !== undefined && args.sharerMaxLendingDays < 1)
-      throw new Error("Lending period must be at least 1 day");
+    if (!Number.isInteger(args.pageCount) || args.pageCount < 0)
+      throw new Error("Page count must be a non-negative integer");
+    if (args.sharerMaxLendingDays !== undefined && (!Number.isInteger(args.sharerMaxLendingDays) || args.sharerMaxLendingDays < 1))
+      throw new Error("Lending period must be an integer of at least 1 day");
 
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
