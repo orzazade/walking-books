@@ -16,6 +16,7 @@ import {
   Heart,
   Flame,
   Trophy,
+  Rss,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
 
 const AUTH_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/activity", label: "Activity", icon: Rss },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/share", label: "Share", icon: Share2 },
 ] as const;
