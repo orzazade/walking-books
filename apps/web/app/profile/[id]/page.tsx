@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BookOpen,
-  BookCheck,
   Share2,
   Users,
   UserPlus,
@@ -19,31 +18,10 @@ import {
   Award,
   Flame,
   Trophy,
-  PenLine,
-  Star,
-  Compass,
-  MapPin,
-  Target,
-  Library,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-const ACHIEVEMENT_ICONS: Record<string, typeof BookOpen> = {
-  first_read: BookOpen,
-  books_read_5: BookCheck,
-  books_read_25: Library,
-  books_shared_1: Share2,
-  books_shared_5: Users,
-  first_review: PenLine,
-  reviews_10: Star,
-  genres_3: Compass,
-  genres_5: Compass,
-  locations_3: MapPin,
-  first_follow: Users,
-  goal_completed: Target,
-  collection_created: Library,
-};
+import { ACHIEVEMENT_ICONS, ACHIEVEMENT_FALLBACK_ICON } from "@/lib/achievements";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -281,7 +259,7 @@ export default function ProfilePage() {
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {achievements.map((a) => {
-              const Icon = ACHIEVEMENT_ICONS[a.key] ?? Trophy;
+              const Icon = ACHIEVEMENT_ICONS[a.key] ?? ACHIEVEMENT_FALLBACK_ICON;
               return (
                 <div
                   key={a.key}

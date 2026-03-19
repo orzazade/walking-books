@@ -5,36 +5,8 @@ import { useQuery } from "convex/react";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
-import {
-  BookOpen,
-  BookCheck,
-  Share2,
-  Users,
-  Star,
-  PenLine,
-  MapPin,
-  Compass,
-  Library,
-  Target,
-  Trophy,
-  Lock,
-} from "lucide-react";
-
-const ACHIEVEMENT_ICONS: Record<string, typeof BookOpen> = {
-  first_read: BookOpen,
-  books_read_5: BookCheck,
-  books_read_25: Library,
-  books_shared_1: Share2,
-  books_shared_5: Users,
-  first_review: PenLine,
-  reviews_10: Star,
-  genres_3: Compass,
-  genres_5: Compass,
-  locations_3: MapPin,
-  first_follow: Users,
-  goal_completed: Target,
-  collection_created: Library,
-};
+import { Trophy, Lock } from "lucide-react";
+import { ACHIEVEMENT_ICONS, ACHIEVEMENT_FALLBACK_ICON } from "@/lib/achievements";
 
 function AchievementsContent() {
   const achievements = useQuery(api.achievements.myAchievements, {});
@@ -81,7 +53,7 @@ function AchievementsContent() {
           </h2>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {unlocked.map((a) => {
-              const Icon = ACHIEVEMENT_ICONS[a.key] ?? Trophy;
+              const Icon = ACHIEVEMENT_ICONS[a.key] ?? ACHIEVEMENT_FALLBACK_ICON;
               return (
                 <div
                   key={a.key}
