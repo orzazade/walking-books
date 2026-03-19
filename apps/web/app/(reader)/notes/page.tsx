@@ -32,6 +32,7 @@ function NotesContent() {
   const [editingId, setEditingId] = useState<Id<"bookNotes"> | null>(null);
   const [editContent, setEditContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState<Id<"books"> | null>(null);
 
   async function handleSave(bookId: Id<"books">) {
     if (!editContent.trim()) return;
@@ -49,11 +50,14 @@ function NotesContent() {
   }
 
   async function handleDelete(bookId: Id<"books">) {
+    setDeletingBookId(bookId);
     try {
       await remove({ bookId });
       toast.success("Note deleted");
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to delete note"));
+    } finally {
+      setDeletingBookId(null);
     }
   }
 
@@ -128,7 +132,8 @@ function NotesContent() {
               </button>
               <button
                 onClick={() => handleDelete(note.bookId)}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                disabled={deletingBookId === note.bookId}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
