@@ -4,7 +4,8 @@ import type { QueryCtx } from "./_generated/server";
 import { getEffectiveLendingDays } from "./lib/lending";
 import { conditionValidator, ownershipTypeValidator, CONDITION_LABELS } from "./lib/validators";
 import { requireCurrentUser } from "./lib/auth";
-import { getBookCopyCounts } from "./lib/availability";
+import type { Id } from "./_generated/dataModel";
+import { getBookCopyCounts, getBookCopyCountsFor } from "./lib/availability";
 
 async function enrichWithAvailability<
   T extends {
@@ -13,7 +14,10 @@ async function enrichWithAvailability<
     avgRating: number;
   },
 >(ctx: QueryCtx, books: Array<T>) {
-  const counts = await getBookCopyCounts(ctx);
+  // Use indexed per-book lookup for small lists; full scan for large catalogs
+  const counts = books.length > 0 && books.length <= 50
+    ? await getBookCopyCountsFor(ctx, books.map((b) => b._id as Id<"books">))
+    : await getBookCopyCounts(ctx);
 
   return books
     .map((book) => {
