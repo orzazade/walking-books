@@ -5,8 +5,10 @@ import { type Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 
 async function requireCollectionOwner(ctx: MutationCtx, collectionId: Id<"collections">) {
-  const user = await requireCurrentUser(ctx);
-  const collection = await ctx.db.get(collectionId);
+  const [user, collection] = await Promise.all([
+    requireCurrentUser(ctx),
+    ctx.db.get(collectionId),
+  ]);
   if (!collection) throw new Error("Collection not found");
   if (collection.userId !== user._id) throw new Error("Not authorized");
   return collection;
@@ -156,11 +158,13 @@ export const publicCollections = query({
 
     return Promise.all(
       publicOnes.map(async (c) => {
-        const items = await ctx.db
-          .query("collectionItems")
-          .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
-          .collect();
-        const owner = await ctx.db.get(c.userId);
+        const [items, owner] = await Promise.all([
+          ctx.db
+            .query("collectionItems")
+            .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
+            .collect(),
+          ctx.db.get(c.userId),
+        ]);
         return {
           _id: c._id,
           name: c.name,
