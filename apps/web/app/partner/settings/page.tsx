@@ -18,6 +18,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const DAYS_OF_WEEK = [
   "Monday",
@@ -48,7 +49,6 @@ export default function PartnerSettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (location) {
@@ -132,7 +132,6 @@ export default function PartnerSettingsPage() {
   async function handleSave() {
     setSaving(true);
     setSaved(false);
-    setError(null);
     try {
       await updateLocation({
         locationId: location!._id,
@@ -148,7 +147,7 @@ export default function PartnerSettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to save settings"));
+      toast.error(getErrorMessage(err, "Failed to save settings"));
     } finally {
       setSaving(false);
     }
@@ -367,9 +366,6 @@ export default function PartnerSettingsPage() {
         </Card>
 
         {/* Save */}
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
         <div className="flex items-center gap-3">
           <Button onClick={handleSave} disabled={saving} className="gap-1">
             {saving ? (
