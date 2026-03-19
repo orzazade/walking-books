@@ -14,7 +14,10 @@ export const myHistory = query({
       .collect();
 
     // Only include completed reads (returned books)
-    const completed = entries.filter((e) => e.returnedAt !== undefined);
+    const completed = entries.filter(
+      (e): e is typeof e & { returnedAt: number } =>
+        e.returnedAt !== undefined,
+    );
 
     // Batch-fetch copies, then cache books and locations to avoid redundant lookups
     const copies = await Promise.all(
@@ -55,9 +58,9 @@ export const myHistory = query({
           coverImage: book?.coverImage ?? "",
           categories: book?.categories ?? [],
           pickedUpAt: entry.pickedUpAt,
-          returnedAt: entry.returnedAt!,
+          returnedAt: entry.returnedAt,
           daysHeld: Math.ceil(
-            (entry.returnedAt! - entry.pickedUpAt) / DAY_MS,
+            (entry.returnedAt - entry.pickedUpAt) / DAY_MS,
           ),
           pickupLocation: pickupLocation?.name ?? "Unknown",
           dropoffLocation: dropoffLocation?.name ?? null,
