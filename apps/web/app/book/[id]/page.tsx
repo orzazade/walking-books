@@ -13,6 +13,7 @@ import { ReservationTimer } from "@/components/reservation-timer";
 import { ReviewVoteButtons } from "@/components/review-votes";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/empty-state";
 import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type Condition, type CopyStatus } from "@/convex/lib/validators";
 
@@ -62,15 +63,11 @@ export default function BookDetailPage() {
   if (book === null) {
     return (
       <main className="mx-auto max-w-4xl px-5 py-10">
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">Book not found</h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            This book may have been removed from the network.
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="Book not found"
+          message="This book may have been removed from the network."
+        />
       </main>
     );
   }

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { getErrorMessage, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/empty-state";
 import { StickyNote, Trash2, Pencil, BookOpen } from "lucide-react";
 
 function NotesContent() {
@@ -66,21 +67,18 @@ function NotesContent() {
 
   if (notes.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-          <StickyNote className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <h2 className="font-serif text-lg font-semibold">No notes yet</h2>
-        <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-          Add personal notes on any book page to remember your thoughts.
-        </p>
+      <EmptyState
+        icon={StickyNote}
+        title="No notes yet"
+        message="Add personal notes on any book page to remember your thoughts."
+      >
         <Link
           href="/browse"
           className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
         >
           Browse books
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 

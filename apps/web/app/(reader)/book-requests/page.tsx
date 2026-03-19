@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { EmptyState } from "@/components/empty-state";
 import { getErrorMessage, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -238,17 +239,11 @@ function CommunityBoard() {
       {tab === "board" && (
         <>
           {requests.length === 0 ? (
-            <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-                <HandHeart className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h2 className="font-serif text-lg font-semibold">
-                No open requests
-              </h2>
-              <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                Be the first to request a book the community doesn&apos;t have
-                yet.
-              </p>
+            <EmptyState
+              icon={HandHeart}
+              title="No open requests"
+              message="Be the first to request a book the community doesn't have yet."
+            >
               {isAuthenticated && (
                 <Button
                   onClick={() => setShowForm(true)}
@@ -258,7 +253,7 @@ function CommunityBoard() {
                   Request a Book
                 </Button>
               )}
-            </div>
+            </EmptyState>
           ) : (
             <div className="space-y-2">
               {requests.map((r) => (
@@ -321,17 +316,11 @@ function CommunityBoard() {
       {tab === "mine" && myRequests !== undefined && (
         <>
           {myRequests.length === 0 ? (
-            <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-                <HandHeart className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h2 className="font-serif text-lg font-semibold">
-                No requests yet
-              </h2>
-              <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-                Request a book and the community might share it.
-              </p>
-            </div>
+            <EmptyState
+              icon={HandHeart}
+              title="No requests yet"
+              message="Request a book and the community might share it."
+            />
           ) : (
             <div className="space-y-2">
               {myRequests.map((r) => {

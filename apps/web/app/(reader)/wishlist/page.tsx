@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import { Heart, Trash2, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -32,20 +33,15 @@ function WishlistContent() {
 
   if (wishlist.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-          <Heart className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <h2 className="font-serif text-lg font-semibold">
-          Your wishlist is empty
-        </h2>
-        <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-          Browse books and tap the heart to save them for later.
-        </p>
+      <EmptyState
+        icon={Heart}
+        title="Your wishlist is empty"
+        message="Browse books and tap the heart to save them for later."
+      >
         <Link href="/browse">
           <Button className="mt-4 rounded-xl">Browse Books</Button>
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 

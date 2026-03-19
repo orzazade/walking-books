@@ -6,6 +6,7 @@ import { useQuery, useConvexAuth, Authenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { BookCard } from "@/components/book-card";
+import { EmptyState } from "@/components/empty-state";
 import { ArrowRight, BookOpen, Search, X, Users } from "lucide-react";
 
 function SuggestedFollows() {
@@ -154,15 +155,11 @@ export default function SearchPage() {
           <div className="animate-shimmer mx-auto h-4 w-32 rounded-md bg-muted" />
         </div>
       ) : results.length === 0 ? (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">No books found</h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Try a shorter query or search by ISBN.
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No books found"
+          message="Try a shorter query or search by ISBN."
+        />
       ) : (
         <>
           <div className="mb-6 text-[0.8125rem] text-muted-foreground">

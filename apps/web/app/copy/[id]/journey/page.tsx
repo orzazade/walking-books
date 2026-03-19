@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { EmptyState } from "@/components/empty-state";
 import {
   ArrowLeft,
   MapPin,
@@ -107,17 +108,11 @@ function JourneyContent({ copyId }: { copyId: Id<"copies"> }) {
         </h2>
 
         {stops.length === 0 ? (
-          <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <h3 className="font-serif text-lg font-semibold">
-              No journey yet
-            </h3>
-            <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-              This copy hasn&apos;t been picked up by anyone yet.
-            </p>
-          </div>
+          <EmptyState
+            icon={MapPin}
+            title="No journey yet"
+            message="This copy hasn't been picked up by anyone yet."
+          />
         ) : (
           <div className="relative space-y-0">
             {/* Timeline line */}

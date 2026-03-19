@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { EmptyState } from "@/components/empty-state";
 
 function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
   const create = useMutation(api.collections.create);
@@ -213,18 +214,11 @@ function CollectionsContent() {
 
       {/* Empty state */}
       {collections.length === 0 && !showCreate && (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <Library className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">
-            No collections yet
-          </h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Organize your favorite books into collections to share or keep
-            track of reading themes.
-          </p>
-        </div>
+        <EmptyState
+          icon={Library}
+          title="No collections yet"
+          message="Organize your favorite books into collections to share or keep track of reading themes."
+        />
       )}
 
       {/* Collection list */}

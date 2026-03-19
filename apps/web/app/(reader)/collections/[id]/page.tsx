@@ -13,6 +13,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 import { useParams } from "next/navigation";
@@ -120,23 +121,18 @@ function CollectionDetail({
 
       {/* Empty state */}
       {collection.books.length === 0 && (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">
-            No books in this collection
-          </h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Add books from their detail page to grow this collection.
-          </p>
+        <EmptyState
+          icon={BookOpen}
+          title="No books in this collection"
+          message="Add books from their detail page to grow this collection."
+        >
           <Link
             href="/browse"
             className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
           >
             Browse books
           </Link>
-        </div>
+        </EmptyState>
       )}
 
       {/* Book list */}

@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { EmptyState } from "@/components/empty-state";
 import { timeAgo } from "@/lib/utils";
 
 const TYPE_CONFIG = {
@@ -67,14 +68,11 @@ function FeedContent() {
   // Empty — no activity (likely no follows)
   if (feed.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-          <Users className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <h2 className="font-serif text-lg font-semibold">No activity yet</h2>
-        <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-          Follow other readers to see their pickups, returns, and reviews here.
-        </p>
+      <EmptyState
+        icon={Users}
+        title="No activity yet"
+        message="Follow other readers to see their pickups, returns, and reviews here."
+      >
         <div className="mt-4 flex justify-center gap-3">
           <Link
             href="/search"
@@ -83,7 +81,7 @@ function FeedContent() {
             Find readers
           </Link>
         </div>
-      </div>
+      </EmptyState>
     );
   }
 

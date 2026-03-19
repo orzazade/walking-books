@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BookCard } from "@/components/book-card";
+import { EmptyState } from "@/components/empty-state";
 import { Flame, BookOpen, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,16 +46,11 @@ export default function TrendingPage() {
           <div className="animate-shimmer mx-auto h-4 w-32 rounded-md bg-muted" />
         </div>
       ) : trending.length === 0 ? (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">
-            No trending books yet
-          </h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Books will appear here once readers start picking them up.
-          </p>
+        <EmptyState
+          icon={TrendingUp}
+          title="No trending books yet"
+          message="Books will appear here once readers start picking them up."
+        >
           <div className="mt-4 flex justify-center gap-3">
             <Link
               href="/browse"
@@ -69,7 +65,7 @@ export default function TrendingPage() {
               Search
             </Link>
           </div>
-        </div>
+        </EmptyState>
       ) : (
         <div className="space-y-6">
           {/* Ranked list with pickup counts */}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { EmptyState } from "@/components/empty-state";
 import { Trophy, BookOpen, Share2, Flame, Medal, Award } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -168,16 +169,11 @@ export default function LeaderboardPage() {
           <div className="animate-shimmer mx-auto h-4 w-32 rounded-md bg-muted" />
         </div>
       ) : isEmpty ? (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <Trophy className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">
-            No rankings yet
-          </h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Start reading and sharing books to appear on the leaderboard.
-          </p>
+        <EmptyState
+          icon={Trophy}
+          title="No rankings yet"
+          message="Start reading and sharing books to appear on the leaderboard."
+        >
           <div className="mt-4 flex justify-center gap-3">
             <Link
               href="/browse"
@@ -186,7 +182,7 @@ export default function LeaderboardPage() {
               Browse books
             </Link>
           </div>
-        </div>
+        </EmptyState>
       ) : (
         <div className="space-y-2">
           {tab === "readers" &&

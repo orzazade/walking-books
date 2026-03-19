@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { CategoryGrid } from "@/components/category-grid";
 import { BookCard } from "@/components/book-card";
 import { Suspense } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { BookOpen, MapPin, X } from "lucide-react";
 
 function BrowseContent() {
@@ -71,14 +72,11 @@ function BrowseContent() {
           <div className="animate-shimmer mx-auto h-4 w-32 rounded-md bg-muted" />
         </div>
       ) : books.length === 0 ? (
-        <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="font-serif text-lg font-semibold">No books found</h2>
-          <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
-            Try a different category or search by title.
-          </p>
+        <EmptyState
+          icon={BookOpen}
+          title="No books found"
+          message="Try a different category or search by title."
+        >
           <div className="mt-4 flex justify-center gap-3">
             <Link
               href="/browse"
@@ -93,7 +91,7 @@ function BrowseContent() {
               Search
             </Link>
           </div>
-        </div>
+        </EmptyState>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {books.map((book) => (
