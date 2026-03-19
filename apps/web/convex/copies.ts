@@ -176,6 +176,9 @@ export const returnCopy = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    const location = await ctx.db.get(args.locationId);
+    if (!location) throw new Error("Location not found");
+
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
     if (copy.currentHolderId !== user._id)
