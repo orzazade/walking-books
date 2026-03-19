@@ -309,7 +309,7 @@ export const recall = mutation({
         returnDeadline: newDeadline,
       });
     } else {
-      throw new Error("Cannot recall copy in current status");
+      throw new Error(`Cannot recall copy — status is currently "${copy.status}"`);
     }
 
     return { success: true };
