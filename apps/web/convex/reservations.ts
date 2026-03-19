@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
 import { HOUR_MS, RESERVATION_EXPIRY_HOURS } from "./lib/lending";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { notifyNextWaiter } from "./lib/waitlist";
 
 export const active = query({
   args: {},
@@ -99,10 +101,11 @@ export const cancel = mutation({
 
     await ctx.db.patch(args.reservationId, { status: "cancelled" });
 
-    // Release copy
+    // Release copy and notify waitlist
     const copy = await ctx.db.get(reservation.copyId);
     if (copy && copy.status === "reserved") {
       await ctx.db.patch(reservation.copyId, { status: "available" });
+      await notifyNextWaiter(ctx, copy.bookId, reservation.copyId, Date.now());
     }
 
     return { success: true };
@@ -138,16 +141,23 @@ export const expireStale = internalMutation({
     );
 
     // Expire all stale reservations and release their copies in parallel
+    const releasedCopies: { bookId: Id<"books">; copyId: Id<"copies"> }[] = [];
     await Promise.all(
       staleReservations.flatMap((reservation, i) => {
         const ops = [ctx.db.patch(reservation._id, { status: "expired" as const })];
         const copy = copies[i];
         if (copy && copy.status === "reserved") {
           ops.push(ctx.db.patch(reservation.copyId, { status: "available" as const }));
+          releasedCopies.push({ bookId: copy.bookId, copyId: reservation.copyId });
         }
         return ops;
       }),
     );
+
+    // Notify waitlist for each released copy
+    for (const { bookId, copyId } of releasedCopies) {
+      await notifyNextWaiter(ctx, bookId, copyId, now);
+    }
 
     // Group penalties by user and apply cumulative no-show penalties
     const penaltyByUser = new Map<typeof staleReservations[0]["userId"], number>();
