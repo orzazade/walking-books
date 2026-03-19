@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
-import { getBookCopyCounts } from "./lib/availability";
+import { getBookCopyCounts, getBookCopyCountsFor } from "./lib/availability";
 
 export const forMe = query({
   handler: async (ctx) => {
@@ -173,8 +173,9 @@ export const forBook = query({
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
 
-    // 5. Fetch book details and availability
-    const copyCounts = await getBookCopyCounts(ctx);
+    // 5. Fetch book details and availability (indexed per-book, not full table scan)
+    const topBookIds = sorted.map(([bookId]) => bookId);
+    const copyCounts = await getBookCopyCountsFor(ctx, topBookIds);
     const results = await Promise.all(
       sorted.map(async ([bookId, readers]) => {
         const b = await ctx.db.get(bookId);

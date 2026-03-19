@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { getBookCopyCounts } from "./lib/availability";
+import { getBookCopyCountsFor } from "./lib/availability";
 import { DAY_MS } from "./lib/lending";
 
 /**
@@ -48,8 +48,9 @@ export const trending = query({
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
-    // Fetch book details and availability
-    const copyCounts = await getBookCopyCounts(ctx);
+    // Fetch book details and availability (indexed per-book, not full table scan)
+    const topBookIds = sorted.map(([bookId]) => bookId);
+    const copyCounts = await getBookCopyCountsFor(ctx, topBookIds);
     const results = await Promise.all(
       sorted.map(async ([bookId, pickups]) => {
         const book = await ctx.db.get(bookId);
