@@ -23,7 +23,7 @@ export const list = query({
     const bookIds = [...new Set(
       notifications
         .map((n) => n.relatedBookId)
-        .filter((id): id is typeof id & string => id !== undefined),
+        .filter((id): id is NonNullable<typeof id> => id !== undefined),
     )];
     const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
     const bookMap = new Map(
