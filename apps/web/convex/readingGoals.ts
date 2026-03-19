@@ -82,7 +82,7 @@ export const getProgress = query({
       year: args.year,
       targetBooks: goal?.targetBooks ?? null,
       completedReads,
-      progressPercent: goal
+      progressPercent: goal && goal.targetBooks > 0
         ? Math.min(
             100,
             Math.round((completedReads / goal.targetBooks) * 100),
