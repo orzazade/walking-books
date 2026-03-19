@@ -8,7 +8,10 @@
  * @module
  */
 
+import type * as activityFeed from "../activityFeed.js";
+import type * as bookNotes from "../bookNotes.js";
 import type * as books from "../books.js";
+import type * as collections from "../collections.js";
 import type * as conditionReports from "../conditionReports.js";
 import type * as copies from "../copies.js";
 import type * as crons from "../crons.js";
@@ -19,12 +22,15 @@ import type * as lib_lending from "../lib/lending.js";
 import type * as lib_reputation from "../lib/reputation.js";
 import type * as notifications from "../notifications.js";
 import type * as partnerLocations from "../partnerLocations.js";
+import type * as readingGoals from "../readingGoals.js";
 import type * as readingHistory from "../readingHistory.js";
+import type * as readingStats from "../readingStats.js";
 import type * as recommendations from "../recommendations.js";
 import type * as reservations from "../reservations.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
+import type * as waitlist from "../waitlist.js";
 import type * as wishlist from "../wishlist.js";
 
 import type {
@@ -34,7 +40,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activityFeed: typeof activityFeed;
+  bookNotes: typeof bookNotes;
   books: typeof books;
+  collections: typeof collections;
   conditionReports: typeof conditionReports;
   copies: typeof copies;
   crons: typeof crons;
@@ -45,12 +54,15 @@ declare const fullApi: ApiFromModules<{
   "lib/reputation": typeof lib_reputation;
   notifications: typeof notifications;
   partnerLocations: typeof partnerLocations;
+  readingGoals: typeof readingGoals;
   readingHistory: typeof readingHistory;
+  readingStats: typeof readingStats;
   recommendations: typeof recommendations;
   reservations: typeof reservations;
   reviews: typeof reviews;
   seed: typeof seed;
   users: typeof users;
+  waitlist: typeof waitlist;
   wishlist: typeof wishlist;
 }>;
 

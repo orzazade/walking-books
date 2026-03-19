@@ -167,6 +167,15 @@ export default defineSchema({
     .index("by_collection", ["collectionId"])
     .index("by_collection_book", ["collectionId", "bookId"]),
 
+  bookNotes: defineTable({
+    userId: v.id("users"),
+    bookId: v.id("books"),
+    content: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_book", ["userId", "bookId"]),
+
   waitlist: defineTable({
     userId: v.id("users"),
     bookId: v.id("books"),
