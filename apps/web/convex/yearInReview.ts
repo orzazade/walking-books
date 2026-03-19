@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { DAY_MS } from "./lib/lending";
 
@@ -124,19 +125,19 @@ export const getReview = query({
     }
 
     // Locations visited
-    const locationCounts = new Map<string, number>();
+    const locationCounts = new Map<Id<"partnerLocations">, number>();
     for (const entry of yearEntries) {
-      const locId = entry.pickupLocationId as string;
+      const locId = entry.pickupLocationId;
       locationCounts.set(locId, (locationCounts.get(locId) || 0) + 1);
     }
 
     const locationIds = [...locationCounts.keys()];
     const locationDocs = await Promise.all(
-      locationIds.map((id) => ctx.db.get(id as never)),
+      locationIds.map((id) => ctx.db.get(id)),
     );
     const topLocations = locationIds
       .map((id, i) => ({
-        name: (locationDocs[i] as { name: string } | null)?.name ?? "Unknown",
+        name: locationDocs[i]?.name ?? "Unknown",
         count: locationCounts.get(id) ?? 0,
       }))
       .sort((a, b) => b.count - a.count)
