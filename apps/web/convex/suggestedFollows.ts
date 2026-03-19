@@ -12,11 +12,15 @@ export const forMe = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    // 1. Get books the current user has read (completed journeys)
-    const myJourneys = await ctx.db
-      .query("journeyEntries")
-      .withIndex("by_reader", (q) => q.eq("readerId", user._id))
-      .collect();
+    // 1. Get completed journeys and followed users in parallel (both only need user._id)
+    const [myJourneys, followDocs] = await Promise.all([
+      ctx.db.query("journeyEntries")
+        .withIndex("by_reader", (q) => q.eq("readerId", user._id))
+        .collect(),
+      ctx.db.query("follows")
+        .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+        .collect(),
+    ]);
 
     // Resolve copy -> book mapping
     const myCopyIds = new Set<Id<"copies">>();
@@ -34,11 +38,7 @@ export const forMe = query({
     }
     if (myBookIds.size === 0) return [];
 
-    // 2. Get users already followed
-    const followDocs = await ctx.db
-      .query("follows")
-      .withIndex("by_follower", (q) => q.eq("followerId", user._id))
-      .collect();
+    // 2. Build followed set
     const followedIds = new Set<Id<"users">>(
       followDocs.map((f) => f.followingId),
     );
