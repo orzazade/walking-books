@@ -319,6 +319,8 @@ export const extend = mutation({
       throw new Error("Copy is not checked out");
     if (!copy.returnDeadline)
       throw new Error("This copy has no return deadline to extend");
+    if (copy.returnDeadline < Date.now())
+      throw new Error("Cannot extend an overdue copy — please return it");
 
     // Check no active reservation waiting
     const activeReservation = await ctx.db
