@@ -6,14 +6,23 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CategoryGrid } from "@/components/category-grid";
 import { BookCard } from "@/components/book-card";
-import { Suspense } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { HeaderActionLink } from "@/components/header-action-link";
-import { BookOpen, MapPin, X } from "lucide-react";
+import { BookOpen, Check, MapPin, X } from "lucide-react";
+import {
+  sortBooks,
+  filterAvailableOnly,
+  SORT_OPTIONS,
+  SORT_LABELS,
+  type SortOption,
+} from "@/lib/browse-filters";
 
 function BrowseContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
+  const [sortBy, setSortBy] = useState<SortOption>("availability");
+  const [availableOnly, setAvailableOnly] = useState(false);
 
   const filteredBooks = useQuery(
     api.books.byCategoryCatalog,
@@ -21,9 +30,16 @@ function BrowseContent() {
   );
   const allBooks = useQuery(api.books.listCatalog, category ? "skip" : {});
 
-  const books = category ? filteredBooks : allBooks;
+  const rawBooks = category ? filteredBooks : allBooks;
+
+  const books = useMemo(() => {
+    if (!rawBooks) return undefined;
+    const filtered = availableOnly ? filterAvailableOnly(rawBooks) : rawBooks;
+    return sortBooks(filtered, sortBy);
+  }, [rawBooks, sortBy, availableOnly]);
+
   const availableCopies =
-    books?.reduce((sum, book) => sum + book.availableCopies, 0) ?? 0;
+    rawBooks?.reduce((sum, book) => sum + book.availableCopies, 0) ?? 0;
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -48,7 +64,7 @@ function BrowseContent() {
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/60 px-3 py-1.5 text-muted-foreground">
             <MapPin className="h-3.5 w-3.5" />
-            <span>{books ? availableCopies : "…"} available</span>
+            <span>{rawBooks ? availableCopies : "…"} available</span>
           </div>
           {category && (
             <HeaderActionLink href="/browse">
@@ -64,6 +80,38 @@ function BrowseContent() {
         <CategoryGrid selectedCategory={category} />
       </div>
 
+      {/* Sort & Filter controls */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-[0.8125rem] text-muted-foreground">
+          Sort:
+        </span>
+        {SORT_OPTIONS.map((option) => (
+          <button
+            key={option}
+            onClick={() => setSortBy(option)}
+            className={`rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+              sortBy === option
+                ? "bg-primary text-primary-foreground"
+                : "border border-border/50 bg-card/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            {SORT_LABELS[option]}
+          </button>
+        ))}
+        <div className="mx-1 h-5 w-px bg-border/50" />
+        <button
+          onClick={() => setAvailableOnly((v) => !v)}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+            availableOnly
+              ? "bg-emerald-600 text-white"
+              : "border border-border/50 bg-card/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+        >
+          {availableOnly && <Check className="h-3 w-3" />}
+          Available Now
+        </button>
+      </div>
+
       {/* Books grid */}
       {books === undefined ? (
         <div className="rounded-2xl border border-border/40 bg-card/60 px-6 py-16 text-center">
@@ -73,14 +121,26 @@ function BrowseContent() {
         <EmptyState
           icon={BookOpen}
           title="No books found"
-          message="Try a different category or search by title."
+          message={
+            availableOnly
+              ? "No books are currently available. Try removing the filter."
+              : "Try a different category or search by title."
+          }
         >
           <div className="mt-4 flex justify-center gap-3">
+            {availableOnly && (
+              <button
+                onClick={() => setAvailableOnly(false)}
+                className="rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
+              >
+                Show all books
+              </button>
+            )}
             <Link
               href="/browse"
-              className="rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
+              className="rounded-lg border border-border px-4 py-2 text-[0.8125rem] font-medium"
             >
-              All books
+              {availableOnly ? "Reset filters" : "All books"}
             </Link>
             <Link
               href="/search"
