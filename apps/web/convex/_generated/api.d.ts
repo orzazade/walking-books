@@ -25,6 +25,7 @@ import type * as leaderboard from "../leaderboard.js";
 import type * as lib_lending from "../lib/lending.js";
 import type * as locationReviews from "../locationReviews.js";
 import type * as lib_reputation from "../lib/reputation.js";
+import type * as newArrivals from "../newArrivals.js";
 import type * as notifications from "../notifications.js";
 import type * as partnerLocations from "../partnerLocations.js";
 import type * as readingGoals from "../readingGoals.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "lib/lending": typeof lib_lending;
   locationReviews: typeof locationReviews;
   "lib/reputation": typeof lib_reputation;
+  newArrivals: typeof newArrivals;
   notifications: typeof notifications;
   partnerLocations: typeof partnerLocations;
   readingGoals: typeof readingGoals;
