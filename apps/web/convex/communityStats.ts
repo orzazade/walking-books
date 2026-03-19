@@ -33,7 +33,9 @@ export const getStats = query({
       .withIndex("by_returnedAt")
       .collect();
     // Filter to only entries that have returnedAt (index includes null entries at start)
-    const completedReads = allReturns.filter((e) => e.returnedAt !== undefined);
+    const completedReads = allReturns.filter(
+      (e): e is typeof e & { returnedAt: number } => e.returnedAt !== undefined,
+    );
 
     // Unique readers (users who have completed at least one read)
     const readerIds = new Set<Id<"users">>();
@@ -48,7 +50,7 @@ export const getStats = query({
       .collect();
 
     const recentReturns = completedReads.filter(
-      (e) => e.returnedAt! >= thirtyDaysAgo,
+      (e) => e.returnedAt >= thirtyDaysAgo,
     );
 
     // Total reviews written
