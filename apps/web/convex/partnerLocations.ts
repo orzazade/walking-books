@@ -63,6 +63,8 @@ export const update = mutation({
       if (trimmed.length > 200) throw new Error("Email must be 200 characters or less");
       args = { ...args, contactEmail: trimmed };
     }
+    if (args.staffUserIds !== undefined && args.staffUserIds.length > 50)
+      throw new Error("Maximum 50 staff members allowed");
     if (args.photos !== undefined) {
       if (args.photos.length > 20)
         throw new Error("Maximum 20 photos allowed");

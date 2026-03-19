@@ -100,6 +100,10 @@ export const update = mutation({
     if (args.favoriteGenres !== undefined) {
       if (args.favoriteGenres.length > 20)
         throw new Error("Maximum 20 favorite genres allowed");
+      for (const genre of args.favoriteGenres) {
+        if (genre.length > 50)
+          throw new Error("Each genre must be 50 characters or less");
+      }
       updates.favoriteGenres = args.favoriteGenres;
     }
     if (Object.keys(updates).length > 0) {
