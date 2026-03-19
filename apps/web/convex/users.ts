@@ -82,6 +82,10 @@ export const update = mutation({
     const user = await requireCurrentUser(ctx);
     if (args.name !== undefined && args.name.trim().length === 0)
       throw new Error("Name cannot be empty");
+    if (args.name !== undefined && args.name.trim().length > 100)
+      throw new Error("Name must be 100 characters or less");
+    if (args.bio !== undefined && args.bio.length > 500)
+      throw new Error("Bio must be 500 characters or less");
     const updates = Object.fromEntries(
       Object.entries(args).filter(([, v]) => v !== undefined),
     );
