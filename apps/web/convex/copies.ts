@@ -92,6 +92,10 @@ export const pickup = mutation({
 
     if (args.photos.length > 20)
       throw new Error("Maximum 20 photos allowed");
+    for (const url of args.photos) {
+      if (url.length > 2000)
+        throw new Error("Each photo URL must be 2000 characters or less");
+    }
 
     // Check reputation restrictions — suspended users cannot pick up books
     const restrictions = getUserRestrictions(user.reputationScore);
@@ -195,6 +199,10 @@ export const returnCopy = mutation({
 
     if (args.photos.length > 20)
       throw new Error("Maximum 20 photos allowed");
+    for (const url of args.photos) {
+      if (url.length > 2000)
+        throw new Error("Each photo URL must be 2000 characters or less");
+    }
 
     let readerNote = args.readerNote;
     if (readerNote !== undefined) {

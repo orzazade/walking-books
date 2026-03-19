@@ -48,6 +48,10 @@ export const create = mutation({
 
     if (args.photos.length > 20)
       throw new Error("Maximum 20 photos allowed");
+    for (const url of args.photos) {
+      if (url.length > 2000)
+        throw new Error("Each photo URL must be 2000 characters or less");
+    }
 
     const trimmed = args.description.trim();
     if (!trimmed) throw new Error("Description is required");
