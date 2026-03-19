@@ -11,7 +11,6 @@ import {
   BookOpen,
   Clock,
   MapPin,
-  Star,
   Flame,
   Target,
   Zap,
