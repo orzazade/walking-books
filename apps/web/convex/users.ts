@@ -80,6 +80,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
+    if (args.name !== undefined && args.name.trim().length === 0)
+      throw new Error("Name cannot be empty");
     const updates = Object.fromEntries(
       Object.entries(args).filter(([, v]) => v !== undefined),
     );
