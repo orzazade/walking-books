@@ -32,10 +32,10 @@ export const feed = query({
     // Cache for users, books, copies, and locations to avoid redundant lookups.
     // Use has() checks so null results (deleted entities) are also cached,
     // preventing repeated DB queries for the same missing entity.
-    const userCache = new Map<string, Doc<"users"> | null>();
-    const bookCache = new Map<string, Doc<"books"> | null>();
-    const copyCache = new Map<string, Doc<"copies"> | null>();
-    const locationCache = new Map<string, Doc<"partnerLocations"> | null>();
+    const userCache = new Map<Id<"users">, Doc<"users"> | null>();
+    const bookCache = new Map<Id<"books">, Doc<"books"> | null>();
+    const copyCache = new Map<Id<"copies">, Doc<"copies"> | null>();
+    const locationCache = new Map<Id<"partnerLocations">, Doc<"partnerLocations"> | null>();
 
     async function getUser(id: Id<"users">) {
       const cached = userCache.get(id);
