@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { updateReadingStreak } from "./lib/streaks";
 import { readingProgressStatusValidator } from "./lib/validators";
 
 /** Log or update reading progress for a copy the user is currently holding. */
@@ -61,6 +62,8 @@ export const update = mutation({
         finishedAt: isFinished ? now : undefined,
       });
     }
+
+    await updateReadingStreak(ctx, user._id);
 
     return { success: true };
   },

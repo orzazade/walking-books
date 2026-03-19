@@ -221,6 +221,14 @@ export default defineSchema({
     .index("by_review", ["reviewId"])
     .index("by_user_review", ["userId", "reviewId"]),
 
+  readingStreaks: defineTable({
+    userId: v.id("users"),
+    currentStreak: v.number(),
+    longestStreak: v.number(),
+    lastActiveDate: v.string(),
+  })
+    .index("by_user", ["userId"]),
+
   readingProgress: defineTable({
     userId: v.id("users"),
     copyId: v.id("copies"),
