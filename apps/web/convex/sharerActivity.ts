@@ -122,8 +122,10 @@ export const feed = query({
       if (!book) continue;
 
       for (const entry of journeyArrays[i]) {
-        const reader = await getUser(entry.readerId);
-        const pickupLocation = await getLocation(entry.pickupLocationId);
+        const [reader, pickupLocation] = await Promise.all([
+          getUser(entry.readerId),
+          getLocation(entry.pickupLocationId),
+        ]);
 
         items.push({
           type: "pickup",
