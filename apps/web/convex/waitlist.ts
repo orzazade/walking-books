@@ -3,7 +3,6 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
-import { notifyNextWaiter } from "./lib/waitlist";
 
 /** Compute a waiter's 1-based FIFO position among all "waiting" entries for a book. */
 async function getWaitlistPosition(
@@ -165,13 +164,3 @@ export const position = query({
   },
 });
 
-/**
- * Called internally when a copy becomes available (e.g. after return).
- * Notifies the next person on the waitlist for this book.
- */
-export const notifyNext = mutation({
-  args: { bookId: v.id("books"), copyId: v.id("copies") },
-  handler: async (ctx, args) => {
-    return await notifyNextWaiter(ctx, args.bookId, args.copyId, Date.now());
-  },
-});
