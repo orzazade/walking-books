@@ -149,6 +149,7 @@ function CommunityBoard() {
   const cancel = useMutation(api.bookRequests.cancel);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"board" | "mine">("board");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const myOpenIds = new Set(
     (myRequests ?? [])
@@ -157,20 +158,26 @@ function CommunityBoard() {
   );
 
   async function handleFulfill(requestId: Id<"bookRequests">) {
+    setActionLoading(requestId);
     try {
       await fulfill({ requestId });
       toast.success("Marked as fulfilled!");
     } catch (err) {
       toast.error(getErrorMessage(err, "Something went wrong"));
+    } finally {
+      setActionLoading(null);
     }
   }
 
   async function handleCancel(requestId: Id<"bookRequests">) {
+    setActionLoading(requestId);
     try {
       await cancel({ requestId });
       toast.success("Request cancelled");
     } catch (err) {
       toast.error(getErrorMessage(err, "Something went wrong"));
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -296,20 +303,22 @@ function CommunityBoard() {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={actionLoading === r._id}
                           onClick={() => handleCancel(r._id)}
                           className="rounded-lg text-[0.75rem]"
                         >
-                          Cancel
+                          {actionLoading === r._id ? "..." : "Cancel"}
                         </Button>
                       ) : isAuthenticated ? (
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={actionLoading === r._id}
                           onClick={() => handleFulfill(r._id)}
                           className="rounded-lg text-[0.75rem]"
                         >
                           <CheckCircle2 className="mr-1 h-3 w-3" />
-                          I have this
+                          {actionLoading === r._id ? "..." : "I have this"}
                         </Button>
                       ) : null}
                     </div>
@@ -376,10 +385,11 @@ function CommunityBoard() {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={actionLoading === r._id}
                           onClick={() => handleCancel(r._id)}
                           className="shrink-0 rounded-lg text-[0.75rem]"
                         >
-                          Cancel
+                          {actionLoading === r._id ? "..." : "Cancel"}
                         </Button>
                       )}
                     </div>
