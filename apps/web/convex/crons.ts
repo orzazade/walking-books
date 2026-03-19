@@ -21,10 +21,4 @@ crons.cron(
   internal.copies.processOverdue,
 );
 
-crons.cron(
-  "recalculate reputation",
-  "0 3 * * 0",
-  internal.users.recalculateReputation,
-);
-
 export default crons;

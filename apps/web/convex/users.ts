@@ -116,13 +116,6 @@ export const update = mutation({
   },
 });
 
-export const recalculateReputation = internalMutation({
-  args: {},
-  handler: async () => {
-    // TODO: recalculate reputation scores based on full history
-  },
-});
-
 // ── Admin-only queries & mutations ──────────────────────────────────
 
 export const listAll = query({
