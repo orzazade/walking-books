@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import { getBookCopyCountsFor } from "./lib/availability";
 
 /**
@@ -21,7 +20,7 @@ export const recent = query({
 
     if (books.length === 0) return [];
 
-    const bookIds = books.map((b) => b._id as Id<"books">);
+    const bookIds = books.map((b) => b._id);
     const copyCounts = await getBookCopyCountsFor(ctx, bookIds);
 
     return books.map((book) => {
