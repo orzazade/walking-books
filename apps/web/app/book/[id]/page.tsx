@@ -17,7 +17,6 @@ import { EmptyState } from "@/components/empty-state";
 import { SimilarBooksSection } from "@/components/similar-books-section";
 import { WaitlistSection } from "@/components/waitlist-section";
 import { BookOpen, Heart } from "lucide-react";
-import Link from "next/link";
 
 export default function BookDetailPage() {
   const params = useParams();
