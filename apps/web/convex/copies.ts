@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { getEffectiveLendingDays, DAY_MS, RECALL_GRACE_DAYS } from "./lib/lending";
 import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions } from "./lib/reputation";
 import { conditionValidator, CONDITION_LABELS, validatePhotos } from "./lib/validators";
@@ -454,7 +455,7 @@ export const processOverdue = internalMutation({
       .collect();
 
     // Group overdue copies by holder to batch-fetch and apply cumulative penalties
-    const penaltyByHolder = new Map<typeof overdueCopies[0]["currentHolderId"], number>();
+    const penaltyByHolder = new Map<Id<"users">, number>();
     for (const copy of overdueCopies) {
       if (!copy.currentHolderId) continue;
       penaltyByHolder.set(
@@ -464,7 +465,7 @@ export const processOverdue = internalMutation({
     }
 
     const holderIds = [...penaltyByHolder.keys()];
-    const holders = await Promise.all(holderIds.map((id) => ctx.db.get(id!)));
+    const holders = await Promise.all(holderIds.map((id) => ctx.db.get(id)));
 
     await Promise.all(
       holders.map((user, i) => {
