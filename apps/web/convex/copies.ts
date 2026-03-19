@@ -294,6 +294,8 @@ export const extend = mutation({
       throw new Error("You are not the current holder");
     if (copy.status !== "checked_out")
       throw new Error("Copy is not checked out");
+    if (!copy.returnDeadline)
+      throw new Error("This copy has no return deadline to extend");
 
     // Check no active reservation waiting
     const activeReservation = await ctx.db
@@ -308,7 +310,7 @@ export const extend = mutation({
     // Extend by 50% of original period
     const originalDays = copy.lendingPeriodDays ?? 21;
     const extensionDays = Math.ceil(originalDays * 0.5);
-    const currentDeadline = copy.returnDeadline ?? Date.now();
+    const currentDeadline = copy.returnDeadline;
     const newDeadline =
       currentDeadline + extensionDays * DAY_MS;
 
