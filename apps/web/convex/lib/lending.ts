@@ -10,7 +10,7 @@ export const RECALL_GRACE_DAYS = 7;
 /** Reservation expiry window (hours). */
 export const RESERVATION_EXPIRY_HOURS = 1;
 
-export function getDefaultLendingDays(pageCount: number): number {
+function getDefaultLendingDays(pageCount: number): number {
   if (pageCount < 200) return 14;
   if (pageCount > 500) return 30;
   return 21;
