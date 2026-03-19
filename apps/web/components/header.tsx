@@ -14,6 +14,7 @@ import {
   Share2,
   LayoutDashboard,
   Heart,
+  Flame,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/browse", label: "Browse", icon: BookMarked },
+  { href: "/trending", label: "Trending", icon: Flame },
   { href: "/search", label: "Search", icon: Search },
   { href: "/locations", label: "Locations", icon: MapPin },
 ] as const;
