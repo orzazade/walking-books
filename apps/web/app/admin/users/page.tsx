@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Doc, type Id } from "@/convex/_generated/dataModel";
 import { type UserStatus } from "@/convex/lib/validators";
+import { getErrorMessage } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,16 +82,16 @@ export default function AdminUsersPage() {
   ) {
     try {
       await updateStatus({ userId, status });
-    } catch {
-      toast.error("Failed to update user status");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update user status"));
     }
   }
 
   async function handleRolesUpdate(userId: Id<"users">, roles: string[]) {
     try {
       await updateRoles({ userId, roles });
-    } catch {
-      toast.error("Failed to update user roles");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update user roles"));
     }
   }
 

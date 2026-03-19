@@ -9,6 +9,7 @@ import { Heart, Trash2, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 function WishlistContent() {
   const { isAuthenticated } = useConvexAuth();
@@ -108,8 +109,8 @@ function WishlistContent() {
               try {
                 await toggleWishlist({ bookId: entry.bookId });
                 toast.success("Removed from wishlist");
-              } catch {
-                toast.error("Failed to remove");
+              } catch (err: unknown) {
+                toast.error(getErrorMessage(err, "Failed to remove"));
               } finally {
                 setRemovingId(null);
               }

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useConvexAuth, Authenticated } from "convex/reac
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type Condition, CONDITION_LABELS } from "@/convex/lib/validators";
+import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -93,8 +94,8 @@ export default function ProfilePage() {
     setToggling(true);
     try {
       await toggleFollow({ targetUserId: userId });
-    } catch {
-      toast.error("Failed to update follow status");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update follow status"));
     } finally {
       setToggling(false);
     }

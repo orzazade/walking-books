@@ -81,8 +81,8 @@ export default function ShareBookPage() {
         setCoverImage(result.coverImage);
         setPublisher(result.publisher ?? "");
       }
-    } catch {
-      toast.error("Failed to look up ISBN");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to look up ISBN"));
     } finally {
       setLookingUp(false);
     }

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 const GENRE_OPTIONS = [
   "Fiction",
@@ -91,8 +92,8 @@ function SettingsContent() {
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      toast.error("Failed to save settings");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save settings"));
     } finally {
       setSaving(false);
     }
