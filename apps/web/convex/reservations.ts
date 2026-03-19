@@ -191,7 +191,7 @@ export const expireStale = internalMutation({
     }
 
     // Group penalties by user and apply cumulative no-show penalties
-    const penaltyByUser = new Map<typeof staleReservations[0]["userId"], number>();
+    const penaltyByUser = new Map<Id<"users">, number>();
     for (const reservation of staleReservations) {
       penaltyByUser.set(
         reservation.userId,
