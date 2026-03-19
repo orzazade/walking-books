@@ -8,12 +8,11 @@ import {
   BookOpen,
   RotateCcw,
   Star,
-  MapPin,
   Users,
 } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
-import { timeAgo } from "@/lib/utils";
+import { ActivityFeedItem } from "@/components/activity-feed-item";
 
 const TYPE_CONFIG = {
   pickup: {
@@ -88,120 +87,16 @@ function FeedContent() {
   // Data
   return (
     <div className="space-y-2">
-      {feed.map((item, i) => {
-        const config = TYPE_CONFIG[item.type];
-        const Icon = config.icon;
-
-        return (
-          <div
-            key={`${item.type}-${item.user._id}-${item.timestamp}-${i}`}
-            className="rounded-xl border border-border/40 bg-card/60 p-4 transition-colors hover:bg-card/80"
-          >
-            <div className="flex items-start gap-3">
-              {/* User avatar */}
-              <Link href={`/profile/${item.user._id}`} className="shrink-0">
-                {item.user.avatarUrl ? (
-                  <img
-                    src={item.user.avatarUrl}
-                    alt={item.user.name}
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                    {item.user.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </Link>
-
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                {/* Action line */}
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`flex h-5 w-5 items-center justify-center rounded-md ${config.bgColor}`}
-                  >
-                    <Icon className={`h-3 w-3 ${config.color}`} />
-                  </div>
-                  <p className="text-[0.8125rem]">
-                    <Link
-                      href={`/profile/${item.user._id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {item.user.name}
-                    </Link>{" "}
-                    <span className="text-muted-foreground">
-                      {config.verb}
-                    </span>{" "}
-                    <Link
-                      href={`/book/${item.book._id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {item.book.title}
-                    </Link>
-                  </p>
-                </div>
-
-                {/* Book author */}
-                <p className="mt-0.5 pl-7 text-[0.75rem] text-muted-foreground">
-                  by {item.book.author}
-                </p>
-
-                {/* Location (for pickup/return) */}
-                {item.detail.locationName && (
-                  <p className="mt-1 flex items-center gap-1 pl-7 text-[0.75rem] text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {item.detail.locationName}
-                  </p>
-                )}
-
-                {/* Review details */}
-                {item.type === "review" && (
-                  <div className="mt-1.5 pl-7">
-                    {item.detail.rating !== undefined && (
-                      <div className="flex items-center gap-0.5">
-                        {Array.from({ length: 5 }).map((_, s) => (
-                          <Star
-                            key={s}
-                            className={`h-3 w-3 ${
-                              s < item.detail.rating!
-                                ? "fill-amber-500 text-amber-500"
-                                : "text-muted-foreground/30"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    {item.detail.reviewText && (
-                      <p className="mt-1 line-clamp-2 text-[0.8125rem] text-muted-foreground">
-                        &ldquo;{item.detail.reviewText}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Timestamp */}
-                <p className="mt-1.5 pl-7 text-[0.6875rem] text-muted-foreground/60">
-                  {timeAgo(item.timestamp)}
-                </p>
-              </div>
-
-              {/* Book cover thumbnail */}
-              {item.book.coverImage && (
-                <Link
-                  href={`/book/${item.book._id}`}
-                  className="hidden shrink-0 sm:block"
-                >
-                  <img
-                    src={item.book.coverImage}
-                    alt={item.book.title}
-                    className="h-16 w-11 rounded-md object-cover"
-                  />
-                </Link>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {feed.map((item, i) => (
+        <ActivityFeedItem
+          key={`${item.type}-${item.user._id}-${item.timestamp}-${i}`}
+          actor={item.user}
+          typeConfig={TYPE_CONFIG[item.type]}
+          book={item.book}
+          detail={item.detail}
+          timestamp={item.timestamp}
+        />
+      ))}
     </div>
   );
 }
