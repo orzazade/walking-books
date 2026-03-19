@@ -99,6 +99,18 @@ export const register = mutation({
       throw new Error("Page count must be a non-negative integer");
     if (args.sharerMaxLendingDays !== undefined && (!Number.isInteger(args.sharerMaxLendingDays) || args.sharerMaxLendingDays < 1))
       throw new Error("Lending period must be an integer of at least 1 day");
+    if (args.categories.length > 10)
+      throw new Error("Maximum 10 categories allowed");
+    for (const cat of args.categories) {
+      if (cat.length > 100)
+        throw new Error("Each category must be 100 characters or less");
+    }
+    if (args.coverImage.length > 2000)
+      throw new Error("Cover image URL must be 2000 characters or less");
+    if (args.language.length > 50)
+      throw new Error("Language must be 50 characters or less");
+    if (args.publisher !== undefined && args.publisher.length > 200)
+      throw new Error("Publisher must be 200 characters or less");
 
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
