@@ -40,7 +40,6 @@ export const create = mutation({
     type: reportTypeValidator,
     photos: v.array(v.string()),
     description: v.string(),
-    previousCondition: conditionValidator,
     newCondition: conditionValidator,
   },
   handler: async (ctx, args) => {

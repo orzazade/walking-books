@@ -207,9 +207,6 @@ function NewReportForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedCopy = copies.find((c) => c._id === copyId);
-
-
   async function handleSubmit() {
     if (!copyId || !description.trim()) {
       setError("Please select a copy and provide a description.");
@@ -224,7 +221,6 @@ function NewReportForm({
         type: "damage_report",
         photos: [],
         description: description.trim(),
-        previousCondition: selectedCopy?.condition ?? "fair",
         newCondition,
       });
       onSuccess();
