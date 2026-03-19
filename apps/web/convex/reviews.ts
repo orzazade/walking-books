@@ -23,6 +23,11 @@ export const create = mutation({
 
     if (args.rating < 1 || args.rating > 5 || !Number.isInteger(args.rating))
       throw new Error("Rating must be an integer between 1 and 5");
+    const trimmedText = args.text.trim();
+    if (trimmedText.length === 0)
+      throw new Error("Review text is required");
+    if (trimmedText.length > 5000)
+      throw new Error("Review text must be 5000 characters or less");
 
     // Upsert: one review per user per book
     const existing = await ctx.db
@@ -35,7 +40,7 @@ export const create = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         rating: args.rating,
-        text: args.text,
+        text: trimmedText,
       });
 
       // Recalculate book average with updated rating
@@ -57,7 +62,7 @@ export const create = mutation({
       bookId: args.bookId,
       userId: user._id,
       rating: args.rating,
-      text: args.text,
+      text: trimmedText,
     });
 
     // Update book aggregate rating
