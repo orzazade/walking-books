@@ -22,7 +22,7 @@ function DashboardContent() {
   const user = useQuery(api.users.currentUser, isAuthenticated ? {} : "skip");
   const readingStats = useQuery(api.readingStats.getStats, isAuthenticated ? {} : "skip");
   const heldCopies = useQuery(api.copies.byHolder, isAuthenticated ? {} : "skip");
-  const activeReservations = useQuery(api.reservations.active, isAuthenticated ? {} : "skip");
+  const activeReservations = useQuery(api.reservations.myActive, isAuthenticated ? {} : "skip");
 
   if (user === undefined) {
     return (

@@ -21,6 +21,46 @@ export const active = query({
   },
 });
 
+/** Active reservations enriched with book title, cover, author, and location name/address. */
+export const myActive = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const reservations = await ctx.db
+      .query("reservations")
+      .withIndex("by_user", (q) =>
+        q.eq("userId", user._id).eq("status", "active"),
+      )
+      .collect();
+
+    if (reservations.length === 0) return [];
+
+    const enriched = await Promise.all(
+      reservations.map(async (res) => {
+        const [copy, location] = await Promise.all([
+          ctx.db.get(res.copyId),
+          ctx.db.get(res.locationId),
+        ]);
+        const book = copy ? await ctx.db.get(copy.bookId) : null;
+
+        return {
+          ...res,
+          bookTitle: book?.title ?? "Unknown book",
+          bookAuthor: book?.author ?? "Unknown author",
+          coverImage: book?.coverImage ?? null,
+          bookId: copy?.bookId ?? null,
+          locationName: location?.name ?? "Unknown location",
+          locationAddress: location?.address ?? "",
+        };
+      }),
+    );
+
+    return enriched;
+  },
+});
+
 export const create = mutation({
   args: {
     copyId: v.id("copies"),
