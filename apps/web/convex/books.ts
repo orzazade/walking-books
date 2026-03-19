@@ -171,7 +171,7 @@ export const register = mutation({
 export const searchCatalog = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {
-    const normalizedQuery = args.query.trim().toLowerCase();
+    const normalizedQuery = args.query.trim().toLowerCase().slice(0, 200);
     if (!normalizedQuery) return [];
 
     const books = await ctx.db.query("books").collect();
