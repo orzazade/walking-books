@@ -57,10 +57,13 @@ export const remove = mutation({
 export const forReview = query({
   args: { reviewId: v.id("reviews") },
   handler: async (ctx, args) => {
-    const votes = await ctx.db
-      .query("reviewVotes")
-      .withIndex("by_review", (q) => q.eq("reviewId", args.reviewId))
-      .collect();
+    const [votes, user] = await Promise.all([
+      ctx.db
+        .query("reviewVotes")
+        .withIndex("by_review", (q) => q.eq("reviewId", args.reviewId))
+        .collect(),
+      getCurrentUser(ctx),
+    ]);
 
     let helpfulCount = 0;
     let unhelpfulCount = 0;
@@ -68,8 +71,6 @@ export const forReview = query({
       if (vote.helpful) helpfulCount++;
       else unhelpfulCount++;
     }
-
-    const user = await getCurrentUser(ctx);
     let myVote: boolean | null = null;
     if (user) {
       const userVote = votes.find((v) => v.userId === user._id);
