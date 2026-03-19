@@ -19,6 +19,27 @@ interface ActivityFeedItemProps {
   timestamp: number;
 }
 
+export function ActivityFeedSkeleton({ count = 5 }: { count?: number } = {}) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-xl border border-border/40 bg-card/60 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="animate-shimmer h-9 w-9 rounded-full bg-muted" />
+            <div className="flex-1 space-y-2">
+              <div className="animate-shimmer h-4 w-48 rounded-md bg-muted" />
+              <div className="animate-shimmer h-3 w-32 rounded-md bg-muted" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ActivityFeedItem({ actor, typeConfig, book, detail, timestamp }: ActivityFeedItemProps) {
   const Icon = typeConfig.icon;
 

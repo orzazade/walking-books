@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
-import { ActivityFeedItem } from "@/components/activity-feed-item";
+import { ActivityFeedItem, ActivityFeedSkeleton } from "@/components/activity-feed-item";
 
 const TYPE_CONFIG = {
   pickup: {
@@ -44,24 +44,7 @@ function FeedContent() {
 
   // Loading
   if (feed === undefined) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-border/40 bg-card/60 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="animate-shimmer h-9 w-9 rounded-full bg-muted" />
-              <div className="flex-1 space-y-2">
-                <div className="animate-shimmer h-4 w-48 rounded-md bg-muted" />
-                <div className="animate-shimmer h-3 w-32 rounded-md bg-muted" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <ActivityFeedSkeleton />;
   }
 
   // Empty — no activity (likely no follows)
