@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireCurrentUser } from "./lib/auth";
-import { getCurrentUser } from "./lib/auth";
+import { requireCurrentUser, getCurrentUser } from "./lib/auth";
 
 export const vote = mutation({
   args: {
