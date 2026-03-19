@@ -473,6 +473,85 @@ describe("readingProgress", () => {
     expect(readingOnly[0].percentComplete).toBe(30);
   });
 
+  it("update rejects updating an abandoned reading", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId),
+      );
+      return await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_progress1" });
+
+    await authed.mutation(api.readingProgress.update, {
+      copyId,
+      currentPage: 50,
+    });
+    await authed.mutation(api.readingProgress.abandon, { copyId });
+
+    await expect(
+      authed.mutation(api.readingProgress.update, {
+        copyId,
+        currentPage: 60,
+      }),
+    ).rejects.toThrow("Cannot update a reading that is abandoned");
+  });
+
+  it("update rejects updating a finished reading", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert(
+        "books",
+        makeBook({ pageCount: 100 }),
+      );
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId),
+      );
+      return await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_progress1" });
+
+    // Finish the book
+    await authed.mutation(api.readingProgress.update, {
+      copyId,
+      currentPage: 100,
+    });
+
+    await expect(
+      authed.mutation(api.readingProgress.update, {
+        copyId,
+        currentPage: 50,
+      }),
+    ).rejects.toThrow("Cannot update a reading that is finished");
+  });
+
   it("update rejects unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 

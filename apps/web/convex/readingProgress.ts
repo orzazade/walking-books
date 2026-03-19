@@ -40,6 +40,8 @@ export const update = mutation({
     const isFinished = args.currentPage === book.pageCount;
 
     if (existing) {
+      if (existing.status !== "reading")
+        throw new Error("Cannot update a reading that is " + existing.status);
       await ctx.db.patch(existing._id, {
         currentPage: args.currentPage,
         lastUpdatedAt: now,
