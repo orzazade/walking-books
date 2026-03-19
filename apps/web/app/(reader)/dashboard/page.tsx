@@ -9,19 +9,17 @@ import { ReturnDialog } from "@/components/return-dialog";
 import { getErrorMessage, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ReservationTimer } from "@/components/reservation-timer";
 import { ReadingInsightsWidget } from "@/components/reading-insights-widget";
 import { WishlistAlertsSection } from "@/components/wishlist-alerts-section";
 import { WaitlistPreviewSection } from "@/components/waitlist-preview-section";
 import { SharedCopiesSection } from "@/components/shared-copies-section";
+import { ActiveReservationsSection } from "@/components/active-reservations-section";
 import {
   BookOpen,
   Clock,
   Share2,
   Award,
   ArrowUpRight,
-  X,
-  PackageCheck,
   Undo2,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,8 +34,6 @@ function DashboardContent() {
   const heldCopies = useQuery(api.copies.byHolder, isAuthenticated ? {} : "skip");
   const activeReservations = useQuery(api.reservations.active, isAuthenticated ? {} : "skip");
   const extendCopy = useMutation(api.copies.extend);
-  const cancelReservation = useMutation(api.reservations.cancel);
-  const pickupCopy = useMutation(api.copies.pickup);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [returnCopyId, setReturnCopyId] = useState<Id<"copies"> | null>(null);
@@ -76,25 +72,6 @@ function DashboardContent() {
     } finally {
       setActionLoading(null);
     }
-  }
-
-  async function handlePickup(
-    copyId: Id<"copies">,
-    locationId: Id<"partnerLocations">,
-    reservationId?: Id<"reservations">,
-  ) {
-    await handleAction(`pickup-${copyId}`, async () => {
-      await pickupCopy({
-        copyId,
-        locationId,
-        reservationId,
-        conditionAtPickup: "good",
-        photos: [],
-      });
-      toast.success(
-        "Book picked up! Check your Currently Reading section for the return deadline.",
-      );
-    });
   }
 
 
@@ -216,69 +193,7 @@ function DashboardContent() {
       </section>
 
       {/* Active Reservations */}
-      <section className="mt-8">
-        <h2 className="mb-3 flex items-center gap-2 font-serif text-[1.125rem] font-semibold">
-          <Clock className="h-4.5 w-4.5 text-primary" />
-          Active Reservations
-        </h2>
-        {activeReservations === undefined ? (
-          <div className="animate-shimmer h-4 w-40 rounded-md bg-muted" />
-        ) : activeReservations.length === 0 ? (
-          <div className="rounded-xl border border-border/40 bg-card/60 p-5 text-center text-[0.8125rem] text-muted-foreground">
-            No active reservations.
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {activeReservations.map((res) => (
-              <div
-                key={res._id}
-                className="flex flex-col gap-3 rounded-xl border border-border/40 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <Link
-                    href={`/copy/${res.copyId}`}
-                    className="text-[0.875rem] font-medium hover:underline"
-                  >
-                    Copy #{res.copyId.slice(-6)}
-                  </Link>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-[0.75rem] text-muted-foreground">
-                      Expires in:
-                    </span>
-                    <ReservationTimer expiresAt={res.expiresAt} />
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="h-7 rounded-lg text-[0.75rem]"
-                    disabled={actionLoading === `pickup-${res.copyId}`}
-                    onClick={() =>
-                      handlePickup(res.copyId, res.locationId, res._id)
-                    }
-                  >
-                    <PackageCheck className="mr-1 h-3 w-3" /> Pick Up
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 rounded-lg text-[0.75rem]"
-                    disabled={actionLoading === res._id}
-                    onClick={() =>
-                      handleAction(res._id, async () => {
-                        await cancelReservation({ reservationId: res._id });
-                        toast.success("Reservation cancelled.");
-                      })
-                    }
-                  >
-                    <X className="mr-1 h-3 w-3" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <ActiveReservationsSection />
 
       {/* Waiting For */}
       <WaitlistPreviewSection />
