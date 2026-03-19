@@ -119,6 +119,33 @@ export const myCollections = query({
   },
 });
 
+export const containingBook = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const collections = await ctx.db
+      .query("collections")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const results = await Promise.all(
+      collections.map(async (c) => {
+        const item = await ctx.db
+          .query("collectionItems")
+          .withIndex("by_collection_book", (q) =>
+            q.eq("collectionId", c._id).eq("bookId", args.bookId),
+          )
+          .unique();
+        return { _id: c._id, name: c.name, containsBook: item !== null };
+      }),
+    );
+
+    return results;
+  },
+});
+
 export const getCollection = query({
   args: { collectionId: v.id("collections") },
   handler: async (ctx, args) => {

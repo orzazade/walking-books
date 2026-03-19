@@ -251,4 +251,53 @@ describe("collections", () => {
     const result = await t.query(api.collections.myCollections, {});
     expect(result).toEqual([]);
   });
+
+  it("containingBook returns collections with containsBook flag", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId, bookId2 } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const b1 = await ctx.db.insert("books", makeBook({ title: "Book One" }));
+      const b2 = await ctx.db.insert("books", makeBook({ title: "Book Two" }));
+      return { bookId: b1, bookId2: b2 };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+
+    const { _id: col1 } = await authed.mutation(api.collections.create, {
+      name: "Favorites",
+      isPublic: false,
+    });
+    const { _id: col2 } = await authed.mutation(api.collections.create, {
+      name: "To Read",
+      isPublic: true,
+    });
+
+    // Add book1 to col1 only
+    await authed.mutation(api.collections.addBook, { collectionId: col1, bookId });
+
+    // Check containingBook for book1
+    const result = await authed.query(api.collections.containingBook, { bookId });
+    expect(result).toHaveLength(2);
+    const fav = result.find((c) => c.name === "Favorites");
+    const toRead = result.find((c) => c.name === "To Read");
+    expect(fav!.containsBook).toBe(true);
+    expect(toRead!.containsBook).toBe(false);
+
+    // Check containingBook for book2 (not in any collection)
+    const result2 = await authed.query(api.collections.containingBook, { bookId: bookId2 });
+    expect(result2).toHaveLength(2);
+    expect(result2.every((c) => !c.containsBook)).toBe(true);
+  });
+
+  it("containingBook returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+
+    const result = await t.query(api.collections.containingBook, { bookId });
+    expect(result).toEqual([]);
+  });
 });

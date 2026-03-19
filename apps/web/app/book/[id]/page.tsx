@@ -14,7 +14,14 @@ import { ReviewVoteButtons } from "@/components/review-votes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
-import { CheckCircle, Clock, BookOpen, Heart, Star, Users, Bell } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CheckCircle, Clock, BookOpen, Heart, Star, Users, Bell, FolderPlus, Check, Plus, Library } from "lucide-react";
 import Link from "next/link";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type Condition, type CopyStatus } from "@/convex/lib/validators";
 
@@ -41,6 +48,11 @@ export default function BookDetailPage() {
   const joinWaitlist = useMutation(api.waitlist.join);
   const leaveWaitlist = useMutation(api.waitlist.leave);
 
+  const myCollections = useQuery(api.collections.containingBook, { bookId });
+  const addToCollection = useMutation(api.collections.addBook);
+  const removeFromCollection = useMutation(api.collections.removeBook);
+
+  const [collectionLoading, setCollectionLoading] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -188,32 +200,111 @@ export default function BookDetailPage() {
           </div>
 
           <Authenticated>
-            <Button
-              variant={isWishlisted ? "default" : "outline"}
-              size="sm"
-              className="h-8 rounded-lg text-[0.75rem]"
-              disabled={togglingWishlist}
-              onClick={async () => {
-                setTogglingWishlist(true);
-                try {
-                  const result = await toggleWishlist({ bookId });
-                  toast.success(
-                    result.wishlisted
-                      ? "Added to your wishlist"
-                      : "Removed from your wishlist",
-                  );
-                } catch (err: unknown) {
-                  toast.error(getErrorMessage(err, "Failed to update wishlist"));
-                } finally {
-                  setTogglingWishlist(false);
-                }
-              }}
-            >
-              <Heart
-                className={`mr-1.5 h-3.5 w-3.5 ${isWishlisted ? "fill-current" : ""}`}
-              />
-              {isWishlisted ? "On Wishlist" : "Add to Wishlist"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={isWishlisted ? "default" : "outline"}
+                size="sm"
+                className="h-8 rounded-lg text-[0.75rem]"
+                disabled={togglingWishlist}
+                onClick={async () => {
+                  setTogglingWishlist(true);
+                  try {
+                    const result = await toggleWishlist({ bookId });
+                    toast.success(
+                      result.wishlisted
+                        ? "Added to your wishlist"
+                        : "Removed from your wishlist",
+                    );
+                  } catch (err: unknown) {
+                    toast.error(getErrorMessage(err, "Failed to update wishlist"));
+                  } finally {
+                    setTogglingWishlist(false);
+                  }
+                }}
+              >
+                <Heart
+                  className={`mr-1.5 h-3.5 w-3.5 ${isWishlisted ? "fill-current" : ""}`}
+                />
+                {isWishlisted ? "On Wishlist" : "Add to Wishlist"}
+              </Button>
+
+              <Dialog>
+                <DialogTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-lg text-[0.75rem]"
+                    />
+                  }
+                >
+                  <FolderPlus className="mr-1.5 h-3.5 w-3.5" />
+                  Add to Collection
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add to Collection</DialogTitle>
+                  </DialogHeader>
+                  {myCollections === undefined ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="animate-shimmer h-10 rounded-lg bg-muted" />
+                      ))}
+                    </div>
+                  ) : myCollections.length === 0 ? (
+                    <div className="py-4 text-center">
+                      <Library className="mx-auto h-8 w-8 text-muted-foreground/40" />
+                      <p className="mt-2 text-[0.8125rem] text-muted-foreground">
+                        No collections yet
+                      </p>
+                      <Link
+                        href="/collections"
+                        className="mt-2 inline-block text-[0.8125rem] text-primary hover:underline"
+                      >
+                        Create a collection
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {myCollections.map((col) => (
+                        <button
+                          key={col._id}
+                          type="button"
+                          disabled={collectionLoading === col._id}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
+                          onClick={async () => {
+                            setCollectionLoading(col._id);
+                            try {
+                              if (col.containsBook) {
+                                await removeFromCollection({ collectionId: col._id, bookId });
+                                toast.success(`Removed from "${col.name}"`);
+                              } else {
+                                await addToCollection({ collectionId: col._id, bookId });
+                                toast.success(`Added to "${col.name}"`);
+                              }
+                            } catch (err: unknown) {
+                              toast.error(getErrorMessage(err, "Failed to update collection"));
+                            } finally {
+                              setCollectionLoading(null);
+                            }
+                          }}
+                        >
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${col.containsBook ? "bg-primary text-primary-foreground" : "border border-border"}`}>
+                            {col.containsBook && <Check className="h-3 w-3" />}
+                          </div>
+                          <span className="flex-1 truncate text-[0.875rem]">
+                            {col.name}
+                          </span>
+                          {collectionLoading === col._id && (
+                            <span className="text-[0.75rem] text-muted-foreground">...</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
           </Authenticated>
         </div>
       </div>
