@@ -4,23 +4,12 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { LocationDetailDialog } from "@/components/location-detail-dialog";
 import {
   MapPin,
-  Phone,
-  Mail,
   Search,
-  Users,
 } from "lucide-react";
 
 function utilizationPercent(loc: Doc<"partnerLocations">) {
@@ -131,138 +120,11 @@ export default function AdminLocationsPage() {
         )}
       </div>
 
-      {/* Location detail modal */}
-      <Dialog
-        open={selectedLocation !== null}
-        onOpenChange={(open) => !open && setSelectedLocation(null)}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              {selectedLocation?.name}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedLocation && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Address</span>
-                  <p className="font-medium">{selectedLocation.address}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Coordinates</span>
-                  <p className="font-medium">
-                    {selectedLocation.lat.toFixed(4)},{" "}
-                    {selectedLocation.lng.toFixed(4)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Phone</span>
-                  <p className="ml-1 font-medium">
-                    {selectedLocation.contactPhone}
-                  </p>
-                </div>
-                {selectedLocation.contactEmail && (
-                  <div className="flex items-center gap-1">
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">Email</span>
-                    <p className="ml-1 font-medium">
-                      {selectedLocation.contactEmail}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Shelf utilization bar */}
-              <div>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Shelf Utilization
-                  </span>
-                  <span className="font-medium">
-                    {selectedLocation.currentBookCount} /{" "}
-                    {selectedLocation.shelfCapacity}
-                  </span>
-                </div>
-                <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{
-                      width: `${Math.min(utilizationPercent(selectedLocation), 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Manager & Staff */}
-              <div>
-                <p className="mb-2 text-sm font-medium flex items-center gap-1">
-                  <Users className="h-4 w-4" /> Manager & Staff
-                </p>
-                <div className="space-y-1 text-sm">
-                  <p>
-                    <Badge variant="default" className="mr-2">
-                      Manager
-                    </Badge>
-                    {getManagerName(selectedLocation.managedByUserId)}
-                  </p>
-                  {selectedLocation.staffUserIds.length > 0 ? (
-                    selectedLocation.staffUserIds.map((staffId) => (
-                      <p key={staffId}>
-                        <Badge variant="secondary" className="mr-2">
-                          Staff
-                        </Badge>
-                        {allUsers?.find((u) => u._id === staffId)?.name ??
-                          "Unknown"}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground">
-                      No additional staff members.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Photos */}
-              {selectedLocation.photos.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Photos</p>
-                    <div className="flex gap-2 overflow-x-auto">
-                      {selectedLocation.photos.map((photo, i) => (
-                        <img
-                          key={i}
-                          src={photo}
-                          alt={`${selectedLocation.name} photo ${i + 1}`}
-                          className="h-24 w-24 rounded-md object-cover"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">
-                  Created{" "}
-                  {formatDate(selectedLocation._creationTime)}
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <LocationDetailDialog
+        location={selectedLocation}
+        onClose={() => setSelectedLocation(null)}
+        getStaffName={getManagerName}
+      />
     </>
   );
 }
