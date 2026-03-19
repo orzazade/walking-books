@@ -203,4 +203,83 @@ describe("readingHistory", () => {
     const history = await t.query(api.readingHistory.myHistory, {});
     expect(history).toEqual([]);
   });
+
+  it("gracefully handles deleted books with Unknown fallback", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId, locationId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", {
+        clerkId: "user_history3",
+        phone: "+1234567893",
+        name: "Ghost Reader",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 1,
+        favoriteGenres: [],
+      });
+      const lid = await ctx.db.insert("partnerLocations", {
+        name: "Park Shelf",
+        address: "789 Elm Blvd",
+        lat: 40.74,
+        lng: -73.98,
+        contactPhone: "+3333333333",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 30,
+        currentBookCount: 3,
+        managedByUserId: uid,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return { userId: uid, locationId: lid };
+    });
+
+    // Create a book, copy, and completed journey — then delete the book
+    await t.run(async (ctx) => {
+      const bid = await ctx.db.insert("books", {
+        title: "Deleted Book",
+        author: "Gone Author",
+        coverImage: "",
+        description: "",
+        categories: ["mystery"],
+        pageCount: 150,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const cid = await ctx.db.insert("copies", {
+        bookId: bid,
+        status: "available",
+        condition: "fair",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        qrCodeUrl: "https://example.com/qr4",
+        currentLocationId: locationId,
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: cid,
+        readerId: userId,
+        pickupLocationId: locationId,
+        pickedUpAt: 5000000,
+        returnedAt: 6000000,
+        conditionAtPickup: "fair",
+        conditionAtReturn: "fair",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      // Delete the book — simulates admin removal
+      await ctx.db.delete(bid);
+    });
+
+    const history = await t
+      .withIdentity({ subject: "user_history3" })
+      .query(api.readingHistory.myHistory, {});
+
+    expect(history).toHaveLength(1);
+    expect(history[0].title).toBe("Unknown");
+    expect(history[0].author).toBe("Unknown");
+  });
 });
