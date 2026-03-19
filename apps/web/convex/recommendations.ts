@@ -87,15 +87,15 @@ export const forMe = query({
 export const forBook = query({
   args: { bookId: v.id("books") },
   handler: async (ctx, args) => {
-    const book = await ctx.db.get(args.bookId);
-    if (!book) return [];
-
-    // 1. Get all copies of this book
-    const copies = await ctx.db
-      .query("copies")
-      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
-      .collect();
-    if (copies.length === 0) return [];
+    // 1. Fetch book and its copies in parallel
+    const [book, copies] = await Promise.all([
+      ctx.db.get(args.bookId),
+      ctx.db
+        .query("copies")
+        .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+        .collect(),
+    ]);
+    if (!book || copies.length === 0) return [];
 
     const copyIds = new Set(copies.map((c) => c._id));
 
