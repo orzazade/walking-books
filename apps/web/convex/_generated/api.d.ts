@@ -15,6 +15,7 @@ import type * as bookNotes from "../bookNotes.js";
 import type * as bookRequests from "../bookRequests.js";
 import type * as books from "../books.js";
 import type * as collections from "../collections.js";
+import type * as communityStats from "../communityStats.js";
 import type * as conditionReports from "../conditionReports.js";
 import type * as copies from "../copies.js";
 import type * as crons from "../crons.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   bookRequests: typeof bookRequests;
   books: typeof books;
   collections: typeof collections;
+  communityStats: typeof communityStats;
   conditionReports: typeof conditionReports;
   copies: typeof copies;
   crons: typeof crons;

@@ -23,6 +23,7 @@ import {
   Bell,
   Sparkles,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/locations", label: "Locations", icon: MapPin },
   { href: "/book-requests", label: "Requests", icon: HandHeart },
+  { href: "/community", label: "Community", icon: BarChart3 },
 ] as const;
 
 const AUTH_ITEMS = [
