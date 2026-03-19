@@ -45,8 +45,8 @@ export const update = mutation({
       throw new Error("Location name cannot be empty");
     if (args.address !== undefined && !args.address.trim())
       throw new Error("Address cannot be empty");
-    if (args.shelfCapacity !== undefined && args.shelfCapacity < 0)
-      throw new Error("Shelf capacity cannot be negative");
+    if (args.shelfCapacity !== undefined && (!Number.isInteger(args.shelfCapacity) || args.shelfCapacity < 0))
+      throw new Error("Shelf capacity must be a non-negative integer");
 
     const { locationId, ...rest } = args;
     const updates = Object.fromEntries(
