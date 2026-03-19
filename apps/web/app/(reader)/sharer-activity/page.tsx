@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { ActivityFeedItem, ActivityFeedSkeleton } from "@/components/activity-feed-item";
 
 const TYPE_CONFIG = {
@@ -109,20 +110,14 @@ export default function SharerActivityPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/sharer-stats"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/sharer-stats">
             <BarChart3 className="h-3.5 w-3.5" />
             Sharer Stats
-          </Link>
-          <Link
-            href="/share"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/share">
             <Share2 className="h-3.5 w-3.5" />
             Share a Book
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

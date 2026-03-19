@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { ActivityFeedItem, ActivityFeedSkeleton } from "@/components/activity-feed-item";
 
 const TYPE_CONFIG = {
@@ -101,20 +102,14 @@ export default function ActivityPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/leaderboard"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/leaderboard">
             <Users className="h-3.5 w-3.5" />
             Leaderboard
-          </Link>
-          <Link
-            href="/search"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/search">
             <BookOpen className="h-3.5 w-3.5" />
             Find readers
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Flame, Trophy, Calendar, BookOpen } from "lucide-react";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { HeaderActionLink } from "@/components/header-action-link";
 
 function StreakCard({
   label,
@@ -163,20 +163,14 @@ export default function ReadingStreaksPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/leaderboard"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/leaderboard">
             <Trophy className="h-3.5 w-3.5 text-yellow-500" />
             Leaderboard
-          </Link>
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/dashboard">
             <BookOpen className="h-3.5 w-3.5" />
             Dashboard
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

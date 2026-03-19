@@ -6,6 +6,7 @@ import { Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import {
   Share2,
   BookOpen,
@@ -189,20 +190,14 @@ export default function SharerStatsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/sharer-activity"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/sharer-activity">
             <Rss className="h-3.5 w-3.5" />
             Activity
-          </Link>
-          <Link
-            href="/share"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/share">
             <Share2 className="h-3.5 w-3.5" />
             Share a Book
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

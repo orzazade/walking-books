@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BookCard } from "@/components/book-card";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { Flame, BookOpen, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,13 +31,10 @@ export default function TrendingPage() {
             <Flame className="h-3.5 w-3.5 text-orange-500" />
             <span>{trending ? trending.length : "…"} trending</span>
           </div>
-          <Link
-            href="/browse"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/browse">
             <BookOpen className="h-3.5 w-3.5" />
             Browse all
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

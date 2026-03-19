@@ -8,6 +8,7 @@ import { CategoryGrid } from "@/components/category-grid";
 import { BookCard } from "@/components/book-card";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { BookOpen, MapPin, X } from "lucide-react";
 
 function BrowseContent() {
@@ -50,13 +51,10 @@ function BrowseContent() {
             <span>{books ? availableCopies : "…"} available</span>
           </div>
           {category && (
-            <Link
-              href="/browse"
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-            >
+            <HeaderActionLink href="/browse">
               <X className="h-3 w-3" />
               Clear filter
-            </Link>
+            </HeaderActionLink>
           )}
         </div>
       </div>

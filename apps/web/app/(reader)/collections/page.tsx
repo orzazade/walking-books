@@ -6,6 +6,7 @@ import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } 
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { HeaderActionLink } from "@/components/header-action-link";
 import {
   Library,
   Plus,
@@ -253,13 +254,10 @@ export default function CollectionsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/browse"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/browse">
             <BookOpen className="h-3.5 w-3.5" />
             Browse books
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

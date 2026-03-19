@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { Trophy, Lock } from "lucide-react";
 import { ACHIEVEMENT_ICONS, ACHIEVEMENT_FALLBACK_ICON } from "@/lib/achievements";
 
@@ -139,18 +139,12 @@ export default function AchievementsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/reading-streaks"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/reading-streaks">
             Streaks
-          </Link>
-          <Link
-            href="/reading-goals"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/reading-goals">
             Goals
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

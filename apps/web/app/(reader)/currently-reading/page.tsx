@@ -9,6 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -365,18 +366,12 @@ export default function CurrentlyReadingPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/reading-goals"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/reading-goals">
             Goals
-          </Link>
-          <Link
-            href="/reading-streaks"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/reading-streaks">
             Streaks
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

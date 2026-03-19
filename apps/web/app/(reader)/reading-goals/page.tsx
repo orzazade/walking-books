@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { Target, BookOpen, Flame, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
@@ -293,20 +293,14 @@ export default function ReadingGoalsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/reading-streaks"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/reading-streaks">
             <Flame className="h-3.5 w-3.5 text-orange-500" />
             Streaks
-          </Link>
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/dashboard">
             <BookOpen className="h-3.5 w-3.5" />
             Dashboard
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 

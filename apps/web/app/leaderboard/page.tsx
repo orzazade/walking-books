@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { EmptyState } from "@/components/empty-state";
+import { HeaderActionLink } from "@/components/header-action-link";
 import { Trophy, BookOpen, Share2, Flame, Medal, Award } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -126,20 +127,14 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
-          <Link
-            href="/trending"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          <HeaderActionLink href="/trending">
             <Flame className="h-3.5 w-3.5 text-orange-500" />
             Trending
-          </Link>
-          <Link
-            href="/browse"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
+          </HeaderActionLink>
+          <HeaderActionLink href="/browse">
             <BookOpen className="h-3.5 w-3.5" />
             Browse all
-          </Link>
+          </HeaderActionLink>
         </div>
       </div>
 
