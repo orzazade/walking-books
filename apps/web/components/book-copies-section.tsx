@@ -152,5 +152,3 @@ export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
     </section>
   );
 }
-
-export { COPY_STATUS_COLOR };
