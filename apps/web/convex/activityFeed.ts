@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
-import { Doc, Id } from "./_generated/dataModel";
+import { createEntityCache } from "./lib/entityCache";
+import type { Id } from "./_generated/dataModel";
 
 type FeedItem = {
   type: "pickup" | "return" | "review";
@@ -29,45 +30,7 @@ export const feed = query({
 
     const followedIds = new Set(followRows.map((f) => f.followingId));
 
-    // Cache for users, books, copies, and locations to avoid redundant lookups.
-    // Use has() checks so null results (deleted entities) are also cached,
-    // preventing repeated DB queries for the same missing entity.
-    const userCache = new Map<Id<"users">, Doc<"users"> | null>();
-    const bookCache = new Map<Id<"books">, Doc<"books"> | null>();
-    const copyCache = new Map<Id<"copies">, Doc<"copies"> | null>();
-    const locationCache = new Map<Id<"partnerLocations">, Doc<"partnerLocations"> | null>();
-
-    async function getUser(id: Id<"users">) {
-      const cached = userCache.get(id);
-      if (cached !== undefined) return cached;
-      const u = await ctx.db.get(id);
-      userCache.set(id, u);
-      return u;
-    }
-
-    async function getBook(id: Id<"books">) {
-      const cached = bookCache.get(id);
-      if (cached !== undefined) return cached;
-      const b = await ctx.db.get(id);
-      bookCache.set(id, b);
-      return b;
-    }
-
-    async function getCopy(id: Id<"copies">) {
-      const cached = copyCache.get(id);
-      if (cached !== undefined) return cached;
-      const c = await ctx.db.get(id);
-      copyCache.set(id, c);
-      return c;
-    }
-
-    async function getLocation(id: Id<"partnerLocations">) {
-      const cached = locationCache.get(id);
-      if (cached !== undefined) return cached;
-      const l = await ctx.db.get(id);
-      locationCache.set(id, l);
-      return l;
-    }
+    const { getUser, getBook, getCopy, getLocation } = createEntityCache(ctx);
 
     const followedArray = [...followedIds];
 

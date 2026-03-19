@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
+import { createEntityCache } from "./lib/entityCache";
 import type { Doc, Id } from "./_generated/dataModel";
 
 type SharerFeedItem = {
@@ -72,34 +73,7 @@ export const feed = query({
       ),
     ]);
 
-    // Caches to avoid redundant lookups
-    const userCache = new Map<Id<"users">, Doc<"users"> | null>();
-    const bookCache = new Map<Id<"books">, Doc<"books"> | null>();
-    const locationCache = new Map<Id<"partnerLocations">, Doc<"partnerLocations"> | null>();
-
-    async function getUser(id: Id<"users">) {
-      const cached = userCache.get(id);
-      if (cached !== undefined) return cached;
-      const u = await ctx.db.get(id);
-      userCache.set(id, u);
-      return u;
-    }
-
-    async function getBook(id: Id<"books">) {
-      const cached = bookCache.get(id);
-      if (cached !== undefined) return cached;
-      const b = await ctx.db.get(id);
-      bookCache.set(id, b);
-      return b;
-    }
-
-    async function getLocation(id: Id<"partnerLocations">) {
-      const cached = locationCache.get(id);
-      if (cached !== undefined) return cached;
-      const l = await ctx.db.get(id);
-      locationCache.set(id, l);
-      return l;
-    }
+    const { getUser, getBook, getLocation } = createEntityCache(ctx);
 
     function makeCopyRef(copy: Doc<"copies">) {
       return { _id: copy._id, condition: copy.condition };
