@@ -85,6 +85,14 @@ export const waitlistStatusValidator = v.union(
   v.literal("cancelled"),
 );
 
+export type ReadingProgressStatus = "reading" | "finished" | "abandoned";
+
+export const readingProgressStatusValidator = v.union(
+  v.literal("reading"),
+  v.literal("finished"),
+  v.literal("abandoned"),
+);
+
 export type BookRequestStatus = "open" | "fulfilled" | "cancelled";
 
 export const bookRequestStatusValidator = v.union(
