@@ -41,6 +41,9 @@ export const update = mutation({
     if (location.managedByUserId !== user._id)
       throw new Error("Only the manager can update location settings");
 
+    if (args.shelfCapacity !== undefined && args.shelfCapacity < 0)
+      throw new Error("Shelf capacity cannot be negative");
+
     const { locationId, ...rest } = args;
     const updates = Object.fromEntries(
       Object.entries(rest).filter(([, v]) => v !== undefined),
