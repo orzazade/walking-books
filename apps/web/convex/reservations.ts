@@ -45,11 +45,13 @@ export const create = mutation({
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
 
-    // Check copy is available
+    // Check copy is available at the specified location
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
     if (copy.status !== "available")
       throw new Error("Copy is not available for reservation");
+    if (copy.currentLocationId !== args.locationId)
+      throw new Error("Copy is not at the specified location");
 
     // Check no existing reservation by this user for this copy
     const existingReservation = await ctx.db
