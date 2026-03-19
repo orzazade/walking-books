@@ -119,14 +119,19 @@ export const topSharers = query({
 export const topStreaks = query({
   args: {},
   handler: async (ctx) => {
-    const allStreaks = await ctx.db.query("readingStreaks").collect();
-
-    if (allStreaks.length === 0) return [];
-
     const todayStr = toDateString(Date.now());
+    const yesterdayStr = toDateString(Date.now() - DAY_MS);
 
-    // Filter to active streaks only (last activity today or yesterday)
-    const activeStreaks = allStreaks
+    // Use by_lastActiveDate index to fetch only active streaks (today or yesterday)
+    const recentStreaks = await ctx.db
+      .query("readingStreaks")
+      .withIndex("by_lastActiveDate", (q) => q.gte("lastActiveDate", yesterdayStr))
+      .collect();
+
+    if (recentStreaks.length === 0) return [];
+
+    // Filter to exactly today/yesterday (index may include future dates if any)
+    const activeStreaks = recentStreaks
       .filter((s) => daysBetween(s.lastActiveDate, todayStr) <= 1)
       .map((s) => ({
         userId: s.userId,

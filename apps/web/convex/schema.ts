@@ -229,7 +229,8 @@ export default defineSchema({
     longestStreak: v.number(),
     lastActiveDate: v.string(),
   })
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_lastActiveDate", ["lastActiveDate"]),
 
   readingProgress: defineTable({
     userId: v.id("users"),
