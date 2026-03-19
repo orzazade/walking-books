@@ -25,7 +25,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, timeAgo } from "@/lib/utils";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 
 const NOTIFICATION_ICONS: Record<string, LucideIcon> = {
@@ -40,18 +40,6 @@ const NOTIFICATION_ICONS: Record<string, LucideIcon> = {
   achievement_unlocked: Trophy,
   book_request_fulfilled: HandHeart,
 };
-
-function timeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString();
-}
 
 export default function NotificationsPage() {
   return (
