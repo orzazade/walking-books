@@ -41,7 +41,7 @@ async function enrichWithAvailability<
 export const lookupISBN = action({
   args: { isbn: v.string() },
   handler: async (_ctx, args) => {
-    const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${args.isbn}&format=json&jscmd=data`;
+    const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(args.isbn)}&format=json&jscmd=data`;
     const response = await fetch(url);
     if (!response.ok) return null;
     const data = await response.json();
