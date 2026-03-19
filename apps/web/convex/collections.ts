@@ -60,16 +60,16 @@ export const addBook = mutation({
   handler: async (ctx, args) => {
     await requireCollectionOwner(ctx, args.collectionId);
 
-    const book = await ctx.db.get(args.bookId);
+    const [book, existing] = await Promise.all([
+      ctx.db.get(args.bookId),
+      ctx.db
+        .query("collectionItems")
+        .withIndex("by_collection_book", (q) =>
+          q.eq("collectionId", args.collectionId).eq("bookId", args.bookId),
+        )
+        .unique(),
+    ]);
     if (!book) throw new Error("Book not found");
-
-    // Check if already in collection
-    const existing = await ctx.db
-      .query("collectionItems")
-      .withIndex("by_collection_book", (q) =>
-        q.eq("collectionId", args.collectionId).eq("bookId", args.bookId),
-      )
-      .unique();
     if (existing) throw new Error("Book already in collection");
 
     const id = await ctx.db.insert("collectionItems", {
