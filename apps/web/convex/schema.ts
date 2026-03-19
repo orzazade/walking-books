@@ -73,8 +73,7 @@ export default defineSchema({
     booksRead: v.number(),
     favoriteGenres: v.array(v.string()),
   })
-    .index("by_clerk_id", ["clerkId"])
-    .index("by_phone", ["phone"]),
+    .index("by_clerk_id", ["clerkId"]),
 
   partnerLocations: defineTable({
     name: v.string(),
