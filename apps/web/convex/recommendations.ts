@@ -104,12 +104,16 @@ export const forBook = query({
     const copyIds = new Set(copies.map((c) => c._id));
 
     // 2. Find readers who completed this book (have returnedAt set)
+    const journeyArrays = await Promise.all(
+      copies.map((copy) =>
+        ctx.db
+          .query("journeyEntries")
+          .withIndex("by_copy", (q) => q.eq("copyId", copy._id))
+          .collect(),
+      ),
+    );
     const readerIds = new Set<Id<"users">>();
-    for (const copy of copies) {
-      const entries = await ctx.db
-        .query("journeyEntries")
-        .withIndex("by_copy", (q) => q.eq("copyId", copy._id))
-        .collect();
+    for (const entries of journeyArrays) {
       for (const entry of entries) {
         if (entry.returnedAt) {
           readerIds.add(entry.readerId);
@@ -122,20 +126,36 @@ export const forBook = query({
     const bookFrequency = new Map<Id<"books">, number>();
     const readerArray = [...readerIds].slice(0, 50);
 
-    for (const readerId of readerArray) {
-      const entries = await ctx.db
-        .query("journeyEntries")
-        .withIndex("by_reader", (q) => q.eq("readerId", readerId))
-        .collect();
+    const readerJourneyArrays = await Promise.all(
+      readerArray.map((readerId) =>
+        ctx.db
+          .query("journeyEntries")
+          .withIndex("by_reader", (q) => q.eq("readerId", readerId))
+          .collect(),
+      ),
+    );
 
+    // Batch-fetch all unique copy IDs across readers
+    const allCopyIds = new Set<Id<"copies">>();
+    for (const entries of readerJourneyArrays) {
+      for (const e of entries) {
+        if (e.returnedAt && !copyIds.has(e.copyId)) {
+          allCopyIds.add(e.copyId);
+        }
+      }
+    }
+    const copyDocs = await Promise.all([...allCopyIds].map((id) => ctx.db.get(id)));
+    const copyById = new Map<Id<"copies">, typeof copyDocs[number]>();
+    for (let i = 0; i < copyDocs.length; i++) {
+      const doc = copyDocs[i];
+      if (doc) copyById.set(doc._id, doc);
+    }
+
+    for (const entries of readerJourneyArrays) {
       const seenBooks = new Set<Id<"books">>();
-      const readerCopies = await Promise.all(
-        entries
-          .filter((e) => e.returnedAt && !copyIds.has(e.copyId))
-          .map((e) => ctx.db.get(e.copyId)),
-      );
-
-      for (const copy of readerCopies) {
+      for (const e of entries) {
+        if (!e.returnedAt || copyIds.has(e.copyId)) continue;
+        const copy = copyById.get(e.copyId);
         if (copy && copy.bookId !== args.bookId && !seenBooks.has(copy.bookId)) {
           seenBooks.add(copy.bookId);
           bookFrequency.set(
