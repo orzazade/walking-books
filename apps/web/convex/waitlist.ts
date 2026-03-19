@@ -1,7 +1,30 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { notifyNextWaiter } from "./lib/waitlist";
+
+/** Compute a waiter's 1-based FIFO position among all "waiting" entries for a book. */
+async function getWaitlistPosition(
+  ctx: QueryCtx,
+  bookId: Id<"books">,
+  entry: { joinedAt: number; _creationTime: number },
+): Promise<number> {
+  const waiters = await ctx.db
+    .query("waitlist")
+    .withIndex("by_book_status", (q) =>
+      q.eq("bookId", bookId).eq("status", "waiting"),
+    )
+    .collect();
+  return (
+    waiters.filter(
+      (w) =>
+        w.joinedAt < entry.joinedAt ||
+        (w.joinedAt === entry.joinedAt && w._creationTime < entry._creationTime),
+    ).length + 1
+  );
+}
 
 export const join = mutation({
   args: { bookId: v.id("books") },
@@ -84,16 +107,7 @@ export const myWaitlist = query({
         const book = await ctx.db.get(entry.bookId);
         if (!book) return null;
 
-        // Count how many people are waiting ahead
-        const waiters = await ctx.db
-          .query("waitlist")
-          .withIndex("by_book_status", (q) =>
-            q.eq("bookId", entry.bookId).eq("status", "waiting"),
-          )
-          .collect();
-        const position = waiters.filter(
-          (w) => w.joinedAt < entry.joinedAt || (w.joinedAt === entry.joinedAt && w._creationTime < entry._creationTime),
-        ).length + 1;
+        const position = await getWaitlistPosition(ctx, entry.bookId, entry);
 
         return {
           _id: entry._id,
@@ -136,15 +150,7 @@ export const position = query({
       return { position: 0, status: "notified" as const, notifiedAt: activeEntry.notifiedAt };
     }
 
-    const waiters = await ctx.db
-      .query("waitlist")
-      .withIndex("by_book_status", (q) =>
-        q.eq("bookId", args.bookId).eq("status", "waiting"),
-      )
-      .collect();
-    const position = waiters.filter(
-      (w) => w.joinedAt < activeEntry.joinedAt || (w.joinedAt === activeEntry.joinedAt && w._creationTime < activeEntry._creationTime),
-    ).length + 1;
+    const position = await getWaitlistPosition(ctx, args.bookId, activeEntry);
 
     return { position, status: "waiting" as const, notifiedAt: null };
   },
