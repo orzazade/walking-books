@@ -90,6 +90,9 @@ export const pickup = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    if (args.photos.length > 20)
+      throw new Error("Maximum 20 photos allowed");
+
     // Check reputation restrictions — suspended users cannot pick up books
     const restrictions = getUserRestrictions(user.reputationScore);
     if (!restrictions.canReserve)
@@ -189,6 +192,9 @@ export const returnCopy = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
+
+    if (args.photos.length > 20)
+      throw new Error("Maximum 20 photos allowed");
 
     let readerNote = args.readerNote;
     if (readerNote !== undefined) {

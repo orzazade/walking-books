@@ -46,6 +46,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    if (args.photos.length > 20)
+      throw new Error("Maximum 20 photos allowed");
+
     const trimmed = args.description.trim();
     if (!trimmed) throw new Error("Description is required");
     if (trimmed.length > 2000)
