@@ -92,7 +92,8 @@ export const register = mutation({
     if (!author) throw new Error("Author is required");
     if (author.length > 200)
       throw new Error("Author must be 200 characters or less");
-    if (args.description.length > 2000)
+    const description = args.description.trim();
+    if (description.length > 2000)
       throw new Error("Description must be 2000 characters or less");
     if (!Number.isInteger(args.pageCount) || args.pageCount < 0)
       throw new Error("Page count must be a non-negative integer");
@@ -120,7 +121,7 @@ export const register = mutation({
         author,
         isbn: args.isbn,
         coverImage: args.coverImage,
-        description: args.description,
+        description,
         categories: args.categories,
         pageCount: args.pageCount,
         language: args.language,

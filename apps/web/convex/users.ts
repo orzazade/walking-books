@@ -86,8 +86,11 @@ export const update = mutation({
       if (trimmed.length > 100) throw new Error("Name must be 100 characters or less");
       args = { ...args, name: trimmed };
     }
-    if (args.bio !== undefined && args.bio.length > 500)
-      throw new Error("Bio must be 500 characters or less");
+    if (args.bio !== undefined) {
+      const trimmed = args.bio.trim();
+      if (trimmed.length > 500) throw new Error("Bio must be 500 characters or less");
+      args = { ...args, bio: trimmed || undefined };
+    }
     const updates = Object.fromEntries(
       Object.entries(args).filter(([, v]) => v !== undefined),
     );
