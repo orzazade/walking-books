@@ -14,7 +14,8 @@ import { ReviewVoteButtons } from "@/components/review-votes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
-import { CheckCircle, Clock, BookOpen, Heart } from "lucide-react";
+import { CheckCircle, Clock, BookOpen, Heart, Star, Users } from "lucide-react";
+import Link from "next/link";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type Condition, type CopyStatus } from "@/convex/lib/validators";
 
 const COPY_STATUS_COLOR: Record<string, string> = {
@@ -30,6 +31,7 @@ export default function BookDetailPage() {
   const copies = useQuery(api.copies.byBook, { bookId });
   const reviews = useQuery(api.reviews.byBook, { bookId });
   const activeReservations = useQuery(api.reservations.active);
+  const similarBooks = useQuery(api.recommendations.forBook, { bookId });
   const isWishlisted = useQuery(api.wishlist.isWishlisted, { bookId });
   const toggleWishlist = useMutation(api.wishlist.toggle);
   const createReview = useMutation(api.reviews.create);
@@ -315,6 +317,78 @@ export default function BookDetailPage() {
           </div>
         )}
       </section>
+
+      {/* Readers Also Enjoyed */}
+      {similarBooks && similarBooks.length > 0 && (
+        <>
+          <div className="editorial-divider my-10">
+            <div className="botanical-ornament" />
+          </div>
+
+          <section>
+            <div className="mb-4">
+              <div className="section-kicker mb-2">Discovery</div>
+              <h2 className="font-serif text-[1.25rem] font-semibold">
+                Readers Also Enjoyed
+              </h2>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+              {similarBooks.map((rec) => (
+                <Link
+                  key={rec._id}
+                  href={`/book/${rec._id}`}
+                  className="group block w-36 shrink-0"
+                >
+                  <div className="aspect-[2/3] overflow-hidden rounded-xl border border-border/40 bg-muted transition-all duration-300 group-hover:-translate-y-1 group-hover:border-border group-hover:shadow-md">
+                    {rec.coverImage ? (
+                      <img
+                        src={rec.coverImage}
+                        alt={rec.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted to-secondary">
+                        <div className="font-serif text-2xl text-muted-foreground/40">
+                          W
+                        </div>
+                        <div className="max-w-[80%] text-center text-[0.625rem] text-muted-foreground/50">
+                          {rec.title}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2 space-y-0.5">
+                    <h3 className="line-clamp-2 text-[0.8125rem] font-medium leading-snug">
+                      {rec.title}
+                    </h3>
+                    <p className="text-[0.6875rem] text-muted-foreground">
+                      {rec.author}
+                    </p>
+                    <div className="flex items-center gap-2 text-[0.6875rem] text-muted-foreground">
+                      {rec.avgRating > 0 && (
+                        <span className="flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          {rec.avgRating.toFixed(1)}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-0.5">
+                        <Users className="h-3 w-3" />
+                        {rec.sharedReaders}
+                      </span>
+                    </div>
+                    {rec.availableCopies > 0 && (
+                      <span className="text-[0.625rem] font-medium text-primary">
+                        {rec.availableCopies} available
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Divider */}
       <div className="editorial-divider my-10">
