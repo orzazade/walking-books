@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { getCurrentUser } from "./lib/auth";
 import type { Id } from "./_generated/dataModel";
 
@@ -110,50 +111,50 @@ const ACHIEVEMENTS: AchievementDef[] = [
 ];
 
 async function gatherStats(
-  ctx: { db: { query: (table: string) => any; get: (id: any) => Promise<any> } },
+  ctx: QueryCtx,
   userId: Id<"users">,
 ): Promise<UserStats> {
   const [journeyEntries, copies, reviews, following, collections, goals] =
     await Promise.all([
       ctx.db
         .query("journeyEntries")
-        .withIndex("by_reader", (q: any) => q.eq("readerId", userId))
+        .withIndex("by_reader", (q) => q.eq("readerId", userId))
         .collect(),
       ctx.db
         .query("copies")
-        .withIndex("by_sharer", (q: any) => q.eq("originalSharerId", userId))
+        .withIndex("by_sharer", (q) => q.eq("originalSharerId", userId))
         .collect(),
       ctx.db
         .query("reviews")
-        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
       ctx.db
         .query("follows")
-        .withIndex("by_follower", (q: any) => q.eq("followerId", userId))
+        .withIndex("by_follower", (q) => q.eq("followerId", userId))
         .collect(),
       ctx.db
         .query("collections")
-        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
       ctx.db
         .query("readingGoals")
-        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
     ]);
 
   const completedReads = journeyEntries.filter(
-    (e: any) => e.returnedAt !== undefined,
+    (e) => e.returnedAt !== undefined,
   );
 
   // Genre count from completed reads
-  const copyIds = [...new Set(completedReads.map((e: any) => e.copyId))];
-  const copyDocs = await Promise.all(copyIds.map((id: any) => ctx.db.get(id)));
+  const copyIds = [...new Set(completedReads.map((e) => e.copyId))];
+  const copyDocs = await Promise.all(copyIds.map((id) => ctx.db.get(id)));
   const bookIds = [
     ...new Set(
-      copyDocs.filter((c: any) => c !== null).map((c: any) => c.bookId),
+      copyDocs.filter((c) => c !== null).map((c) => c.bookId),
     ),
   ];
-  const bookDocs = await Promise.all(bookIds.map((id: any) => ctx.db.get(id)));
+  const bookDocs = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
   const genres = new Set<string>();
   for (const book of bookDocs) {
     if (!book) continue;
@@ -164,7 +165,7 @@ async function gatherStats(
 
   // Unique pickup locations
   const locations = new Set(
-    journeyEntries.map((e: any) => e.pickupLocationId),
+    journeyEntries.map((e) => e.pickupLocationId),
   );
 
   // Check if any reading goal is completed
@@ -173,7 +174,7 @@ async function gatherStats(
     const yearStart = new Date(goal.year, 0, 1).getTime();
     const yearEnd = new Date(goal.year + 1, 0, 1).getTime();
     const yearReads = completedReads.filter(
-      (e: any) => e.returnedAt >= yearStart && e.returnedAt < yearEnd,
+      (e) => e.returnedAt! >= yearStart && e.returnedAt! < yearEnd,
     ).length;
     if (yearReads >= goal.targetBooks) {
       goalCompleted = true;
@@ -199,7 +200,7 @@ export const myAchievements = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    const stats = await gatherStats(ctx as any, user._id);
+    const stats = await gatherStats(ctx, user._id);
     return ACHIEVEMENTS.map((a) => ({
       key: a.key,
       name: a.name,
@@ -215,7 +216,7 @@ export const forUser = query({
     const user = await ctx.db.get(args.userId);
     if (!user) return [];
 
-    const stats = await gatherStats(ctx as any, args.userId);
+    const stats = await gatherStats(ctx, args.userId);
     return ACHIEVEMENTS.filter((a) => a.check(stats)).map((a) => ({
       key: a.key,
       name: a.name,
