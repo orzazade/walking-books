@@ -113,6 +113,23 @@ export function Header() {
     );
   }
 
+  function MobileNavLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof BookMarked }) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+          isActive(href)
+            ? "bg-primary/8 text-primary"
+            : "text-foreground hover:bg-muted",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </Link>
+    );
+  }
+
   return (
     <header
       className={cn(
@@ -181,36 +198,12 @@ export function Header() {
         <div className="border-t border-border/40 bg-background/98 px-5 py-5 backdrop-blur-xl md:hidden">
           <nav className="grid gap-1">
             {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
-                  isActive(item.href)
-                    ? "bg-primary/8 text-primary"
-                    : "text-foreground hover:bg-muted",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
+              <MobileNavLink key={item.href} {...item} />
             ))}
             <Authenticated>
               <div className="my-1 border-t border-border/40" />
               {mobileAuthItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
-                    isActive(item.href)
-                      ? "bg-primary/8 text-primary"
-                      : "text-foreground hover:bg-muted",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                <MobileNavLink key={item.href} {...item} />
               ))}
             </Authenticated>
           </nav>
