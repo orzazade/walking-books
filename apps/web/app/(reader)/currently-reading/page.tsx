@@ -43,6 +43,8 @@ function CurrentlyReadingSection() {
   const abandon = useMutation(api.readingProgress.abandon);
   const [updatingId, setUpdatingId] = useState<Id<"copies"> | null>(null);
   const [pageInput, setPageInput] = useState("");
+  const [savingId, setSavingId] = useState<Id<"copies"> | null>(null);
+  const [abandoningId, setAbandoningId] = useState<Id<"copies"> | null>(null);
 
   async function handleUpdate(copyId: Id<"copies">) {
     const page = parseInt(pageInput, 10);
@@ -50,6 +52,7 @@ function CurrentlyReadingSection() {
       toast.error("Enter a valid page number");
       return;
     }
+    setSavingId(copyId);
     try {
       await update({ copyId, currentPage: page });
       toast.success(page > 0 ? "Progress updated!" : "Progress saved!");
@@ -57,15 +60,20 @@ function CurrentlyReadingSection() {
       setPageInput("");
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to update progress"));
+    } finally {
+      setSavingId(null);
     }
   }
 
   async function handleAbandon(copyId: Id<"copies">) {
+    setAbandoningId(copyId);
     try {
       await abandon({ copyId });
       toast.success("Reading marked as abandoned");
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to abandon reading"));
+    } finally {
+      setAbandoningId(null);
     }
   }
 
@@ -168,10 +176,11 @@ function CurrentlyReadingSection() {
                   />
                   <Button
                     size="sm"
+                    disabled={savingId === item.copyId}
                     onClick={() => handleUpdate(item.copyId)}
                     className="rounded-lg text-[0.75rem]"
                   >
-                    Save
+                    {savingId === item.copyId ? "Saving..." : "Save"}
                   </Button>
                   <button
                     onClick={() => { setUpdatingId(null); setPageInput(""); }}
@@ -195,9 +204,10 @@ function CurrentlyReadingSection() {
                   </Button>
                   <button
                     onClick={() => handleAbandon(item.copyId)}
-                    className="text-[0.75rem] text-muted-foreground hover:text-destructive"
+                    disabled={abandoningId === item.copyId}
+                    className="text-[0.75rem] text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
-                    Abandon
+                    {abandoningId === item.copyId ? "..." : "Abandon"}
                   </button>
                 </div>
               )}
