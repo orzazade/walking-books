@@ -1,6 +1,7 @@
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { DAY_MS } from "./lending";
+import { createNotification } from "./notifications";
 
 /** 24-hour window for a notified user to reserve before the slot moves on. */
 const NOTIFICATION_WINDOW_MS = DAY_MS;
@@ -43,6 +44,18 @@ export async function notifyNextWaiter(
     status: "notified",
     notifiedAt: now,
     notifiedCopyId: copyId,
+  });
+
+  // Send in-app notification
+  const book = await ctx.db.get(bookId);
+  const bookTitle = book?.title ?? "a book";
+  await createNotification(ctx, {
+    userId: nextWaiter.userId,
+    type: "waitlist_available",
+    title: "A book you wanted is available!",
+    message: `"${bookTitle}" is now available. You have 24 hours to reserve it.`,
+    relatedBookId: bookId,
+    relatedCopyId: copyId,
   });
 
   return nextWaiter.userId;

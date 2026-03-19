@@ -5,6 +5,7 @@ import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions }
 import { conditionValidator, CONDITION_LABELS, validatePhotos } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { notifyNextWaiter } from "./lib/waitlist";
+import { createNotification } from "./lib/notifications";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -180,6 +181,20 @@ export const pickup = mutation({
       ctx.db.patch(user._id, { booksRead: user.booksRead + 1 }),
     ]);
 
+    // Notify the sharer that their book was picked up
+    if (copy.originalSharerId !== user._id) {
+      const bookTitle = book?.title ?? "a book";
+      await createNotification(ctx, {
+        userId: copy.originalSharerId,
+        type: "book_picked_up",
+        title: "Your book was picked up",
+        message: `${user.name} picked up "${bookTitle}"`,
+        relatedBookId: copy.bookId,
+        relatedCopyId: args.copyId,
+        relatedLocationId: args.locationId,
+      });
+    }
+
     return { success: true };
   },
 });
@@ -286,6 +301,21 @@ export const returnCopy = mutation({
     }
     await Promise.all(secondaryOps);
 
+    // Notify the sharer that their book was returned
+    if (copy.originalSharerId !== user._id) {
+      const book = await ctx.db.get(copy.bookId);
+      const bookTitle = book?.title ?? "a book";
+      await createNotification(ctx, {
+        userId: copy.originalSharerId,
+        type: "book_returned",
+        title: "Your book was returned",
+        message: `${user.name} returned "${bookTitle}" to ${location.name}`,
+        relatedBookId: copy.bookId,
+        relatedCopyId: args.copyId,
+        relatedLocationId: args.locationId,
+      });
+    }
+
     return { success: true, reputationChange: repChange };
   },
 });
@@ -314,6 +344,20 @@ export const recall = mutation({
       });
     } else {
       throw new Error(`Cannot recall copy — status is currently "${copy.status}"`);
+    }
+
+    // Notify the current holder that the book was recalled
+    if (copy.currentHolderId && copy.currentHolderId !== user._id) {
+      const book = await ctx.db.get(copy.bookId);
+      const bookTitle = book?.title ?? "a book";
+      await createNotification(ctx, {
+        userId: copy.currentHolderId,
+        type: "book_recalled",
+        title: "Book recalled by owner",
+        message: `The owner has recalled "${bookTitle}". Please return it within ${RECALL_GRACE_DAYS} days.`,
+        relatedBookId: copy.bookId,
+        relatedCopyId: args.copyId,
+      });
     }
 
     return { success: true };

@@ -19,9 +19,12 @@ import {
   Rss,
   HandHeart,
   BookOpen,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -40,6 +43,30 @@ const AUTH_ITEMS = [
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/share", label: "Share", icon: Share2 },
 ] as const;
+
+function NotificationBell() {
+  const unreadCount = useQuery(api.userNotifications.unreadCount);
+  const pathname = usePathname();
+  const active = pathname === "/notifications";
+
+  return (
+    <Link
+      href="/notifications"
+      className={cn(
+        "relative flex items-center gap-1.5 rounded-lg px-2 py-2 text-[0.8125rem] font-medium transition-colors",
+        active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+      )}
+      title="Notifications"
+    >
+      <Bell className="h-4 w-4" />
+      {unreadCount !== undefined && unreadCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] font-bold text-primary-foreground">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -60,7 +87,7 @@ export function Header() {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  const mobileItems = [...NAV_ITEMS, ...AUTH_ITEMS];
+  const mobileItems = [...NAV_ITEMS, ...AUTH_ITEMS, { href: "/notifications", label: "Notifications", icon: Bell }];
 
   function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof BookMarked }) {
     return (
@@ -113,6 +140,7 @@ export function Header() {
             {AUTH_ITEMS.map((item) => (
               <NavLink key={item.href} {...item} />
             ))}
+            <NotificationBell />
             <div className="ml-2">
               <UserButton />
             </div>

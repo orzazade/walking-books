@@ -93,6 +93,44 @@ export const readingProgressStatusValidator = v.union(
   v.literal("abandoned"),
 );
 
+export type NotificationType =
+  | "reservation_confirmed"
+  | "reservation_expired"
+  | "book_picked_up"
+  | "book_returned"
+  | "book_recalled"
+  | "waitlist_notified"
+  | "waitlist_available"
+  | "reputation_milestone"
+  | "achievement_unlocked"
+  | "book_request_fulfilled";
+
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  reservation_confirmed: "Reservation Confirmed",
+  reservation_expired: "Reservation Expired",
+  book_picked_up: "Book Picked Up",
+  book_returned: "Book Returned",
+  book_recalled: "Book Recalled",
+  waitlist_notified: "Waitlist Update",
+  waitlist_available: "Book Available",
+  reputation_milestone: "Reputation Milestone",
+  achievement_unlocked: "Achievement Unlocked",
+  book_request_fulfilled: "Request Fulfilled",
+};
+
+export const notificationTypeValidator = v.union(
+  v.literal("reservation_confirmed"),
+  v.literal("reservation_expired"),
+  v.literal("book_picked_up"),
+  v.literal("book_returned"),
+  v.literal("book_recalled"),
+  v.literal("waitlist_notified"),
+  v.literal("waitlist_available"),
+  v.literal("reputation_milestone"),
+  v.literal("achievement_unlocked"),
+  v.literal("book_request_fulfilled"),
+);
+
 export type BookRequestStatus = "open" | "fulfilled" | "cancelled";
 
 export const bookRequestStatusValidator = v.union(

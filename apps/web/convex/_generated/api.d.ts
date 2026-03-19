@@ -41,6 +41,7 @@ import type * as sharerActivity from "../sharerActivity.js";
 import type * as sharerStats from "../sharerStats.js";
 import type * as suggestedFollows from "../suggestedFollows.js";
 import type * as trendingBooks from "../trendingBooks.js";
+import type * as userNotifications from "../userNotifications.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 import type * as wishlist from "../wishlist.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   sharerStats: typeof sharerStats;
   suggestedFollows: typeof suggestedFollows;
   trendingBooks: typeof trendingBooks;
+  userNotifications: typeof userNotifications;
   users: typeof users;
   waitlist: typeof waitlist;
   wishlist: typeof wishlist;

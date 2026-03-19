@@ -5,6 +5,7 @@ import { REPUTATION, clampScore, getUserRestrictions } from "./lib/reputation";
 import { HOUR_MS, RESERVATION_EXPIRY_HOURS } from "./lib/lending";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { notifyNextWaiter } from "./lib/waitlist";
+import { createNotification } from "./lib/notifications";
 
 export const active = query({
   args: {},
@@ -83,6 +84,19 @@ export const create = mutation({
     // Set copy to reserved
     await ctx.db.patch(args.copyId, { status: "reserved" });
 
+    // Notify user that reservation is confirmed
+    const book = await ctx.db.get(copy.bookId);
+    const bookTitle = book?.title ?? "a book";
+    await createNotification(ctx, {
+      userId: user._id,
+      type: "reservation_confirmed",
+      title: "Reservation confirmed",
+      message: `Your reservation for "${bookTitle}" at ${location.name} expires in ${RESERVATION_EXPIRY_HOURS} hours.`,
+      relatedBookId: copy.bookId,
+      relatedCopyId: args.copyId,
+      relatedLocationId: args.locationId,
+    });
+
     return { reservationId, expiresAt };
   },
 });
@@ -157,6 +171,23 @@ export const expireStale = internalMutation({
     // Notify waitlist for each released copy
     for (const { bookId, copyId } of releasedCopies) {
       await notifyNextWaiter(ctx, bookId, copyId, now);
+    }
+
+    // Notify users that their reservations expired
+    for (const reservation of staleReservations) {
+      const copy = await ctx.db.get(reservation.copyId);
+      if (copy) {
+        const book = await ctx.db.get(copy.bookId);
+        const bookTitle = book?.title ?? "a book";
+        await createNotification(ctx, {
+          userId: reservation.userId,
+          type: "reservation_expired",
+          title: "Reservation expired",
+          message: `Your reservation for "${bookTitle}" has expired. You can reserve again or join the waitlist.`,
+          relatedBookId: copy.bookId,
+          relatedCopyId: reservation.copyId,
+        });
+      }
     }
 
     // Group penalties by user and apply cumulative no-show penalties
