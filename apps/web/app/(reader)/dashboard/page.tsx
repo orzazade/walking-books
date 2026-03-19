@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useConvexAuth, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { type CopyStatus, CONDITION_LABELS, COPY_STATUS_LABELS, type Condition } from "@/convex/lib/validators";
+import { CONDITION_LABELS, type Condition } from "@/convex/lib/validators";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { ReturnDialog } from "@/components/return-dialog";
 import { getErrorMessage, formatDate } from "@/lib/utils";
@@ -13,11 +13,11 @@ import { ReservationTimer } from "@/components/reservation-timer";
 import { ReadingInsightsWidget } from "@/components/reading-insights-widget";
 import { WishlistAlertsSection } from "@/components/wishlist-alerts-section";
 import { WaitlistPreviewSection } from "@/components/waitlist-preview-section";
+import { SharedCopiesSection } from "@/components/shared-copies-section";
 import {
   BookOpen,
   Clock,
   Share2,
-  RotateCcw,
   Award,
   ArrowUpRight,
   X,
@@ -35,11 +35,8 @@ function DashboardContent() {
   const readingStats = useQuery(api.readingStats.getStats, isAuthenticated ? {} : "skip");
   const heldCopies = useQuery(api.copies.byHolder, isAuthenticated ? {} : "skip");
   const activeReservations = useQuery(api.reservations.active, isAuthenticated ? {} : "skip");
-  const sharedCopies = useQuery(api.copies.bySharer, isAuthenticated ? {} : "skip");
-
   const extendCopy = useMutation(api.copies.extend);
   const cancelReservation = useMutation(api.reservations.cancel);
-  const recallCopy = useMutation(api.copies.recall);
   const pickupCopy = useMutation(api.copies.pickup);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -287,71 +284,7 @@ function DashboardContent() {
       <WaitlistPreviewSection />
 
       {/* Books I've Shared */}
-      <section className="mt-8">
-        <h2 className="mb-3 flex items-center gap-2 font-serif text-[1.125rem] font-semibold">
-          <Share2 className="h-4.5 w-4.5 text-primary" />
-          Books I&apos;ve Shared
-        </h2>
-        {sharedCopies === undefined ? (
-          <div className="animate-shimmer h-4 w-40 rounded-md bg-muted" />
-        ) : sharedCopies.length === 0 ? (
-          <div className="rounded-xl border border-border/40 bg-card/60 p-5 text-center text-[0.8125rem] text-muted-foreground">
-            You haven&apos;t shared any books yet.{" "}
-            <Link href="/share" className="font-medium text-primary underline underline-offset-2">
-              Share a book
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {sharedCopies.map((copy) => (
-              <div
-                key={copy._id}
-                className="book-spine flex items-center justify-between rounded-xl border border-border/40 bg-card/60 p-4 pl-5"
-              >
-                <div>
-                  <Link
-                    href={`/copy/${copy._id}`}
-                    className="text-[0.875rem] font-medium hover:underline"
-                  >
-                    Copy #{copy._id.slice(-6)}
-                  </Link>
-                  <p className="text-[0.75rem] capitalize text-muted-foreground">
-                    {copy.ownershipType}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={
-                      copy.status === "available" ? "default" : "secondary"
-                    }
-                    className="text-[0.6875rem]"
-                  >
-                    {COPY_STATUS_LABELS[copy.status as CopyStatus]}
-                  </Badge>
-                  {copy.ownershipType === "lent" &&
-                    (copy.status === "available" ||
-                      copy.status === "checked_out") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 rounded-lg text-[0.75rem]"
-                        disabled={actionLoading === `recall-${copy._id}`}
-                        onClick={() =>
-                          handleAction(`recall-${copy._id}`, async () => {
-                            await recallCopy({ copyId: copy._id });
-                            toast.success("Copy recall initiated.");
-                          })
-                        }
-                      >
-                        <RotateCcw className="mr-1 h-3 w-3" /> Recall
-                      </Button>
-                    )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <SharedCopiesSection />
 
       {/* Return Dialog */}
       <ReturnDialog copyId={returnCopyId} onClose={() => setReturnCopyId(null)} />
