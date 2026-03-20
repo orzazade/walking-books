@@ -827,4 +827,38 @@ describe("collections.byUser", () => {
       authed.mutation(api.collections.addBook, { collectionId, bookId }),
     ).rejects.toThrow("Maximum 500 books per collection");
   });
+
+  it("remove cleans up collection follows (no orphaned records)", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId } = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert("users", makeUser());
+      const followerId = await ctx.db.insert("users", makeUser({ clerkId: "follower_coll", phone: "+9999999999" }));
+      const collId = await ctx.db.insert("collections", {
+        name: "To Delete",
+        description: "",
+        isPublic: true,
+        userId: ownerId,
+        createdAt: Date.now(),
+      });
+      // Add a follower to this collection
+      await ctx.db.insert("collectionFollows", {
+        followerId,
+        collectionId: collId,
+        followedAt: Date.now(),
+      });
+      return { collectionId: collId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await authed.mutation(api.collections.remove, { collectionId });
+
+    // Verify no orphaned collectionFollows remain
+    const orphanedFollows = await t.run(async (ctx) =>
+      ctx.db.query("collectionFollows")
+        .withIndex("by_collection", (q) => q.eq("collectionId", collectionId))
+        .collect(),
+    );
+    expect(orphanedFollows).toHaveLength(0);
+  });
 });

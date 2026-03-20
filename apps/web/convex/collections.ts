@@ -55,12 +55,21 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireCollectionOwner(ctx, args.collectionId);
 
-    // Delete all items in the collection
-    const items = await ctx.db
-      .query("collectionItems")
-      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
-    await Promise.all(items.map((item) => ctx.db.delete(item._id)));
+    // Delete all items and follows in the collection
+    const [items, follows] = await Promise.all([
+      ctx.db
+        .query("collectionItems")
+        .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
+        .collect(),
+      ctx.db
+        .query("collectionFollows")
+        .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
+        .collect(),
+    ]);
+    await Promise.all([
+      ...items.map((item) => ctx.db.delete(item._id)),
+      ...follows.map((f) => ctx.db.delete(f._id)),
+    ]);
     await ctx.db.delete(args.collectionId);
   },
 });
