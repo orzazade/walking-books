@@ -170,3 +170,31 @@ describe("users.updateRoles", () => {
     ).rejects.toThrow("At least one role required");
   });
 });
+
+describe("users.update field limits", () => {
+  it("rejects name over 100 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_name_limit" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_name_limit" });
+    await expect(
+      authed.mutation(api.users.update, { name: "A".repeat(101) }),
+    ).rejects.toThrow("Name must be 100 characters or less");
+  });
+
+  it("rejects bio over 500 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_bio_limit" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_bio_limit" });
+    await expect(
+      authed.mutation(api.users.update, { bio: "B".repeat(501) }),
+    ).rejects.toThrow("Bio must be 500 characters or less");
+  });
+});
