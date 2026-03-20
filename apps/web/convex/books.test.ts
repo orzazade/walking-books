@@ -891,4 +891,30 @@ describe("books.nearMe", () => {
     expect(notifications[0].message).toContain("walking guide");
     expect(notifications[0].message).toContain("Test Location");
   });
+
+  it("register creates initial condition report for the new copy", async () => {
+    const t = convexTest(schema, modules);
+    const { locationId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(uId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    const result = await authed.mutation(api.books.register, {
+      title: "Condition Book", author: "Author", coverImage: "https://example.com/c.jpg",
+      description: "A book", categories: ["fiction"], pageCount: 200, language: "English",
+      ownershipType: "donated", condition: "fair", locationId,
+    });
+
+    const reports = await t.run(async (ctx) =>
+      ctx.db.query("conditionReports")
+        .filter((q) => q.eq(q.field("copyId"), result.copyId))
+        .collect(),
+    );
+    expect(reports).toHaveLength(1);
+    expect(reports[0].type).toBe("pickup_check");
+    expect(reports[0].newCondition).toBe("fair");
+    expect(reports[0].description).toContain("Initial condition");
+  });
 });
