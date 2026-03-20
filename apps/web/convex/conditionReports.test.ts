@@ -477,4 +477,61 @@ describe("conditionReports", () => {
       }),
     ).rejects.toThrow("Description must be 2000 characters or less");
   });
+
+  it("byLocation returns reports for copies at a specific location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", {
+        clerkId: "user_cr_byloc", phone: "+1234567898", name: "Sharer",
+        roles: ["reader"], status: "active", reputationScore: 50, booksShared: 1, booksRead: 0, favoriteGenres: [],
+      });
+      const bookId = await ctx.db.insert("books", {
+        title: "Located Book", author: "Author", coverImage: "", description: "",
+        categories: [], pageCount: 100, language: "English", avgRating: 0, reviewCount: 0,
+      });
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Report Cafe", address: "1 Main", lat: 0, lng: 0,
+        contactPhone: "+1000000000", operatingHours: {}, photos: [],
+        shelfCapacity: 50, currentBookCount: 1,
+        managedByUserId: sharerId as unknown as string,
+        staffUserIds: [], avgRating: 0, reviewCount: 0,
+      });
+      const copyId = await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("conditionReports", {
+        copyId, reportedByUserId: sharerId, type: "pickup_check",
+        photos: [], description: "Initial check", previousCondition: "good",
+        newCondition: "good", createdAt: Date.now(),
+      });
+      return { locationId: locId };
+    });
+
+    const reports = await t.query(api.conditionReports.byLocation, { locationId });
+    expect(reports).toHaveLength(1);
+    expect(reports[0].description).toBe("Initial check");
+  });
+
+  it("listAll returns empty for non-admin users", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "user_cr_nonadmin", phone: "+1234567899", name: "Reader",
+        roles: ["reader"], status: "active", reputationScore: 50, booksShared: 0, booksRead: 0, favoriteGenres: [],
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_cr_nonadmin" });
+    const result = await authed.query(api.conditionReports.listAll, {});
+    expect(result).toEqual([]);
+  });
+
+  it("listAll returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.conditionReports.listAll, {});
+    expect(result).toEqual([]);
+  });
 });
