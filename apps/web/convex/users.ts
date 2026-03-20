@@ -99,6 +99,8 @@ export const update = mutation({
     if (args.avatarUrl !== undefined) {
       if (args.avatarUrl.length > 2000)
         throw new Error("Avatar URL must be 2000 characters or less");
+      if (args.avatarUrl && !/^https?:\/\/.+/i.test(args.avatarUrl))
+        throw new Error("Avatar URL must start with http:// or https://");
       updates.avatarUrl = args.avatarUrl;
     }
     if (args.favoriteGenres !== undefined) {
