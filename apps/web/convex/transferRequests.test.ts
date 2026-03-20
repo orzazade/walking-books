@@ -262,6 +262,104 @@ describe("transferRequests", () => {
     expect(bReq!.status).toBe("rejected");
   });
 
+  it("partner can reject a transfer request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, toLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111", name: "Manager" }));
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", {
+        title: "Reject Book",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: [],
+        pageCount: 100,
+        language: "en",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Other Cafe",
+        contactPhone: "+3000000000",
+        currentBookCount: 0,
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "available" as const,
+        condition: "good" as const,
+        ownershipType: "donated" as const,
+        originalSharerId: managerId,
+        currentLocationId: fromId,
+        qrCodeUrl: "https://example.com/qr",
+      });
+      return { copyId: cId, toLocId: toId };
+    });
+
+    const reader = t.withIdentity({ subject: "user_tr1" });
+    const requestId = await reader.mutation(api.transferRequests.create, { copyId, toLocationId: toLocId });
+
+    // Partner rejects the request
+    const manager = t.withIdentity({ subject: "manager1" });
+    await manager.mutation(api.transferRequests.reject, { requestId });
+
+    // Verify request is rejected
+    const myReqs = await reader.query(api.transferRequests.myRequests);
+    expect(myReqs).toHaveLength(1);
+    expect(myReqs[0].status).toBe("rejected");
+
+    // No pending request for this copy anymore
+    const pending = await reader.query(api.transferRequests.pendingForCopy, { copyId });
+    expect(pending).toBeNull();
+  });
+
+  it("non-staff cannot reject a transfer request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, toLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111", name: "Manager" }));
+      await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("users", makeUser({ clerkId: "random_user", phone: "+4444444444", name: "Random" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Auth Book",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: [],
+        pageCount: 100,
+        language: "en",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Other Cafe",
+        contactPhone: "+3000000000",
+        currentBookCount: 0,
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "available" as const,
+        condition: "good" as const,
+        ownershipType: "donated" as const,
+        originalSharerId: managerId,
+        currentLocationId: fromId,
+        qrCodeUrl: "https://example.com/qr",
+      });
+      return { copyId: cId, toLocId: toId };
+    });
+
+    const reader = t.withIdentity({ subject: "user_tr1" });
+    const requestId = await reader.mutation(api.transferRequests.create, { copyId, toLocationId: toLocId });
+
+    // Non-staff user tries to reject
+    const randomUser = t.withIdentity({ subject: "random_user" });
+    await expect(
+      randomUser.mutation(api.transferRequests.reject, { requestId }),
+    ).rejects.toThrow("Only location staff can reject transfer requests");
+  });
+
   it("myRequests returns empty array for user with no requests", async () => {
     const t = convexTest(schema, modules);
 
