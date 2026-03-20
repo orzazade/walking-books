@@ -157,6 +157,82 @@ export const bySharer = query({
   },
 });
 
+export const bySharerEnriched = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_sharer", (q) => q.eq("originalSharerId", user._id))
+      .collect();
+
+    if (copies.length === 0) return [];
+
+    // Batch-fetch books
+    const bookIds = [...new Set(copies.map((c) => c.bookId))];
+    const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
+    const bookMap = new Map(
+      books
+        .filter((b) => b !== null)
+        .map((b) => [b._id, { title: b.title, author: b.author, coverImage: b.coverImage ?? null }]),
+    );
+
+    // Batch-fetch locations
+    const locationIds = [
+      ...new Set(
+        copies
+          .map((c) => c.currentLocationId)
+          .filter((id): id is NonNullable<typeof id> => id !== undefined),
+      ),
+    ];
+    const locations = await Promise.all(locationIds.map((id) => ctx.db.get(id)));
+    const locationMap = new Map(
+      locations
+        .filter((l) => l !== null)
+        .map((l) => [l._id, { name: l.name, address: l.address }]),
+    );
+
+    // Batch-fetch current holders
+    const holderIds = [
+      ...new Set(
+        copies
+          .map((c) => c.currentHolderId)
+          .filter((id): id is NonNullable<typeof id> => id !== undefined),
+      ),
+    ];
+    const holders = await Promise.all(holderIds.map((id) => ctx.db.get(id)));
+    const holderMap = new Map(
+      holders
+        .filter((h) => h !== null)
+        .map((h) => [h._id, { name: h.name, avatarUrl: h.avatarUrl ?? null }]),
+    );
+
+    return copies.map((copy) => {
+      const book = bookMap.get(copy.bookId);
+      return {
+        ...copy,
+        bookTitle: book?.title ?? "Unknown Book",
+        bookAuthor: book?.author ?? "Unknown Author",
+        coverImage: book?.coverImage ?? null,
+        locationName: copy.currentLocationId
+          ? locationMap.get(copy.currentLocationId)?.name ?? null
+          : null,
+        locationAddress: copy.currentLocationId
+          ? locationMap.get(copy.currentLocationId)?.address ?? null
+          : null,
+        holderName: copy.currentHolderId
+          ? holderMap.get(copy.currentHolderId)?.name ?? null
+          : null,
+        holderAvatar: copy.currentHolderId
+          ? holderMap.get(copy.currentHolderId)?.avatarUrl ?? null
+          : null,
+      };
+    });
+  },
+});
+
 export const pickup = mutation({
   args: {
     copyId: v.id("copies"),

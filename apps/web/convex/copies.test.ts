@@ -312,3 +312,62 @@ describe("copies.byBookEnriched", () => {
   });
 
 });
+
+describe("copies.bySharerEnriched", () => {
+  it("returns copies enriched with book, location, and holder details", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_sharer_enr" }));
+    });
+    const holderId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_holder_enr", name: "Jane Reader", avatarUrl: "https://example.com/avatar.jpg" }),
+      );
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId, { name: "Cafe Bookshelf", address: "42 Oak Ave" }));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook({ title: "Shared Novel", author: "Alice Writer" }));
+    });
+    // Available copy at location
+    await t.run(async (ctx) => {
+      await ctx.db.insert("copies", makeCopy(bookId, locId, sharerId));
+    });
+    // Checked-out copy with holder
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, { status: "checked_out", currentHolderId: holderId }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_sharer_enr" });
+    const result = await authed.query(api.copies.bySharerEnriched, {});
+
+    expect(result).toHaveLength(2);
+    // Both copies should have enriched book info
+    expect(result[0].bookTitle).toBe("Shared Novel");
+    expect(result[0].bookAuthor).toBe("Alice Writer");
+    expect(result[0].locationName).toBe("Cafe Bookshelf");
+    expect(result[0].locationAddress).toBe("42 Oak Ave");
+
+    // Find the checked-out copy and verify holder enrichment
+    const checkedOut = result.find((c) => c.status === "checked_out");
+    expect(checkedOut).toBeDefined();
+    expect(checkedOut!.holderName).toBe("Jane Reader");
+    expect(checkedOut!.holderAvatar).toBe("https://example.com/avatar.jpg");
+  });
+
+  it("returns empty array for user with no shared copies", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_no_copies" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_no_copies" });
+    const result = await authed.query(api.copies.bySharerEnriched, {});
+    expect(result).toEqual([]);
+  });
+});

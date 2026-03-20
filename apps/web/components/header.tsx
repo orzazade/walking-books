@@ -20,6 +20,7 @@ import {
   Rss,
   HandHeart,
   BookOpen,
+  BookCopy,
   Bell,
   Sparkles,
   Users,
@@ -56,6 +57,7 @@ const AUTH_ITEMS = [
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/waitlist", label: "Waitlist", icon: Clock },
   { href: "/share", label: "Share", icon: Share2 },
+  { href: "/my-books", label: "My Books", icon: BookCopy },
   { href: "/reading-stats", label: "Stats", icon: BarChart3 },
 ] as const;
 
