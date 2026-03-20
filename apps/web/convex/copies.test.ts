@@ -207,3 +207,83 @@ describe("copies.byLocationWithBooks", () => {
     expect(result[0].book._id).toBe(result[1].book._id);
   });
 });
+
+describe("copies.byBookEnriched", () => {
+  it("returns copies enriched with location name and address", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser());
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId, { name: "Sunrise Cafe", address: "42 Oak Lane" }),
+      );
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("copies", makeCopy(bookId, locId, userId));
+    });
+
+    const result = await t.query(api.copies.byBookEnriched, { bookId });
+    expect(result).toHaveLength(1);
+    expect(result[0].location).toEqual({
+      name: "Sunrise Cafe",
+      address: "42 Oak Lane",
+    });
+  });
+
+  it("returns null location for copies without a currentLocationId", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser());
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(userId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, userId, {
+          currentLocationId: undefined,
+          status: "checked_out",
+        }),
+      );
+    });
+
+    const result = await t.query(api.copies.byBookEnriched, { bookId });
+    expect(result).toHaveLength(1);
+    expect(result[0].location).toBeNull();
+  });
+
+  it("deduplicates location fetches for copies at the same location", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser());
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId, { name: "Hub Library" }),
+      );
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("copies", makeCopy(bookId, locId, userId));
+      await ctx.db.insert("copies", makeCopy(bookId, locId, userId));
+    });
+
+    const result = await t.query(api.copies.byBookEnriched, { bookId });
+    expect(result).toHaveLength(2);
+    expect(result[0].location?.name).toBe("Hub Library");
+    expect(result[1].location?.name).toBe("Hub Library");
+  });
+
+});

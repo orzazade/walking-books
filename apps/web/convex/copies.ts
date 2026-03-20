@@ -19,6 +19,42 @@ export const byBook = query({
   },
 });
 
+export const byBookEnriched = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const copies = await ctx.db
+      .query("copies")
+      .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+      .collect();
+
+    if (copies.length === 0) return [];
+
+    // Deduplicate locationIds and batch-fetch locations
+    const locationIds = [
+      ...new Set(
+        copies
+          .map((c) => c.currentLocationId)
+          .filter((id): id is NonNullable<typeof id> => id !== undefined),
+      ),
+    ];
+    const locations = await Promise.all(
+      locationIds.map((id) => ctx.db.get(id)),
+    );
+    const locationMap = new Map(
+      locations
+        .filter((l) => l !== null)
+        .map((l) => [l._id, { name: l.name, address: l.address }]),
+    );
+
+    return copies.map((copy) => ({
+      ...copy,
+      location: copy.currentLocationId
+        ? locationMap.get(copy.currentLocationId) ?? null
+        : null,
+    }));
+  },
+});
+
 export const byId = query({
   args: { copyId: v.id("copies") },
   handler: async (ctx, args) => {

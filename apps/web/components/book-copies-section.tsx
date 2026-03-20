@@ -9,8 +9,9 @@ import { getErrorMessage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReservationTimer } from "@/components/reservation-timer";
-import { CheckCircle, Clock } from "lucide-react";
+import { CheckCircle, Clock, MapPin, History } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const COPY_STATUS_COLOR: Record<string, string> = {
   available: "bg-primary/10 text-primary border-primary/20",
@@ -18,7 +19,7 @@ const COPY_STATUS_COLOR: Record<string, string> = {
 };
 
 export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
-  const copies = useQuery(api.copies.byBook, { bookId });
+  const copies = useQuery(api.copies.byBookEnriched, { bookId });
   const activeReservations = useQuery(api.reservations.active);
   const createReservation = useMutation(api.reservations.create);
 
@@ -91,15 +92,34 @@ export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
                         {CONDITION_LABELS[copy.condition as Condition]}
                       </Badge>
                     </div>
-                    <p className="text-[0.75rem] text-muted-foreground">
-                      {copy.currentLocationId
-                        ? "At partner location"
-                        : "In transit"}
-                    </p>
+                    <div className="flex items-center gap-1.5 text-[0.75rem] text-muted-foreground">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {copy.location ? (
+                        <span>{copy.location.name}</span>
+                      ) : copy.currentLocationId ? (
+                        <span>At partner location</span>
+                      ) : (
+                        <span>In transit</span>
+                      )}
+                    </div>
+                    {copy.location?.address && (
+                      <p className="pl-[1.125rem] text-[0.6875rem] text-muted-foreground/70">
+                        {copy.location.address}
+                      </p>
+                    )}
                   </div>
 
-                  <Authenticated>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/copy/${copy._id}`}
+                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[0.6875rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      title="View condition history"
+                    >
+                      <History className="h-3 w-3" />
+                      <span className="hidden sm:inline">History</span>
+                    </Link>
+
+                    <Authenticated>
                       {isJustReserved ? (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-primary" />
@@ -141,8 +161,8 @@ export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
                           Available for pickup
                         </span>
                       ) : null}
-                    </div>
-                  </Authenticated>
+                    </Authenticated>
+                  </div>
                 </div>
               </div>
             );
