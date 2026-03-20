@@ -46,7 +46,10 @@ export const create = mutation({
     if (existing)
       throw new Error("You already have a pending transfer request for this copy");
 
-    if (args.note && args.note.length > 500)
+    const trimmedNote = args.note?.trim();
+    if (trimmedNote !== undefined && trimmedNote.length === 0)
+      throw new Error("Note cannot be empty");
+    if (trimmedNote && trimmedNote.length > 500)
       throw new Error("Note must be 500 characters or less");
 
     return await ctx.db.insert("transferRequests", {
@@ -56,7 +59,7 @@ export const create = mutation({
       fromLocationId: copy.currentLocationId,
       toLocationId: args.toLocationId,
       status: "pending",
-      note: args.note,
+      note: trimmedNote,
       createdAt: Date.now(),
     });
   },

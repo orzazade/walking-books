@@ -360,6 +360,51 @@ describe("transferRequests", () => {
     ).rejects.toThrow("Only location staff can reject transfer requests");
   });
 
+  it("rejects whitespace-only note", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, toLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", {
+        title: "Note Book",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: [],
+        pageCount: 100,
+        language: "en",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Other Cafe",
+        contactPhone: "+3000000000",
+        currentBookCount: 0,
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "available" as const,
+        condition: "good" as const,
+        ownershipType: "donated" as const,
+        originalSharerId: managerId,
+        currentLocationId: fromId,
+        qrCodeUrl: "https://example.com/qr",
+      });
+      return { copyId: cId, toLocId: toId };
+    });
+
+    const reader = t.withIdentity({ subject: "user_tr1" });
+    await expect(
+      reader.mutation(api.transferRequests.create, {
+        copyId,
+        toLocationId: toLocId,
+        note: "   ",
+      }),
+    ).rejects.toThrow("Note cannot be empty");
+  });
+
   it("myRequests returns empty array for user with no requests", async () => {
     const t = convexTest(schema, modules);
 
