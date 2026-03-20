@@ -34,6 +34,17 @@ export const listAll = query({
   },
 });
 
+export const byCopy = query({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("conditionReports")
+      .withIndex("by_copy", (q) => q.eq("copyId", args.copyId))
+      .collect()
+      .then((reports) => reports.sort((a, b) => b.createdAt - a.createdAt));
+  },
+});
+
 export const create = mutation({
   args: {
     copyId: v.id("copies"),

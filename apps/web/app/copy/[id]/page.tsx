@@ -8,6 +8,7 @@ import { type Id } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CopyJourney } from "@/components/copy-journey";
+import { ConditionTimeline } from "@/components/condition-timeline";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus } from "@/convex/lib/validators";
 
 const STATUS_COLOR: Record<CopyStatus, string> = {
@@ -25,6 +26,7 @@ export default function CopyDetailPage() {
 
   const copy = useQuery(api.copies.byId, { copyId });
   const journey = useQuery(api.copies.journey, { copyId });
+  const conditionReports = useQuery(api.conditionReports.byCopy, { copyId });
   const book = useQuery(
     api.books.byId,
     copy?.bookId ? { bookId: copy.bookId } : "skip",
@@ -61,7 +63,7 @@ export default function CopyDetailPage() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold">Copy Details</h1>
+        <h1 className="text-2xl font-bold font-serif">Copy Details</h1>
 
         <div className="flex flex-wrap gap-2">
           <Badge className={STATUS_COLOR[copy.status]}>
@@ -77,7 +79,18 @@ export default function CopyDetailPage() {
       <Separator className="my-8" />
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Journey Timeline</h2>
+        <h2 className="mb-4 text-xl font-semibold font-serif">Condition History</h2>
+        {conditionReports === undefined ? (
+          <p className="text-muted-foreground">Loading condition history...</p>
+        ) : (
+          <ConditionTimeline reports={conditionReports} />
+        )}
+      </section>
+
+      <Separator className="my-8" />
+
+      <section>
+        <h2 className="mb-4 text-xl font-semibold font-serif">Journey Timeline</h2>
         {journey === undefined ? (
           <p className="text-muted-foreground">Loading journey...</p>
         ) : (
