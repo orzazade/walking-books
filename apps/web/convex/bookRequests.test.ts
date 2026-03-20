@@ -521,6 +521,50 @@ describe("bookRequests", () => {
     ).rejects.toThrow("Request is not open");
   });
 
+  it("fulfill rejects nonexistent request", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeRequestId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const userId = (await ctx.db.query("users").first())!._id;
+      const reqId = await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Ghost Request",
+        status: "open" as const,
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(reqId);
+      return reqId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.fulfill, { requestId: fakeRequestId }),
+    ).rejects.toThrow("Request not found");
+  });
+
+  it("cancel rejects nonexistent request", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeRequestId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const userId = (await ctx.db.query("users").first())!._id;
+      const reqId = await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Ghost Request",
+        status: "open" as const,
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(reqId);
+      return reqId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.cancel, { requestId: fakeRequestId }),
+    ).rejects.toThrow("Request not found");
+  });
+
   it("create rejects title over 300 characters", async () => {
     const t = convexTest(schema, modules);
 
