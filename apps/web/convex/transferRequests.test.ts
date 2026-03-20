@@ -209,6 +209,59 @@ describe("transferRequests", () => {
     expect(myReqs[0].bookTitle).toBe("Cancel Book");
   });
 
+  it("accepting a transfer auto-rejects other pending requests for the same copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, fromLocId, toLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111", name: "Manager" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_a", phone: "+2222222222", name: "Reader A" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_b", phone: "+3333333333", name: "Reader B" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Contested Book",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: [],
+        pageCount: 100,
+        language: "en",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, { name: "Source" }));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Dest A",
+        contactPhone: "+4000000000",
+        currentBookCount: 0,
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "available" as const,
+        condition: "good" as const,
+        ownershipType: "donated" as const,
+        originalSharerId: managerId,
+        currentLocationId: fromId,
+        qrCodeUrl: "https://example.com/qr",
+      });
+      return { copyId: cId, fromLocId: fromId, toLocId: toId };
+    });
+
+    // Two different readers request the same copy
+    const readerA = t.withIdentity({ subject: "reader_a" });
+    const readerB = t.withIdentity({ subject: "reader_b" });
+    const reqA = await readerA.mutation(api.transferRequests.create, { copyId, toLocationId: toLocId });
+    const reqB = await readerB.mutation(api.transferRequests.create, { copyId, toLocationId: toLocId });
+
+    // Partner accepts reader A's request
+    const manager = t.withIdentity({ subject: "manager1" });
+    await manager.mutation(api.transferRequests.accept, { requestId: reqA });
+
+    // Reader B's request should be auto-rejected
+    const bReqs = await readerB.query(api.transferRequests.myRequests);
+    const bReq = bReqs.find((r) => r._id === reqB);
+    expect(bReq).toBeDefined();
+    expect(bReq!.status).toBe("rejected");
+  });
+
   it("myRequests returns empty array for user with no requests", async () => {
     const t = convexTest(schema, modules);
 

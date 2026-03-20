@@ -115,6 +115,19 @@ export const accept = mutation({
       currentBookCount: toLocation.currentBookCount + 1,
     });
 
+    // Auto-reject other pending transfer requests for this copy (now stale)
+    const stalePending = await ctx.db
+      .query("transferRequests")
+      .withIndex("by_copy", (q) =>
+        q.eq("copyId", request.copyId).eq("status", "pending"),
+      )
+      .collect();
+    await Promise.all(
+      stalePending.map((r) =>
+        ctx.db.patch(r._id, { status: "rejected", resolvedAt: Date.now() }),
+      ),
+    );
+
     // Notify the requester
     const book = await ctx.db.get(request.bookId);
     await createNotification(ctx, {
