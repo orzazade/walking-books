@@ -238,4 +238,21 @@ describe("follows enriched queries", () => {
       .query(api.follows.myFollowingEnriched, {});
     expect(following2).toEqual([]);
   });
+
+  it("toggle rejects nonexistent target user", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeUserId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser("user_follow_nope", "Follower"));
+      const uid = await ctx.db.insert("users", makeUser("user_ghost", "Ghost"));
+      await ctx.db.delete(uid);
+      return uid;
+    });
+
+    const authed = t.withIdentity({ subject: "user_follow_nope" });
+
+    await expect(
+      authed.mutation(api.follows.toggle, { targetUserId: fakeUserId }),
+    ).rejects.toThrow("User not found");
+  });
 });

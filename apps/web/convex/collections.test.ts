@@ -689,4 +689,31 @@ describe("collections.byUser", () => {
       authed.mutation(api.collections.unfollow, { collectionId }),
     ).rejects.toThrow("Not following this collection");
   });
+
+  it("addBook rejects nonexistent book", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId, fakeBookId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const cId = await ctx.db.insert("collections", {
+        name: "Ghost Books",
+        description: "",
+        isPublic: false,
+        userId: (await ctx.db.query("users").first())!._id,
+        createdAt: Date.now(),
+      });
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.delete(bId);
+      return { collectionId: cId, fakeBookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+
+    await expect(
+      authed.mutation(api.collections.addBook, {
+        collectionId,
+        bookId: fakeBookId,
+      }),
+    ).rejects.toThrow("Book not found");
+  });
 });
