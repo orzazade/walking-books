@@ -115,7 +115,7 @@ describe("wishlist availability notifications", () => {
       copyId,
       locationId,
       conditionAtReturn: "good",
-      photos: ["photo1.jpg"],
+      photos: ["https://example.com/photo1.jpg"],
     });
 
     // Wisher should have a wishlist_available notification
@@ -188,7 +188,7 @@ describe("wishlist availability notifications", () => {
       copyId,
       locationId,
       conditionAtReturn: "good",
-      photos: ["photo1.jpg"],
+      photos: ["https://example.com/photo1.jpg"],
     });
 
     // Reader should NOT get a wishlist_available notification for their own return
@@ -276,7 +276,7 @@ describe("wishlist availability notifications", () => {
       copyId,
       locationId,
       conditionAtReturn: "good",
-      photos: ["photo1.jpg"],
+      photos: ["https://example.com/photo1.jpg"],
     });
 
     // Wisher should NOT get notification because they disabled it

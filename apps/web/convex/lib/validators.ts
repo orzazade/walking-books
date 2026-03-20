@@ -165,5 +165,7 @@ export function validatePhotos(photos: string[]): void {
   for (const url of photos) {
     if (url.length > 2000)
       throw new Error("Each photo URL must be 2000 characters or less");
+    if (!/^https?:\/\/.+/i.test(url))
+      throw new Error("Photo URLs must start with http:// or https://");
   }
 }
