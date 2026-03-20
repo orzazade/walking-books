@@ -113,6 +113,86 @@ describe("follows enriched queries", () => {
     expect(result).toEqual([]);
   });
 
+  it("friendsReading returns empty for unauthenticated", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.follows.friendsReading, {});
+    expect(result).toEqual([]);
+  });
+
+  it("friendsReading returns books held by followed users", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const alice = await ctx.db.insert("users", makeUser("user_a", "Alice"));
+      const bob = await ctx.db.insert("users", makeUser("user_b", "Bob"));
+      await ctx.db.insert("follows", { followerId: alice, followingId: bob });
+
+      const bookId = await ctx.db.insert("books", {
+        title: "Great Novel",
+        author: "Jane Author",
+        coverImage: "/cover.jpg",
+        description: "A great book",
+        categories: ["fiction"],
+        pageCount: 300,
+        language: "English",
+        avgRating: 4.2,
+        reviewCount: 5,
+      });
+      await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: alice,
+        currentHolderId: bob,
+        qrCodeUrl: "qr://test",
+      });
+    });
+
+    const result = await t
+      .withIdentity({ subject: "user_a" })
+      .query(api.follows.friendsReading, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].userName).toBe("Bob");
+    expect(result[0].bookTitle).toBe("Great Novel");
+    expect(result[0].bookAuthor).toBe("Jane Author");
+    expect(result[0].coverImage).toBe("/cover.jpg");
+  });
+
+  it("friendsReading excludes books held by non-followed users", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const alice = await ctx.db.insert("users", makeUser("user_a", "Alice"));
+      const bob = await ctx.db.insert("users", makeUser("user_b", "Bob"));
+      // Alice does NOT follow Bob
+
+      const bookId = await ctx.db.insert("books", {
+        title: "Hidden Book",
+        author: "Unknown",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: alice,
+        currentHolderId: bob,
+        qrCodeUrl: "qr://test2",
+      });
+    });
+
+    const result = await t
+      .withIdentity({ subject: "user_a" })
+      .query(api.follows.friendsReading, {});
+    expect(result).toEqual([]);
+  });
+
   it("toggle creates and removes follows", async () => {
     const t = convexTest(schema, modules);
     let bobId: string;

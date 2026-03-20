@@ -10,6 +10,7 @@ import { WaitlistPreviewSection } from "@/components/waitlist-preview-section";
 import { SharedCopiesSection } from "@/components/shared-copies-section";
 import { ActiveReservationsSection } from "@/components/active-reservations-section";
 import { HeldCopiesSection } from "@/components/held-copies-section";
+import { FriendsReadingSection } from "@/components/friends-reading-section";
 import {
   BookOpen,
   Clock,
@@ -102,6 +103,9 @@ function DashboardContent() {
 
       {/* Wishlist Alerts */}
       <WishlistAlertsSection />
+
+      {/* Friends Reading */}
+      <FriendsReadingSection />
 
       {/* Currently Reading */}
       <HeldCopiesSection />
