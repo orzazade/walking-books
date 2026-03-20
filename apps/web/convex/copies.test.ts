@@ -406,6 +406,113 @@ describe("copies.extend", () => {
   });
 });
 
+describe("copies.pickup", () => {
+  it("picks up an available copy and creates journey entry", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_pickup_sharer", name: "Sharer" }),
+      );
+      await ctx.db.insert("users", makeUser({ clerkId: "user_pickup_reader" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { currentBookCount: 5 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_pickup_reader" });
+    await authed.mutation(api.copies.pickup, {
+      copyId,
+      locationId,
+      conditionAtPickup: "good",
+      photos: [],
+    });
+
+    // Copy should now be checked out
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("checked_out");
+    expect(copy!.extensionCount).toBe(0);
+  });
+
+  it("rejects pickup of checked-out copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_pickup_sharer2", name: "Sharer2" }),
+      );
+      await ctx.db.insert("users", makeUser({ clerkId: "user_pickup_fail" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { currentBookCount: 5 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: sharerId,
+        }),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_pickup_fail" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Copy not available for pickup");
+  });
+
+  it("rejects pickup when reputation is too low", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_pickup_sharer3", name: "Sharer3" }),
+      );
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_low_rep", reputationScore: 10 }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { currentBookCount: 5 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_low_rep" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("reputation is too low");
+  });
+});
+
 describe("copies.relist", () => {
   it("sharer can relist a recalled copy as available", async () => {
     const t = convexTest(schema, modules);
