@@ -339,5 +339,8 @@ describe("trendingBooks", () => {
       reviewCount: 15,
       recentPickups: 1,
     });
+    // Verify availableCopies is present (used by home page trending section)
+    expect(result[0]).toHaveProperty("availableCopies");
+    expect(typeof result[0].availableCopies).toBe("number");
   });
 });

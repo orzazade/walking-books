@@ -14,6 +14,9 @@ import {
   MapPin,
   Search,
   Share2,
+  TrendingUp,
+  Star,
+  CheckCircle2,
 } from "lucide-react";
 
 const QUICK_ACTIONS = [
@@ -49,6 +52,7 @@ const STEPS = [
 export default function Home() {
   const featuredBooks = useQuery(api.books.featuredCatalog, {});
   const locations = useQuery(api.partnerLocations.list, {});
+  const trendingBooks = useQuery(api.trendingBooks.trending, {});
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -265,6 +269,105 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* ── Trending Now ────────────────────────────── */}
+      {trendingBooks && trendingBooks.length > 0 && (
+        <>
+          <div className="editorial-divider my-14">
+            <div className="botanical-ornament" />
+          </div>
+
+          <section className="animate-fade-in-up delay-500">
+            <div className="mb-8 flex items-end justify-between gap-4">
+              <div>
+                <div className="section-kicker mb-3">Trending Now</div>
+                <h2 className="font-serif text-[1.75rem] font-semibold tracking-[-0.01em]">
+                  Most picked up this month
+                </h2>
+                <p className="mt-1.5 text-[0.8125rem] text-muted-foreground">
+                  Books the community is actively reading right now
+                </p>
+              </div>
+              <Link
+                href="/trending"
+                className="hidden items-center gap-1.5 text-[0.8125rem] font-medium text-foreground transition-colors hover:text-primary sm:flex"
+              >
+                View all
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {trendingBooks.slice(0, 8).map((book, i) => (
+                <Link
+                  key={book._id}
+                  href={`/book/${book._id}`}
+                  className="group flex w-[10rem] shrink-0 flex-col rounded-xl border border-border/40 bg-card/60 p-3 transition-colors hover:bg-card/80"
+                >
+                  {/* Rank badge */}
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 font-serif text-[0.6875rem] font-semibold text-primary">
+                      {i + 1}
+                    </span>
+                    <span className="flex items-center gap-0.5 text-[0.625rem] text-muted-foreground">
+                      <TrendingUp className="h-2.5 w-2.5" />
+                      {book.recentPickups} pickup{book.recentPickups !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  {/* Cover */}
+                  {book.coverImage ? (
+                    <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="mx-auto h-32 w-[5.5rem] rounded-lg object-cover transition-transform group-hover:scale-[1.02]"
+                    />
+                  ) : (
+                    <div className="mx-auto flex h-32 w-[5.5rem] items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+                      No cover
+                    </div>
+                  )}
+
+                  {/* Details */}
+                  <div className="mt-2">
+                    <h3 className="line-clamp-2 text-[0.75rem] font-medium leading-tight">
+                      {book.title}
+                    </h3>
+                    <p className="mt-0.5 truncate text-[0.6875rem] text-muted-foreground">
+                      {book.author}
+                    </p>
+
+                    <div className="mt-1 flex items-center gap-1.5 text-[0.625rem] text-muted-foreground">
+                      {book.avgRating > 0 && (
+                        <span className="flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                          {book.avgRating.toFixed(1)}
+                        </span>
+                      )}
+                      {book.availableCopies > 0 && (
+                        <span className="flex items-center gap-0.5 text-emerald-600">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          Available
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-6 text-center sm:hidden">
+              <Link
+                href="/trending"
+                className="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-foreground"
+              >
+                View all trending
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ── CTA ───────────────────────────────────── */}
       <section className="mt-16 rounded-2xl border border-border/40 bg-card/60 px-6 py-10 text-center sm:px-10">
