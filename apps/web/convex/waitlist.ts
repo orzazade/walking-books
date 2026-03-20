@@ -48,6 +48,22 @@ export const join = mutation({
       .first();
     if (activeEntry) throw new Error("Already on waitlist for this book");
 
+    // Per-user limit on active waitlist entries
+    const MAX_WAITLIST_ENTRIES = 100;
+    const activeCount = await ctx.db
+      .query("waitlist")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "notified"),
+        ),
+      )
+      .collect()
+      .then((r) => r.length);
+    if (activeCount >= MAX_WAITLIST_ENTRIES)
+      throw new Error(`Maximum ${MAX_WAITLIST_ENTRIES} active waitlist entries allowed`);
+
     // Check there are no available copies — waitlist is for unavailable books
     const copies = await ctx.db
       .query("copies")

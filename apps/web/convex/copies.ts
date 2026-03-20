@@ -251,6 +251,17 @@ export const pickup = mutation({
     if (!restrictions.canReserve)
       throw new Error("Your reputation is too low to pick up books");
 
+    // Per-user limit on active checkouts — prevent book hoarding
+    const MAX_ACTIVE_CHECKOUTS = 10;
+    const activeCheckouts = await ctx.db
+      .query("copies")
+      .withIndex("by_holder", (q) => q.eq("currentHolderId", user._id))
+      .filter((q) => q.eq(q.field("status"), "checked_out"))
+      .collect()
+      .then((r) => r.length);
+    if (activeCheckouts >= MAX_ACTIVE_CHECKOUTS)
+      throw new Error(`Maximum ${MAX_ACTIVE_CHECKOUTS} books checked out at once — please return some before picking up more`);
+
     const [location, copy] = await Promise.all([
       ctx.db.get(args.locationId),
       ctx.db.get(args.copyId),

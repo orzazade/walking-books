@@ -35,6 +35,17 @@ export const toggle = mutation({
       await ctx.db.delete(existing._id);
       return { favorited: false };
     }
+
+    // Per-user limit on favorite locations
+    const MAX_FAVORITES = 50;
+    const favoriteCount = await ctx.db
+      .query("favoriteLocations")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+      .then((r) => r.length);
+    if (favoriteCount >= MAX_FAVORITES)
+      throw new Error(`Maximum ${MAX_FAVORITES} favorite locations allowed`);
+
     await ctx.db.insert("favoriteLocations", {
       userId: user._id,
       locationId: args.locationId,
