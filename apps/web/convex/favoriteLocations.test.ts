@@ -161,6 +161,79 @@ describe("favoriteLocations", () => {
     expect(favorites[0].availableBooks).toBe(2);
   });
 
+  it("newArrivals returns recently added copies at favorite locations", async () => {
+    const t = convexTest(schema, modules);
+
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        clerkId: "user_arrivals",
+        phone: "+1234567892",
+        name: "Arrivals User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+    });
+
+    const { locationId, bookId } = await t.run(async (ctx) => {
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Book Haven",
+        address: "10 Novel Ave",
+        lat: 40.7,
+        lng: -74.0,
+        contactPhone: "+1000000002",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 1,
+        managedByUserId: userId,
+        staffUserIds: [],
+        avgRating: 4.2,
+        reviewCount: 5,
+      });
+
+      const bId = await ctx.db.insert("books", {
+        title: "New Arrival Book",
+        author: "Fresh Author",
+        coverImage: "cover.jpg",
+        description: "A fresh book",
+        categories: ["fiction"],
+        pageCount: 300,
+        language: "English",
+        avgRating: 4.5,
+        reviewCount: 2,
+      });
+
+      // Recent available copy (will appear in new arrivals)
+      await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "available",
+        condition: "like_new",
+        ownershipType: "lent",
+        originalSharerId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+
+      return { locationId: locId, bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_arrivals" });
+
+    // Favorite the location first
+    await authed.mutation(api.favoriteLocations.toggle, { locationId });
+
+    const arrivals = await authed.query(api.favoriteLocations.newArrivals, {});
+    expect(arrivals.length).toBeGreaterThanOrEqual(1);
+    expect(arrivals[0].title).toBe("New Arrival Book");
+    expect(arrivals[0].author).toBe("Fresh Author");
+    expect(arrivals[0].locationName).toBe("Book Haven");
+    expect(arrivals[0].bookId).toBe(bookId);
+  });
+
   it("isFavorited returns false for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 

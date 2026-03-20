@@ -44,6 +44,67 @@ export const toggle = mutation({
   },
 });
 
+export const newArrivals = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    const entries = await ctx.db
+      .query("favoriteLocations")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    if (entries.length === 0) return [];
+
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const arrivals: Array<{
+      copyId: string;
+      bookId: string;
+      title: string;
+      author: string;
+      coverImage: string;
+      locationId: string;
+      locationName: string;
+      addedAt: number;
+      condition: string;
+    }> = [];
+
+    await Promise.all(
+      entries.map(async (entry) => {
+        const location = await ctx.db.get(entry.locationId);
+        if (!location) return;
+        const copies = await ctx.db
+          .query("copies")
+          .withIndex("by_location", (q) =>
+            q.eq("currentLocationId", location._id).eq("status", "available"),
+          )
+          .collect();
+        const recent = copies.filter((c) => c._creationTime >= fourteenDaysAgo);
+        const books = await Promise.all(
+          recent.map((c) => ctx.db.get(c.bookId)),
+        );
+        for (let i = 0; i < recent.length; i++) {
+          const book = books[i];
+          if (!book) continue;
+          arrivals.push({
+            copyId: recent[i]._id,
+            bookId: book._id,
+            title: book.title,
+            author: book.author,
+            coverImage: book.coverImage,
+            locationId: location._id,
+            locationName: location.name,
+            addedAt: recent[i]._creationTime,
+            condition: recent[i].condition,
+          });
+        }
+      }),
+    );
+
+    return arrivals
+      .sort((a, b) => b.addedAt - a.addedAt)
+      .slice(0, 10);
+  },
+});
+
 export const myFavorites = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
