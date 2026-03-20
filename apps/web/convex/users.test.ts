@@ -1,0 +1,134 @@
+import { describe, it, expect } from "vitest";
+import { convexTest } from "convex-test";
+import schema from "./schema";
+import { api } from "./_generated/api";
+
+const modules = import.meta.glob("./**/*.*s");
+
+function makeUser(overrides: Record<string, unknown> = {}) {
+  return {
+    clerkId: "user_test1",
+    phone: "+1234567890",
+    name: "Test User",
+    roles: ["reader"],
+    status: "active" as const,
+    reputationScore: 50,
+    booksShared: 0,
+    booksRead: 0,
+    favoriteGenres: [],
+    ...overrides,
+  };
+}
+
+describe("users.update", () => {
+  it("updates name successfully", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_upd_name" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_upd_name" });
+    await authed.mutation(api.users.update, { name: "New Name" });
+
+    const user = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "user_upd_name"))
+        .unique();
+    });
+    expect(user!.name).toBe("New Name");
+  });
+
+  it("rejects empty name", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_upd_empty" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_upd_empty" });
+    await expect(
+      authed.mutation(api.users.update, { name: "   " }),
+    ).rejects.toThrow("Name cannot be empty");
+  });
+
+  it("rejects invalid avatar URL", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_upd_avatar" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_upd_avatar" });
+    await expect(
+      authed.mutation(api.users.update, { avatarUrl: "javascript:alert(1)" }),
+    ).rejects.toThrow("Avatar URL must start with http");
+  });
+
+  it("rejects too many favorite genres", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_upd_genres" }));
+    });
+
+    const genres = Array.from({ length: 21 }, (_, i) => `Genre ${i}`);
+    const authed = t.withIdentity({ subject: "user_upd_genres" });
+    await expect(
+      authed.mutation(api.users.update, { favoriteGenres: genres }),
+    ).rejects.toThrow("Maximum 20 favorite genres");
+  });
+});
+
+describe("users.updateRoles", () => {
+  it("rejects non-admin caller", async () => {
+    const t = convexTest(schema, modules);
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_roles_caller" }));
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_roles_target", phone: "+9999999999" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_roles_caller" });
+    await expect(
+      authed.mutation(api.users.updateRoles, { userId: targetId, roles: ["reader", "partner"] }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects invalid role names", async () => {
+    const t = convexTest(schema, modules);
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_roles_admin", roles: ["reader", "admin"] }),
+      );
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_roles_target2", phone: "+8888888888" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_roles_admin" });
+    await expect(
+      authed.mutation(api.users.updateRoles, { userId: targetId, roles: ["superadmin"] }),
+    ).rejects.toThrow("Invalid roles: superadmin");
+  });
+
+  it("rejects empty roles array", async () => {
+    const t = convexTest(schema, modules);
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_roles_admin2", roles: ["reader", "admin"] }),
+      );
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_roles_target3", phone: "+7777777777" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_roles_admin2" });
+    await expect(
+      authed.mutation(api.users.updateRoles, { userId: targetId, roles: [] }),
+    ).rejects.toThrow("At least one role required");
+  });
+});
