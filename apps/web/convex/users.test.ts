@@ -272,3 +272,54 @@ describe("users.update field limits", () => {
     ).rejects.toThrow("Bio must be 500 characters or less");
   });
 });
+
+describe("users.currentUser", () => {
+  it("returns null for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.users.currentUser, {});
+    expect(result).toBeNull();
+  });
+
+  it("returns user data for authenticated users", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_current", name: "Current User" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_current" });
+    const result = await authed.query(api.users.currentUser, {});
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe("Current User");
+  });
+});
+
+describe("users.listAll", () => {
+  it("returns empty for non-admin users", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_listall_reader" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_listall_reader" });
+    const result = await authed.query(api.users.listAll, {});
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.users.listAll, {});
+    expect(result).toEqual([]);
+  });
+
+  it("returns all users for admin", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_listall_admin", roles: ["reader", "admin"] }));
+      await ctx.db.insert("users", makeUser({ clerkId: "user_listall_other", phone: "+5550001111" }));
+    });
+
+    const authed = t.withIdentity({ subject: "user_listall_admin" });
+    const result = await authed.query(api.users.listAll, {});
+    expect(result).toHaveLength(2);
+  });
+});
