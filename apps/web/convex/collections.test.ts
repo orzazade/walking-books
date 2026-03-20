@@ -644,4 +644,49 @@ describe("collections.byUser", () => {
     const result = await t.query(api.collections.byUser, { userId });
     expect(result).toEqual([]);
   });
+
+  it("removeBook rejects when book is not in collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId, bookId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const colId = await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Test Collection",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+      const bId = await ctx.db.insert("books", makeBook());
+      return { collectionId: colId, bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.removeBook, { collectionId, bookId }),
+    ).rejects.toThrow("Book not in collection");
+  });
+
+  it("unfollow rejects when not following", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId } = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "owner_unf", phone: "+7777777771" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const cId = await ctx.db.insert("collections", {
+        userId: ownerId,
+        name: "Public Collection",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      return { collectionId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.unfollow, { collectionId }),
+    ).rejects.toThrow("Not following this collection");
+  });
 });
