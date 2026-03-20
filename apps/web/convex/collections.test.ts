@@ -762,6 +762,42 @@ describe("collections.byUser", () => {
     ).rejects.toThrow("Collection not found");
   });
 
+  it("follow rejects when at max collection follows limit", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const ownerId = await ctx.db.insert("users", makeUser({ clerkId: "owner_maxfol", phone: "+8888888881", name: "Owner" }));
+      // Create 200 collection follows
+      for (let i = 0; i < 200; i++) {
+        const cId = await ctx.db.insert("collections", {
+          userId: ownerId,
+          name: `Coll ${i}`,
+          isPublic: true,
+          createdAt: Date.now(),
+        });
+        await ctx.db.insert("collectionFollows", {
+          followerId: userId,
+          collectionId: cId,
+          followedAt: Date.now(),
+        });
+      }
+      // Create one more collection to try to follow
+      const targetColl = await ctx.db.insert("collections", {
+        userId: ownerId,
+        name: "One Too Many",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      return { collectionId: targetColl };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.follow, { collectionId }),
+    ).rejects.toThrow("Maximum 200 collection follows allowed");
+  });
+
   it("addBook rejects when collection has 500 books", async () => {
     const t = convexTest(schema, modules);
 

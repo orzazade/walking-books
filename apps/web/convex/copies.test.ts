@@ -1212,6 +1212,43 @@ describe("copies.relist", () => {
     ).rejects.toThrow("Reader note must be 1000 characters or less");
   });
 
+  it("pickup rejects when user has 10 active checkouts", async () => {
+    const t = convexTest(schema, modules);
+
+    const { newCopyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_hoard", phone: "+8888888881" }));
+      const readerId = await ctx.db.insert("users", makeUser({ clerkId: "reader_hoard", phone: "+8888888882" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      // Create 10 checked-out copies held by the reader
+      for (let i = 0; i < 10; i++) {
+        await ctx.db.insert(
+          "copies",
+          makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+            status: "checked_out",
+            currentHolderId: readerId,
+          }),
+        );
+      }
+      // Create an available copy to try to pick up
+      const availCopy = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string),
+      );
+      return { newCopyId: availCopy, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "reader_hoard" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId: newCopyId,
+        locationId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Maximum 10 books checked out at once");
+  });
+
   it("pickup rejects expired reservation on reserved copy", async () => {
     const t = convexTest(schema, modules);
 
