@@ -1175,6 +1175,66 @@ describe("copies.relist", () => {
     ).rejects.toThrow("Cannot extend an overdue copy");
   });
 
+  it("extend rejects when active reservation exists for the copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ext_res", phone: "+8888888891" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ext_res", phone: "+8888888892" }));
+      const reserverId = await ctx.db.insert("users", makeUser({ clerkId: "reserver_ext_res", phone: "+8888888893" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 86400000,
+          lendingPeriodDays: 21,
+          extensionCount: 0,
+        }),
+      );
+      // Someone is waiting to reserve this copy
+      await ctx.db.insert("reservations", {
+        userId: reserverId, copyId: cId, locationId: locId,
+        reservedAt: Date.now(), status: "active", expiresAt: Date.now() + 86400000,
+      });
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_ext_res" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("Cannot extend: there is an active reservation");
+  });
+
+  it("extend rejects after max 2 extensions", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ext_max", phone: "+8888888894" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ext_max", phone: "+8888888895" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 86400000,
+          lendingPeriodDays: 21,
+          extensionCount: 2, // already at max
+        }),
+      );
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_ext_max" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("Maximum 2 extensions allowed");
+  });
+
   it("relist rejects non-sharer", async () => {
     const t = convexTest(schema, modules);
 
