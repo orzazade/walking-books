@@ -241,4 +241,25 @@ describe("reviews", () => {
       authed.mutation(api.reviews.create, { bookId: books[0]._id, rating: 4, text: "   " }),
     ).rejects.toThrow("Review text is required");
   });
+
+  it("create rejects nonexistent book", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeBookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.delete(bId);
+      return bId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_r1" });
+
+    await expect(
+      authed.mutation(api.reviews.create, {
+        bookId: fakeBookId,
+        rating: 4,
+        text: "Great book!",
+      }),
+    ).rejects.toThrow("Book not found");
+  });
 });

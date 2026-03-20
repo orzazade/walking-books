@@ -340,4 +340,31 @@ describe("locationEvents", () => {
       }),
     ).rejects.toThrow("Description must be 2000 characters or less");
   });
+
+  it("cancelRsvp rejects when no RSVP exists", async () => {
+    const t = convexTest(schema, modules);
+
+    const { eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_cancel1", phone: "+1111111199", name: "Manager" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        title: "Cancel Test Event",
+        description: "Test",
+        eventType: "reading_meetup",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+        createdByUserId: managerId,
+      });
+      return { eventId: evId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_ev1" });
+
+    await expect(
+      authed.mutation(api.locationEvents.cancelRsvp, { eventId }),
+    ).rejects.toThrow("No RSVP found");
+  });
 });
