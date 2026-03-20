@@ -742,6 +742,40 @@ describe("readingProgress", () => {
     expect(progress!.status).toBe("reading");
   });
 
+  it("update rejects nonexistent copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeCopyId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      await ctx.db.delete(cId);
+      return cId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_progress1" });
+
+    await expect(
+      authed.mutation(api.readingProgress.update, {
+        copyId: fakeCopyId,
+        currentPage: 10,
+      }),
+    ).rejects.toThrow("Copy not found");
+  });
+
   it("abandon rejects when no reading progress exists", async () => {
     const t = convexTest(schema, modules);
 

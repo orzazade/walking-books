@@ -239,6 +239,18 @@ describe("follows enriched queries", () => {
     expect(following2).toEqual([]);
   });
 
+  it("toggle rejects unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const targetId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser("user_target", "Target"));
+    });
+
+    await expect(
+      t.mutation(api.follows.toggle, { targetUserId: targetId }),
+    ).rejects.toThrow("Not authenticated");
+  });
+
   it("toggle rejects nonexistent target user", async () => {
     const t = convexTest(schema, modules);
 
