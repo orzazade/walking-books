@@ -1708,6 +1708,31 @@ describe("copies.pickup side effects", () => {
     expect(journeyEntries[0].readerId).toBe(pickupUserId);
   });
 
+  it("pickup caps lending period at 14 days for warning-tier reputation (30-49)", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_warn", name: "Sharer" }));
+      // Reputation 35 = warning tier (30-49)
+      const pId = await ctx.db.insert("users", makeUser({ clerkId: "picker_warn", name: "Picker", reputationScore: 35 }));
+      const bookId = await ctx.db.insert("books", makeBook({ pageCount: 500 })); // normally would get ~28 days
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string));
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "picker_warn" });
+    await authed.mutation(api.copies.pickup, {
+      copyId, locationId, conditionAtPickup: "good", photos: [],
+    });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("checked_out");
+    // Lending period should be capped at 14 days (14 * 86400000 ms)
+    expect(copy!.lendingPeriodDays).toBeLessThanOrEqual(14);
+    const maxDeadline = Date.now() + 14 * 86400000 + 1000; // small buffer
+    expect(copy!.returnDeadline).toBeLessThanOrEqual(maxDeadline);
+  });
+
   it("pickup of reserved copy fulfills the reservation", async () => {
     const t = convexTest(schema, modules);
     const { copyId, locationId, reservationId } = await t.run(async (ctx) => {
