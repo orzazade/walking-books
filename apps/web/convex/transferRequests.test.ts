@@ -638,4 +638,83 @@ describe("transferRequests", () => {
       authed.mutation(api.transferRequests.create, { copyId, toLocationId }),
     ).rejects.toThrow("Maximum 50 pending transfer requests allowed");
   });
+
+  it("accept updates location book counts (source decremented, destination incremented)", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId, fromLocId, toLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_counts", phone: "+1111111111" }));
+      const readerId = await ctx.db.insert("users", makeUser({ clerkId: "reader_counts" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Count Book", author: "Author", coverImage: "https://example.com/c.jpg",
+        description: "A book", categories: [], pageCount: 100, language: "en", avgRating: 0, reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "From Cafe", currentBookCount: 5,
+      }));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "To Cafe", contactPhone: "+2000000000", currentBookCount: 3,
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, currentLocationId: fromId, originalSharerId: managerId,
+        status: "available" as const, condition: "good" as const, ownershipType: "lent" as const, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("transferRequests", {
+        copyId: cId, bookId: bId, requesterId: readerId,
+        fromLocationId: fromId, toLocationId: toId,
+        status: "pending", note: "Please transfer", createdAt: Date.now(),
+      });
+      return { requestId: rId, fromLocId: fromId, toLocId: toId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager_counts" });
+    await manager.mutation(api.transferRequests.accept, { requestId });
+
+    const { fromLoc, toLoc } = await t.run(async (ctx) => ({
+      fromLoc: await ctx.db.get(fromLocId),
+      toLoc: await ctx.db.get(toLocId),
+    }));
+    expect(fromLoc!.currentBookCount).toBe(4); // was 5, decremented
+    expect(toLoc!.currentBookCount).toBe(4);   // was 3, incremented
+  });
+
+  it("accept sends transfer_accepted notification to requester", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId, readerId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_notif", phone: "+1111111111" }));
+      const rId = await ctx.db.insert("users", makeUser({ clerkId: "reader_notif" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Notif Book", author: "Author", coverImage: "https://example.com/c.jpg",
+        description: "A book", categories: [], pageCount: 100, language: "en", avgRating: 0, reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Dest Cafe", contactPhone: "+2000000000",
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, currentLocationId: fromId, originalSharerId: managerId,
+        status: "available" as const, condition: "good" as const, ownershipType: "lent" as const, qrCodeUrl: "",
+      });
+      const reqId = await ctx.db.insert("transferRequests", {
+        copyId: cId, bookId: bId, requesterId: rId,
+        fromLocationId: fromId, toLocationId: toId,
+        status: "pending", note: "Please", createdAt: Date.now(),
+      });
+      return { requestId: reqId, readerId: rId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager_notif" });
+    await manager.mutation(api.transferRequests.accept, { requestId });
+
+    const notifications = await t.run(async (ctx) =>
+      ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", readerId).eq("read", false))
+        .collect(),
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("transfer_accepted");
+    expect(notifications[0].message).toContain("Notif Book");
+    expect(notifications[0].message).toContain("Dest Cafe");
+  });
 });
