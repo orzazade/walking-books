@@ -296,4 +296,48 @@ describe("locationEvents", () => {
     expect(events[0].title).toBe("Author Talk");
     expect(events[0].locationName).toBe("Cozy Cafe");
   });
+
+  it("create rejects event starting in the past", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager1" });
+    await expect(
+      manager.mutation(api.locationEvents.create, {
+        locationId,
+        title: "Past Event",
+        description: "Already happened",
+        eventType: "workshop",
+        startsAt: Date.now() - 86400000,
+        endsAt: Date.now() - 82800000,
+      }),
+    ).rejects.toThrow("Event cannot start in the past");
+  });
+
+  it("create rejects description over 2000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager1" });
+    await expect(
+      manager.mutation(api.locationEvents.create, {
+        locationId,
+        title: "Long Description Event",
+        description: "A".repeat(2001),
+        eventType: "reading_meetup",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+      }),
+    ).rejects.toThrow("Description must be 2000 characters or less");
+  });
 });
