@@ -227,6 +227,219 @@ describe("bookRequests", () => {
     expect(all).toHaveLength(5);
   });
 
+  it("fulfill sends notification to requester", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({
+          clerkId: "user_req2",
+          name: "Sharer User",
+          phone: "+9999999999",
+        }),
+      );
+    });
+
+    const requester = t.withIdentity({ subject: "user_req1" });
+    const sharer = t.withIdentity({ subject: "user_req2" });
+
+    const requestId = await requester.mutation(api.bookRequests.create, {
+      title: "Dune",
+    });
+
+    await sharer.mutation(api.bookRequests.fulfill, { requestId });
+
+    // Check that the requester received a notification
+    const notifications = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("clerkId"), "user_req1"))
+        .first();
+      return await ctx.db
+        .query("userNotifications")
+        .withIndex("by_user", (q) => q.eq("userId", user!._id))
+        .collect();
+    });
+
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_request_fulfilled");
+    expect(notifications[0].title).toBe("Your book request was fulfilled!");
+    expect(notifications[0].message).toContain("Dune");
+    expect(notifications[0].message).toContain("Sharer User");
+  });
+
+  it("fulfill does not notify when requester fulfills own request", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const requester = t.withIdentity({ subject: "user_req1" });
+
+    const requestId = await requester.mutation(api.bookRequests.create, {
+      title: "Dune",
+    });
+
+    await requester.mutation(api.bookRequests.fulfill, { requestId });
+
+    // No notification should be sent
+    const notifications = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("clerkId"), "user_req1"))
+        .first();
+      return await ctx.db
+        .query("userNotifications")
+        .withIndex("by_user", (q) => q.eq("userId", user!._id))
+        .collect();
+    });
+
+    expect(notifications).toHaveLength(0);
+  });
+
+  it("register book notifies matching open requesters", async () => {
+    const t = convexTest(schema, modules);
+
+    const locationId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({
+          clerkId: "user_req2",
+          name: "Sharer User",
+          phone: "+9999999999",
+        }),
+      );
+      return await ctx.db.insert("partnerLocations", {
+        name: "Cafe Books",
+        address: "123 Main St",
+        lat: 40.7128,
+        lng: -74.006,
+        contactPhone: "+1111111111",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 0,
+        managedByUserId: userId,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+    });
+
+    const requester = t.withIdentity({ subject: "user_req1" });
+    const sharer = t.withIdentity({ subject: "user_req2" });
+
+    // Requester asks for "Dune"
+    await requester.mutation(api.bookRequests.create, {
+      title: "Dune",
+    });
+
+    // Sharer registers a copy of "Dune"
+    await sharer.mutation(api.books.register, {
+      title: "Dune",
+      author: "Frank Herbert",
+      coverImage: "https://example.com/dune.jpg",
+      description: "A science fiction classic",
+      categories: ["Science Fiction"],
+      pageCount: 412,
+      language: "English",
+      ownershipType: "lent",
+      condition: "good",
+      locationId,
+    });
+
+    // Check that the requester received a notification
+    const notifications = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("clerkId"), "user_req1"))
+        .first();
+      return await ctx.db
+        .query("userNotifications")
+        .withIndex("by_user", (q) => q.eq("userId", user!._id))
+        .collect();
+    });
+
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_request_fulfilled");
+    expect(notifications[0].title).toBe(
+      "A book you requested is now available!",
+    );
+    expect(notifications[0].message).toContain("Dune");
+    expect(notifications[0].message).toContain("Cafe Books");
+  });
+
+  it("register book matches requests case-insensitively", async () => {
+    const t = convexTest(schema, modules);
+
+    const locationId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({
+          clerkId: "user_req2",
+          name: "Sharer",
+          phone: "+9999999999",
+        }),
+      );
+      return await ctx.db.insert("partnerLocations", {
+        name: "Corner Cafe",
+        address: "456 Elm St",
+        lat: 40.7,
+        lng: -74.0,
+        contactPhone: "+2222222222",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 30,
+        currentBookCount: 0,
+        managedByUserId: userId,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+    });
+
+    const requester = t.withIdentity({ subject: "user_req1" });
+    const sharer = t.withIdentity({ subject: "user_req2" });
+
+    // Request with different casing
+    await requester.mutation(api.bookRequests.create, {
+      title: "the great gatsby",
+    });
+
+    // Share with proper casing
+    await sharer.mutation(api.books.register, {
+      title: "The Great Gatsby",
+      author: "F. Scott Fitzgerald",
+      coverImage: "https://example.com/gatsby.jpg",
+      description: "A novel about the American Dream",
+      categories: ["Fiction"],
+      pageCount: 180,
+      language: "English",
+      ownershipType: "lent",
+      condition: "like_new",
+      locationId,
+    });
+
+    const notifications = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("clerkId"), "user_req1"))
+        .first();
+      return await ctx.db
+        .query("userNotifications")
+        .withIndex("by_user", (q) => q.eq("userId", user!._id))
+        .collect();
+    });
+
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_request_fulfilled");
+  });
+
   it("cancelled request allows re-requesting the same title", async () => {
     const t = convexTest(schema, modules);
 

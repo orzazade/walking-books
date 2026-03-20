@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
+import { notifyRequesterFulfilled } from "./lib/requestNotify";
 
 /** Post a public request for a book the community doesn't have yet. */
 export const create = mutation({
@@ -88,6 +89,15 @@ export const fulfill = mutation({
       fulfilledBy: user._id,
       fulfilledAt: Date.now(),
     });
+
+    // Notify the requester (skip if fulfiller is the requester themselves)
+    if (request.userId !== user._id) {
+      await notifyRequesterFulfilled(ctx, {
+        requesterId: request.userId,
+        bookTitle: request.title,
+        fulfillerName: user.name,
+      });
+    }
   },
 });
 

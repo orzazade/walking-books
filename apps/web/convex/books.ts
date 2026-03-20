@@ -5,6 +5,7 @@ import { getEffectiveLendingDays } from "./lib/lending";
 import { conditionValidator, ownershipTypeValidator, CONDITION_LABELS } from "./lib/validators";
 import { requireCurrentUser } from "./lib/auth";
 import { notifyWishlisters } from "./lib/wishlistNotify";
+import { notifyBookRequesters } from "./lib/requestNotify";
 import type { Id } from "./_generated/dataModel";
 import { getBookCopyCounts, getBookCopyCountsFor } from "./lib/availability";
 
@@ -175,7 +176,7 @@ export const register = mutation({
       sharerMaxLendingDays: args.sharerMaxLendingDays,
     });
 
-    // Update user stats, location count, create condition report, and notify wishlisters — independent of each other
+    // Update user stats, location count, create condition report, and notify wishlisters + requesters — independent of each other
     await Promise.all([
       ctx.db.patch(user._id, {
         booksShared: user.booksShared + 1,
@@ -194,6 +195,13 @@ export const register = mutation({
         createdAt: Date.now(),
       }),
       notifyWishlisters(ctx, {
+        bookId,
+        copyId,
+        locationId: args.locationId,
+        actingUserId: user._id,
+      }),
+      notifyBookRequesters(ctx, {
+        bookTitle: title,
         bookId,
         copyId,
         locationId: args.locationId,
