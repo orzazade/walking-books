@@ -525,4 +525,71 @@ describe("reservations.myActive", () => {
       authed.mutation(api.reservations.create, { copyId, locationId }),
     ).rejects.toThrow("Your reputation is too low to reserve books");
   });
+
+  it("rejects reserving your own book", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser(),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow("Cannot reserve your own book");
+  });
+
+  it("rejects duplicate active reservation for same copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "sharer_dup_res", phone: "+9999999991" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    // First reservation succeeds
+    await authed.mutation(api.reservations.create, { copyId, locationId });
+
+    // Second reservation for same copy fails (copy is now reserved)
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow();
+  });
 });
