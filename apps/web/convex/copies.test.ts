@@ -1112,4 +1112,73 @@ describe("copies.relist", () => {
       }),
     ).rejects.toThrow("You are not the current holder");
   });
+
+  it("pickup rejects when copy is reserved by another user", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_resother", phone: "+4444444441" }));
+      const reserverId = await ctx.db.insert("users", makeUser({ clerkId: "reserver_resother", phone: "+4444444442" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "intruder_resother", phone: "+4444444443" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "reserved",
+        }),
+      );
+      const resId = await ctx.db.insert("reservations", {
+        copyId: cId,
+        userId: reserverId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+      return { copyId: cId, locationId: locId, reservationId: resId };
+    });
+
+    const intruder = t.withIdentity({ subject: "intruder_resother" });
+    await expect(
+      intruder.mutation(api.copies.pickup, {
+        copyId,
+        locationId,
+        reservationId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("This copy is reserved by another user");
+  });
+
+  it("returnCopy rejects reader note over 1000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_note", phone: "+3333333331" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_note", phone: "+3333333332" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 86400000,
+        }),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_note" });
+    await expect(
+      authed.mutation(api.copies.returnCopy, {
+        copyId,
+        locationId,
+        conditionAtReturn: "good",
+        photos: [],
+        readerNote: "A".repeat(1001),
+      }),
+    ).rejects.toThrow("Reader note must be 1000 characters or less");
+  });
 });
