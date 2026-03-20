@@ -1609,3 +1609,93 @@ describe("copies.processOverdue", () => {
     expect(user!.reputationScore).toBe(0); // clamped at 0
   });
 });
+
+describe("copies.pickup side effects", () => {
+  it("decrements location bookCount, increments booksRead, and notifies sharer", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId, sharerId, pickupUserId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_fx", name: "Sharer" }));
+      const pId = await ctx.db.insert("users", makeUser({ clerkId: "picker_fx", name: "Picker", booksRead: 5 }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 10 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string));
+      return { copyId: cId, locationId: locId, sharerId: sId, pickupUserId: pId };
+    });
+
+    const authed = t.withIdentity({ subject: "picker_fx" });
+    await authed.mutation(api.copies.pickup, {
+      copyId,
+      locationId,
+      conditionAtPickup: "good",
+      photos: [],
+    });
+
+    const { loc, user, notifications, journeyEntries } = await t.run(async (ctx) => ({
+      loc: await ctx.db.get(locationId),
+      user: await ctx.db.get(pickupUserId),
+      notifications: await ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", sharerId).eq("read", false))
+        .collect(),
+      journeyEntries: await ctx.db.query("journeyEntries")
+        .withIndex("by_copy", (q) => q.eq("copyId", copyId))
+        .collect(),
+    }));
+    expect(loc!.currentBookCount).toBe(9); // decremented from 10
+    expect(user!.booksRead).toBe(6); // incremented from 5
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_picked_up");
+    expect(journeyEntries).toHaveLength(1);
+    expect(journeyEntries[0].readerId).toBe(pickupUserId);
+  });
+});
+
+describe("copies.returnCopy side effects", () => {
+  it("increments location bookCount, closes journey entry, and notifies sharer", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId, sharerId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ret", name: "Sharer" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ret", name: "Holder" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() + 86400000,
+      }));
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: hId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId, sharerId: sId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_ret" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId,
+      locationId,
+      conditionAtReturn: "good",
+      photos: [],
+    });
+
+    const { loc, notifications, journeyEntries } = await t.run(async (ctx) => ({
+      loc: await ctx.db.get(locationId),
+      notifications: await ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", sharerId).eq("read", false))
+        .collect(),
+      journeyEntries: await ctx.db.query("journeyEntries")
+        .withIndex("by_copy", (q) => q.eq("copyId", copyId))
+        .collect(),
+    }));
+    expect(loc!.currentBookCount).toBe(6); // incremented from 5
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_returned");
+    expect(journeyEntries).toHaveLength(1);
+    expect(journeyEntries[0].returnedAt).toBeDefined();
+    expect(journeyEntries[0].conditionAtReturn).toBe("good");
+  });
+});
