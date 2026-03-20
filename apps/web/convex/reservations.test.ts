@@ -851,3 +851,67 @@ describe("reservations.expireStale", () => {
     expect(notifications[0].message).toContain("Expired Book");
   });
 });
+
+describe("reservations.create side effects", () => {
+  it("sets copy status to reserved and sends reservation_confirmed notification", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, userId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_fx", phone: "+9999999910" }));
+      const uId = await ctx.db.insert("users", makeUser({ clerkId: "reserver_fx" }));
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Reserved Title" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId, userId: uId };
+    });
+
+    const authed = t.withIdentity({ subject: "reserver_fx" });
+    await authed.mutation(api.reservations.create, { copyId, locationId });
+
+    const { copy, notifications } = await t.run(async (ctx) => ({
+      copy: await ctx.db.get(copyId),
+      notifications: await ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", userId).eq("read", false))
+        .collect(),
+    }));
+    expect(copy!.status).toBe("reserved");
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("reservation_confirmed");
+    expect(notifications[0].message).toContain("Reserved Title");
+  });
+});
+
+describe("reservations.cancel side effects", () => {
+  it("restores copy to available when reservation is cancelled", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_cancel", phone: "+9999999920" }));
+      const uId = await ctx.db.insert("users", makeUser({ clerkId: "canceller_fx" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("reservations", {
+        userId: uId, copyId: cId, locationId: locId,
+        reservedAt: Date.now(), status: "active", expiresAt: Date.now() + 86400000,
+      });
+      return { copyId: cId, reservationId: rId };
+    });
+
+    const authed = t.withIdentity({ subject: "canceller_fx" });
+    await authed.mutation(api.reservations.cancel, { reservationId });
+
+    const { copy, reservation } = await t.run(async (ctx) => ({
+      copy: await ctx.db.get(copyId),
+      reservation: await ctx.db.get(reservationId),
+    }));
+    expect(copy!.status).toBe("available"); // restored
+    expect(reservation!.status).toBe("cancelled");
+  });
+});
