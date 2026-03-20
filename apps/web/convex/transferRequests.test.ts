@@ -678,6 +678,61 @@ describe("transferRequests", () => {
     expect(toLoc!.currentBookCount).toBe(4);   // was 3, incremented
   });
 
+  it("forLocation returns enriched pending requests with fallback for deleted requester", async () => {
+    const t = convexTest(schema, modules);
+
+    const { fromLocId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_forloc", phone: "+1111111111" }));
+      const requesterId = await ctx.db.insert("users", makeUser({ clerkId: "requester_forloc" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Transfer Book", author: "Author", coverImage: "",
+        description: "", categories: [], pageCount: 100, language: "en", avgRating: 0, reviewCount: 0,
+      });
+      const fromId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, {
+        name: "Dest Cafe", contactPhone: "+2000000001",
+      }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, currentLocationId: fromId, originalSharerId: managerId,
+        status: "available" as const, condition: "good" as const, ownershipType: "lent" as const, qrCodeUrl: "",
+      });
+      await ctx.db.insert("transferRequests", {
+        copyId: cId, bookId: bId, requesterId,
+        fromLocationId: fromId, toLocationId: toId,
+        status: "pending", createdAt: Date.now(),
+      });
+      // Delete the requester to test fallback
+      await ctx.db.delete(requesterId);
+      return { fromLocId: fromId };
+    });
+
+    const results = await t.query(api.transferRequests.forLocation, { locationId: fromLocId });
+    expect(results).toHaveLength(1);
+    expect(results[0].requesterName).toBe("Unknown");
+    expect(results[0].toLocationName).toBe("Dest Cafe");
+    expect(results[0].bookTitle).toBe("Transfer Book");
+  });
+
+  it("pendingForCopy returns null for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", {
+        title: "Book", author: "Author", coverImage: "",
+        description: "", categories: [], pageCount: 100, language: "en", avgRating: 0, reviewCount: 0,
+      });
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      return ctx.db.insert("copies", {
+        bookId: bId, currentLocationId: locId, originalSharerId: userId,
+        status: "available" as const, condition: "good" as const, ownershipType: "lent" as const, qrCodeUrl: "",
+      });
+    });
+
+    const result = await t.query(api.transferRequests.pendingForCopy, { copyId });
+    expect(result).toBeNull();
+  });
+
   it("accept sends transfer_accepted notification to requester", async () => {
     const t = convexTest(schema, modules);
 
