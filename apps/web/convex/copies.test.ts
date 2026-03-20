@@ -513,6 +513,101 @@ describe("copies.pickup", () => {
   });
 });
 
+describe("copies.returnCopy", () => {
+  it("returns a checked-out copy and makes it available", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_return_sharer", name: "Sharer" }),
+      );
+      const holderId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_return_holder", name: "Holder" }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { currentBookCount: 3 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        }),
+      );
+      // Journey entry required for returnCopy
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: holderId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_return_holder" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId,
+      locationId,
+      conditionAtReturn: "good",
+      photos: [],
+    });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("available");
+    expect(copy!.currentHolderId).toBeUndefined();
+  });
+
+  it("rejects return by non-holder", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_return_sharer2", name: "Sharer2" }),
+      );
+      const holderId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_return_holder2", name: "Holder2" }),
+      );
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_return_other", name: "Other", phone: "+9999999999" }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { currentBookCount: 3 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+        }),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const other = t.withIdentity({ subject: "user_return_other" });
+    await expect(
+      other.mutation(api.copies.returnCopy, {
+        copyId,
+        locationId,
+        conditionAtReturn: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("You are not the current holder");
+  });
+});
+
 describe("copies.relist", () => {
   it("sharer can relist a recalled copy as available", async () => {
     const t = convexTest(schema, modules);
