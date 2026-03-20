@@ -262,4 +262,23 @@ describe("reviews", () => {
       }),
     ).rejects.toThrow("Book not found");
   });
+
+  it("create rejects review text over 5000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      return await ctx.db.insert("books", makeBook());
+    });
+
+    const authed = t.withIdentity({ subject: "user_r1" });
+
+    await expect(
+      authed.mutation(api.reviews.create, {
+        bookId,
+        rating: 4,
+        text: "A".repeat(5001),
+      }),
+    ).rejects.toThrow("Review text must be 5000 characters or less");
+  });
 });
