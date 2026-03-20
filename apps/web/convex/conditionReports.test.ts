@@ -277,4 +277,63 @@ describe("conditionReports", () => {
     expect(reports[0].newCondition).toBe("fair");
     expect(reports[0].description).toBe("Water damage on cover");
   });
+
+  it("rejects condition report from unrelated user", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", {
+        clerkId: "user_cr_sharer",
+        phone: "+1111111111",
+        name: "Sharer",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 1,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      await ctx.db.insert("users", {
+        clerkId: "user_cr_stranger",
+        phone: "+2222222222",
+        name: "Stranger",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const bookId = await ctx.db.insert("books", {
+        title: "Auth Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        qrCodeUrl: "",
+      });
+    });
+
+    const stranger = t.withIdentity({ subject: "user_cr_stranger" });
+    await expect(
+      stranger.mutation(api.conditionReports.create, {
+        copyId,
+        type: "damage_report",
+        photos: [],
+        description: "Fake damage report",
+        newCondition: "worn",
+      }),
+    ).rejects.toThrow("Only the holder, sharer, or location staff can report condition");
+  });
 });

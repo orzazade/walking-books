@@ -66,6 +66,21 @@ export const create = mutation({
     const copy = await ctx.db.get(args.copyId);
     if (!copy) throw new Error("Copy not found");
 
+    // Only the holder, sharer, or location staff can report condition
+    const isHolder = copy.currentHolderId === user._id;
+    const isSharer = copy.originalSharerId === user._id;
+    let isLocationStaff = false;
+    if (copy.currentLocationId) {
+      const location = await ctx.db.get(copy.currentLocationId);
+      if (location) {
+        isLocationStaff =
+          location.managedByUserId === user._id ||
+          location.staffUserIds.includes(user._id);
+      }
+    }
+    if (!isHolder && !isSharer && !isLocationStaff)
+      throw new Error("Only the holder, sharer, or location staff can report condition");
+
     const reportId = await ctx.db.insert("conditionReports", {
       copyId: args.copyId,
       reportedByUserId: user._id,
