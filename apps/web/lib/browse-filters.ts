@@ -1,6 +1,6 @@
 export type SortOption = "availability" | "rating" | "title" | "newest";
 
-interface BrowseBook {
+export interface BrowseBook {
   _id: string;
   _creationTime: number;
   title: string;
