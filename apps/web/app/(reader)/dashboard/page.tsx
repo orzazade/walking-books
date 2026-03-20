@@ -16,6 +16,7 @@ import { PendingRequestsSection } from "@/components/pending-requests-section";
 import { TransferRequestsSection } from "@/components/transfer-requests-section";
 import { FavoriteLocationsSection } from "@/components/favorite-locations-section";
 import { NewArrivalsSection } from "@/components/new-arrivals-section";
+import { FriendsRecommendationsSection } from "@/components/friends-recommendations-section";
 import {
   BookOpen,
   Clock,
@@ -111,6 +112,9 @@ function DashboardContent() {
 
       {/* Friends Reading */}
       <FriendsReadingSection />
+
+      {/* Loved by Friends */}
+      <FriendsRecommendationsSection />
 
       {/* New at Favorite Locations */}
       <NewArrivalsSection />

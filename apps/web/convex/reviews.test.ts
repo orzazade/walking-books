@@ -114,6 +114,62 @@ describe("reviews", () => {
     ).rejects.toThrow("Rating must be an integer between 1 and 5");
   });
 
+  it("friendsRecommendations returns high-rated books from followed users excluding already-read", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      // Create current user and a friend
+      const me = await ctx.db.insert("users", makeUser({ clerkId: "user_me", name: "Me" }));
+      const friend = await ctx.db.insert("users", makeUser({ clerkId: "user_friend", name: "Friend" }));
+
+      // Follow the friend
+      await ctx.db.insert("follows", { followerId: me, followingId: friend });
+
+      // Create books
+      const bookA = await ctx.db.insert("books", makeBook({ title: "Great Book", author: "Author A" }));
+      const bookB = await ctx.db.insert("books", makeBook({ title: "Okay Book", author: "Author B" }));
+      const bookC = await ctx.db.insert("books", makeBook({ title: "Already Read", author: "Author C" }));
+
+      // Friend reviews: bookA (5 stars), bookB (2 stars — below threshold), bookC (4 stars)
+      await ctx.db.insert("reviews", { bookId: bookA, userId: friend, rating: 5, text: "Amazing" });
+      await ctx.db.insert("reviews", { bookId: bookB, userId: friend, rating: 2, text: "Meh" });
+      await ctx.db.insert("reviews", { bookId: bookC, userId: friend, rating: 4, text: "Good" });
+
+      // I already finished bookC
+      const copyC = await ctx.db.insert("copies", {
+        bookId: bookC,
+        status: "available" as any,
+        condition: "good" as any,
+        ownershipType: "lent" as any,
+        originalSharerId: friend,
+        qrCodeUrl: "",
+      });
+      await ctx.db.insert("readingProgress", {
+        userId: me,
+        copyId: copyC,
+        bookId: bookC,
+        currentPage: 200,
+        totalPages: 200,
+        status: "finished" as any,
+        startedAt: Date.now() - 86400000,
+        lastUpdatedAt: Date.now(),
+        finishedAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_me" });
+    const recs = await authed.query(api.reviews.friendsRecommendations, {});
+
+    // Should only include bookA (5 stars, not read). bookB excluded (2 stars). bookC excluded (already read).
+    expect(recs).toHaveLength(1);
+    expect(recs[0]).toMatchObject({
+      bookTitle: "Great Book",
+      bookAuthor: "Author A",
+      rating: 5,
+      reviewerName: "Friend",
+    });
+  });
+
   it("create rejects empty review text", async () => {
     const t = convexTest(schema, modules);
 

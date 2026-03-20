@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireCurrentUser } from "./lib/auth";
+import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { recalcAvgRating } from "./lib/ratings";
+import type { Id } from "./_generated/dataModel";
 
 export const byBook = query({
   args: { bookId: v.id("books") },
@@ -104,5 +105,111 @@ export const create = mutation({
     await ctx.db.patch(args.bookId, { avgRating, reviewCount });
 
     return reviewId;
+  },
+});
+
+export const friendsRecommendations = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    // Get followed user IDs
+    const followRows = await ctx.db
+      .query("follows")
+      .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+      .collect();
+    if (followRows.length === 0) return [];
+    const followedIds = followRows.map((f) => f.followingId);
+
+    // Get reviews by followed users (batch)
+    const reviewsPerUser = await Promise.all(
+      followedIds.map((uid) =>
+        ctx.db
+          .query("reviews")
+          .withIndex("by_user", (q) => q.eq("userId", uid))
+          .collect(),
+      ),
+    );
+
+    // Flatten and keep only highly-rated reviews (4-5 stars)
+    type Candidate = { userId: Id<"users">; bookId: Id<"books">; rating: number };
+    const highRated: Candidate[] = [];
+    for (let i = 0; i < followedIds.length; i++) {
+      for (const review of reviewsPerUser[i]) {
+        if (review.rating >= 4) {
+          highRated.push({
+            userId: followedIds[i],
+            bookId: review.bookId,
+            rating: review.rating,
+          });
+        }
+      }
+    }
+    if (highRated.length === 0) return [];
+
+    // Exclude books the current user has already read (finished)
+    const [finishedProgress, myReviews] = await Promise.all([
+      ctx.db
+        .query("readingProgress")
+        .withIndex("by_user_status", (q) =>
+          q.eq("userId", user._id).eq("status", "finished"),
+        )
+        .collect(),
+      ctx.db
+        .query("reviews")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+    ]);
+    const excludedBookIds = new Set<string>([
+      ...finishedProgress.map((p) => p.bookId as string),
+      ...myReviews.map((r) => r.bookId as string),
+    ]);
+
+    // Filter and deduplicate by bookId (keep highest rating + first reviewer)
+    const bestByBook = new Map<string, Candidate>();
+    for (const entry of highRated) {
+      if (excludedBookIds.has(entry.bookId as string)) continue;
+      const existing = bestByBook.get(entry.bookId as string);
+      if (!existing || entry.rating > existing.rating) {
+        bestByBook.set(entry.bookId as string, entry);
+      }
+    }
+
+    // Sort by rating desc, limit to 8
+    const candidates = [...bestByBook.values()]
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 8);
+    if (candidates.length === 0) return [];
+
+    // Batch-fetch books and reviewers
+    const uniqueBookIds = [...new Set(candidates.map((c) => c.bookId))];
+    const uniqueUserIds = [...new Set(candidates.map((c) => c.userId))];
+
+    const [books, users] = await Promise.all([
+      Promise.all(uniqueBookIds.map((id) => ctx.db.get(id))),
+      Promise.all(uniqueUserIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const bookMap = new Map(uniqueBookIds.map((id, i) => [id, books[i]]));
+    const userMap = new Map(uniqueUserIds.map((id, i) => [id, users[i]]));
+
+    return candidates
+      .map((c) => {
+        const book = bookMap.get(c.bookId);
+        const reviewer = userMap.get(c.userId);
+        if (!book || !reviewer) return null;
+        return {
+          bookId: book._id,
+          bookTitle: book.title,
+          bookAuthor: book.author,
+          coverImage: book.coverImage,
+          rating: c.rating,
+          reviewerId: reviewer._id,
+          reviewerName: reviewer.name,
+          reviewerAvatarUrl: reviewer.avatarUrl,
+        };
+      })
+      .filter((r) => r !== null);
   },
 });
