@@ -592,4 +592,89 @@ describe("reservations.myActive", () => {
       authed.mutation(api.reservations.create, { copyId, locationId }),
     ).rejects.toThrow();
   });
+
+  it("cancel rejects non-active reservation", async () => {
+    const t = convexTest(schema, modules);
+
+    const { reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "sharer_cancel", phone: "+8888888801" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      const resId = await ctx.db.insert("reservations", {
+        copyId,
+        userId: sharerId, // placeholder, we'll use the right user
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "cancelled",
+      });
+      return { reservationId: resId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.cancel, { reservationId }),
+    ).rejects.toThrow("Reservation is not active");
+  });
+
+  it("cancel rejects non-owner", async () => {
+    const t = convexTest(schema, modules);
+
+    const { reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "sharer_own", phone: "+8888888811" }),
+      );
+      const reserverId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "reserver_own", phone: "+8888888812" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "reserved",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      const resId = await ctx.db.insert("reservations", {
+        copyId,
+        userId: reserverId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+      return { reservationId: resId };
+    });
+
+    // user_res1 tries to cancel someone else's reservation
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.cancel, { reservationId }),
+    ).rejects.toThrow("Not your reservation");
+  });
 });
