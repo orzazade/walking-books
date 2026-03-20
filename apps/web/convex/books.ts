@@ -130,6 +130,22 @@ export const register = mutation({
     const location = await ctx.db.get(args.locationId);
     if (!location) throw new Error("Location not found");
 
+    // Per-user limit on active shared copies (not lost/damaged)
+    const MAX_SHARED_COPIES = 200;
+    const activeCopyCount = await ctx.db
+      .query("copies")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("originalSharerId"), user._id),
+          q.neq(q.field("status"), "lost"),
+          q.neq(q.field("status"), "damaged"),
+        ),
+      )
+      .collect()
+      .then((r) => r.length);
+    if (activeCopyCount >= MAX_SHARED_COPIES)
+      throw new Error(`Maximum ${MAX_SHARED_COPIES} active shared copies allowed`);
+
     // Find or create book
     let bookId;
     if (isbn) {
