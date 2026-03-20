@@ -4,6 +4,7 @@ import { useQuery, useConvexAuth, Authenticated, Unauthenticated } from "convex/
 import { api } from "@/convex/_generated/api";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { ReadingInsightsWidget } from "@/components/reading-insights-widget";
+import { StreakGoalWidget } from "@/components/streak-goal-widget";
 import { WishlistAlertsSection } from "@/components/wishlist-alerts-section";
 import { WaitlistPreviewSection } from "@/components/waitlist-preview-section";
 import { SharedCopiesSection } from "@/components/shared-copies-section";
@@ -92,6 +93,9 @@ function DashboardContent() {
           </div>
         ))}
       </div>
+
+      {/* Streak & Goal */}
+      <StreakGoalWidget />
 
       {/* Reading Insights */}
       {readingStats && <ReadingInsightsWidget stats={readingStats} />}

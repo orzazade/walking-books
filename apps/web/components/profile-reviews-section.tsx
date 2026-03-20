@@ -33,7 +33,7 @@ export function ProfileReviewsSection({ userId }: { userId: Id<"users"> }) {
         </span>
       </div>
       <div className="space-y-2.5">
-        {reviews.map((review) => (
+        {reviews.filter((r): r is NonNullable<typeof r> => r !== null).map((review) => (
           <div
             key={review._id}
             className="rounded-xl border border-border/40 bg-card/60 p-4"

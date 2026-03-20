@@ -239,6 +239,78 @@ describe("readingGoals", () => {
     ).rejects.toThrow("Target must be between 1 and 1000");
   });
 
+  it("getProgress returns completedReads without a goal set (dashboard no-goal state)", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId, locationId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Library",
+        address: "789 Pine St",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+1000000002",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 0,
+        managedByUserId: uid,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return { userId: uid, locationId: locId };
+    });
+
+    await t.run(async (ctx) => {
+      const bookId = await ctx.db.insert("books", {
+        title: "No Goal Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        qrCodeUrl: "",
+      });
+
+      // 2 completed reads in 2026, no goal set
+      for (let i = 0; i < 2; i++) {
+        await ctx.db.insert("journeyEntries", {
+          copyId,
+          readerId: userId,
+          pickupLocationId: locationId,
+          pickedUpAt: new Date(2026, i, 1).getTime(),
+          returnedAt: new Date(2026, i, 15).getTime(),
+          conditionAtPickup: "good",
+          conditionAtReturn: "good",
+          pickupPhotos: [],
+          returnPhotos: [],
+        });
+      }
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    // No setGoal call — user hasn't set a goal
+    const progress = await authed.query(api.readingGoals.getProgress, {
+      year: 2026,
+    });
+    expect(progress!.completedReads).toBe(2);
+    expect(progress!.targetBooks).toBeNull();
+    expect(progress!.progressPercent).toBeNull();
+  });
+
   it("progressPercent caps at 100 when goal is exceeded", async () => {
     const t = convexTest(schema, modules);
 
