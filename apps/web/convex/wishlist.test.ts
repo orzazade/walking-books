@@ -229,6 +229,85 @@ describe("wishlist", () => {
     expect(result).toBe(false);
   });
 
+  it("toggle rejects non-existent book", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "user_wish1",
+        phone: "+1234567890",
+        name: "Wishlist User",
+        roles: ["reader"],
+        status: "active" as const,
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_wish1" });
+    // Use a valid-format but non-existent ID
+    const fakeBookId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("books", {
+        title: "Temp",
+        author: "Temp",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 1,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      await ctx.db.delete(id);
+      return id;
+    });
+
+    await expect(
+      authed.mutation(api.wishlist.toggle, { bookId: fakeBookId }),
+    ).rejects.toThrow("Book not found");
+  });
+
+  it("toggle removes book from wishlist on second call", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "user_wish2",
+        phone: "+1234567891",
+        name: "Toggle User",
+        roles: ["reader"],
+        status: "active" as const,
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      return await ctx.db.insert("books", {
+        title: "Toggle Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_wish2" });
+    const r1 = await authed.mutation(api.wishlist.toggle, { bookId });
+    expect(r1.wishlisted).toBe(true);
+
+    const r2 = await authed.mutation(api.wishlist.toggle, { bookId });
+    expect(r2.wishlisted).toBe(false);
+
+    const isWish = await authed.query(api.wishlist.isWishlisted, { bookId });
+    expect(isWish).toBe(false);
+  });
+
   it("toggle throws for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
