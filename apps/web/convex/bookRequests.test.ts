@@ -500,4 +500,39 @@ describe("bookRequests", () => {
     expect(fulfilled.status).toBe("fulfilled");
     expect(fulfilled.fulfilledAt).toBeTypeOf("number");
   });
+
+  it("cancel rejects already-cancelled request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const reqId = await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Cancelled Book",
+        status: "cancelled",
+        createdAt: Date.now(),
+      });
+      return { requestId: reqId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.cancel, { requestId }),
+    ).rejects.toThrow("Request is not open");
+  });
+
+  it("create rejects title over 300 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.create, {
+        title: "A".repeat(301),
+      }),
+    ).rejects.toThrow("Title must be 300 characters or less");
+  });
 });
