@@ -436,6 +436,40 @@ describe("locationEvents", () => {
     ).rejects.toThrow("Location not found");
   });
 
+  it("create rejects when location has 50 upcoming events", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_maxev", phone: "+1111111196" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      for (let i = 0; i < 50; i++) {
+        await ctx.db.insert("locationEvents", {
+          locationId: locId,
+          createdByUserId: managerId,
+          title: `Event ${i}`,
+          description: `Desc ${i}`,
+          eventType: "other" as const,
+          startsAt: Date.now() + 86400000 + i * 1000,
+          endsAt: Date.now() + 90000000 + i * 1000,
+          rsvpCount: 0,
+        });
+      }
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager_maxev" });
+    await expect(
+      manager.mutation(api.locationEvents.create, {
+        locationId,
+        title: "One Too Many",
+        description: "Overflow event",
+        eventType: "workshop",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+      }),
+    ).rejects.toThrow("Maximum 50 upcoming events per location");
+  });
+
   it("rsvp rejects nonexistent event", async () => {
     const t = convexTest(schema, modules);
 
