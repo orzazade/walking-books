@@ -1018,7 +1018,7 @@ describe("copies.recall", () => {
 });
 
 describe("copies.relist", () => {
-  it("sharer can relist a recalled copy as available", async () => {
+  it("sharer can relist a recalled copy as available and clears lending fields", async () => {
     const t = convexTest(schema, modules);
     const sharerId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", makeUser({ clerkId: "user_relist_sharer" }));
@@ -1032,7 +1032,13 @@ describe("copies.relist", () => {
     const copyId = await t.run(async (ctx) => {
       return await ctx.db.insert(
         "copies",
-        makeCopy(bookId, locId, sharerId, { status: "recalled" }),
+        makeCopy(bookId, locId, sharerId, {
+          status: "recalled",
+          currentHolderId: sharerId,
+          returnDeadline: Date.now() + 86400000,
+          lendingPeriodDays: 21,
+          extensionCount: 2,
+        }),
       );
     });
 
@@ -1041,6 +1047,10 @@ describe("copies.relist", () => {
 
     const copy = await t.run(async (ctx) => ctx.db.get(copyId));
     expect(copy!.status).toBe("available");
+    expect(copy!.currentHolderId).toBeUndefined();
+    expect(copy!.returnDeadline).toBeUndefined();
+    expect(copy!.lendingPeriodDays).toBeUndefined();
+    expect(copy!.extensionCount).toBeUndefined();
   });
 
   it("rejects relist for non-recalled copies", async () => {
