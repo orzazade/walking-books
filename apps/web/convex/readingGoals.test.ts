@@ -560,4 +560,40 @@ describe("readingGoals", () => {
     expect(progress!.completedReads).toBe(3);
     expect(progress!.progressPercent).toBe(100);
   });
+
+  it("setMonthlyGoal rejects invalid target", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    await expect(
+      authed.mutation(api.readingGoals.setMonthlyGoal, { year: 2026, month: 3, targetBooks: 0 }),
+    ).rejects.toThrow("Monthly target must be between 1 and 100");
+
+    await expect(
+      authed.mutation(api.readingGoals.setMonthlyGoal, { year: 2026, month: 3, targetBooks: 101 }),
+    ).rejects.toThrow("Monthly target must be between 1 and 100");
+  });
+
+  it("setMonthlyGoal rejects invalid month", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    await expect(
+      authed.mutation(api.readingGoals.setMonthlyGoal, { year: 2026, month: 0, targetBooks: 5 }),
+    ).rejects.toThrow("Month must be between 1 and 12");
+
+    await expect(
+      authed.mutation(api.readingGoals.setMonthlyGoal, { year: 2026, month: 13, targetBooks: 5 }),
+    ).rejects.toThrow("Month must be between 1 and 12");
+  });
 });
