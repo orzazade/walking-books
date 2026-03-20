@@ -373,6 +373,87 @@ describe("copies.bySharerEnriched", () => {
 });
 
 describe("copies.extend", () => {
+  it("extends the return deadline successfully", async () => {
+    const t = convexTest(schema, modules);
+    const holderId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_extend_ok" }));
+    });
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_sharer_ext_ok" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const originalDeadline = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: originalDeadline,
+          extensionCount: 0,
+        }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_extend_ok" });
+    const result = await authed.mutation(api.copies.extend, { copyId });
+    expect(result.success).toBe(true);
+    expect(result.newDeadline).toBeGreaterThan(originalDeadline);
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.extensionCount).toBe(1);
+  });
+
+  it("rejects extension when active reservation exists", async () => {
+    const t = convexTest(schema, modules);
+    const holderId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_extend_res" }));
+    });
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_sharer_ext_res" }));
+    });
+    const reserverId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_reserver_ext", phone: "+7777777777" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
+          extensionCount: 0,
+        }),
+      );
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("reservations", {
+        copyId,
+        userId: reserverId,
+        locationId: locId,
+        status: "active" as const,
+        expiresAt: Date.now() + 86400000,
+        reservedAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_extend_res" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("Cannot extend: there is an active reservation");
+  });
+
   it("rejects after maximum extensions reached", async () => {
     const t = convexTest(schema, modules);
     const holderId = await t.run(async (ctx) => {
