@@ -13,6 +13,7 @@ import { HeldCopiesSection } from "@/components/held-copies-section";
 import { FriendsReadingSection } from "@/components/friends-reading-section";
 import { RecommendedBooksSection } from "@/components/recommended-books-section";
 import { PendingRequestsSection } from "@/components/pending-requests-section";
+import { TransferRequestsSection } from "@/components/transfer-requests-section";
 import { FavoriteLocationsSection } from "@/components/favorite-locations-section";
 import {
   BookOpen,
@@ -121,6 +122,9 @@ function DashboardContent() {
 
       {/* Pending Book Requests */}
       <PendingRequestsSection />
+
+      {/* Transfer Requests */}
+      <TransferRequestsSection />
 
       {/* Waiting For */}
       <WaitlistPreviewSection />

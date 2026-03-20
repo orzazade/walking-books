@@ -201,5 +201,23 @@ describe("transferRequests", () => {
 
     const pending = await reader.query(api.transferRequests.pendingForCopy, { copyId });
     expect(pending).toBeNull();
+
+    // Cancelled request still appears in myRequests with correct status
+    const myReqs = await reader.query(api.transferRequests.myRequests);
+    expect(myReqs).toHaveLength(1);
+    expect(myReqs[0].status).toBe("cancelled");
+    expect(myReqs[0].bookTitle).toBe("Cancel Book");
+  });
+
+  it("myRequests returns empty array for user with no requests", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const reader = t.withIdentity({ subject: "user_tr1" });
+    const myReqs = await reader.query(api.transferRequests.myRequests);
+    expect(myReqs).toHaveLength(0);
   });
 });
