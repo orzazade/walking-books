@@ -31,6 +31,14 @@ export const create = mutation({
     if (trimmedDesc && trimmedDesc.length > 500)
       throw new Error("Collection description must be 500 characters or less");
 
+    const MAX_COLLECTIONS = 50;
+    const userCollections = await ctx.db
+      .query("collections")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    if (userCollections.length >= MAX_COLLECTIONS)
+      throw new Error(`Maximum ${MAX_COLLECTIONS} collections allowed`);
+
     const id = await ctx.db.insert("collections", {
       userId: user._id,
       name: trimmed,

@@ -33,18 +33,18 @@ export const create = mutation({
         throw new Error("Note must be 500 characters or less");
     }
 
-    // Prevent duplicate open requests from same user for same title
-    const existing = await ctx.db
+    // Check open requests: prevent duplicates and enforce per-user cap
+    const MAX_OPEN_REQUESTS = 20;
+    const openRequests = await ctx.db
       .query("bookRequests")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("status"), "open"),
-          q.eq(q.field("title"), title),
-        ),
-      )
-      .first();
-    if (existing) throw new Error("You already have an open request for this book");
+      .filter((q) => q.eq(q.field("status"), "open"))
+      .collect();
+
+    if (openRequests.some((r) => r.title === title))
+      throw new Error("You already have an open request for this book");
+    if (openRequests.length >= MAX_OPEN_REQUESTS)
+      throw new Error(`Maximum ${MAX_OPEN_REQUESTS} open book requests allowed`);
 
     return await ctx.db.insert("bookRequests", {
       userId: user._id,
