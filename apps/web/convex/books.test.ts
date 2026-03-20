@@ -425,3 +425,52 @@ describe("books.socialProof", () => {
     expect(result.completedReads).toBe(1);
   });
 });
+
+describe("books.nearMe", () => {
+  it("returns books at nearby locations sorted by distance", async () => {
+    const t = convexTest(schema, modules);
+    const { bookNearId, bookFarId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      // Close location (~1.1 km from origin)
+      const closeLoc = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(uid, { name: "Close Cafe", lat: 0.01, lng: 0 }),
+      );
+      // Farther location (~11 km from origin, still within default 25km radius)
+      const farLoc = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(uid, { name: "Far Library", lat: 0.1, lng: 0 }),
+      );
+      const bookNear = await ctx.db.insert("books", makeBook({ title: "Near Book" }));
+      const bookFar = await ctx.db.insert("books", makeBook({ title: "Far Book" }));
+      await ctx.db.insert("copies", makeCopy(bookNear, closeLoc, uid));
+      await ctx.db.insert("copies", makeCopy(bookFar, farLoc, uid));
+      return { bookNearId: bookNear, bookFarId: bookFar };
+    });
+
+    const result = await t.query(api.books.nearMe, { lat: 0, lng: 0 });
+    expect(result).toHaveLength(2);
+    expect(result[0]._id).toBe(bookNearId);
+    expect(result[0].nearestLocationName).toBe("Close Cafe");
+    expect(result[0].nearestDistanceKm).toBeLessThan(2);
+    expect(result[1]._id).toBe(bookFarId);
+    expect(result[1].nearestDistanceKm).toBeGreaterThan(10);
+  });
+
+  it("excludes locations beyond radius", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      // Location ~111 km away (beyond default 25km radius)
+      const farLoc = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(uid, { name: "Far", lat: 1, lng: 0 }),
+      );
+      const bid = await ctx.db.insert("books", makeBook());
+      await ctx.db.insert("copies", makeCopy(bid, farLoc, uid));
+    });
+
+    const result = await t.query(api.books.nearMe, { lat: 0, lng: 0, radiusKm: 5 });
+    expect(result).toEqual([]);
+  });
+});

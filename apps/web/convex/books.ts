@@ -8,6 +8,7 @@ import { notifyWishlisters } from "./lib/wishlistNotify";
 import { notifyBookRequesters } from "./lib/requestNotify";
 import type { Id } from "./_generated/dataModel";
 import { getBookCopyCounts, getBookCopyCountsFor } from "./lib/availability";
+import { haversineKm } from "./lib/geo";
 
 async function enrichWithAvailability<
   T extends {
@@ -474,5 +475,84 @@ export const socialProof = query({
       wishlisted: wishlistEntries.length,
       completedReads: journeyEntries.length,
     };
+  },
+});
+
+/** Books available at nearby locations, sorted by distance. */
+export const nearMe = query({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+    radiusKm: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const maxRadius = args.radiusKm ?? 25;
+    const locations = await ctx.db.query("partnerLocations").collect();
+
+    // Filter locations within radius and compute distance
+    const nearbyLocations = locations
+      .map((loc) => ({
+        ...loc,
+        distanceKm: haversineKm(args.lat, args.lng, loc.lat, loc.lng),
+      }))
+      .filter((loc) => loc.distanceKm <= maxRadius)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    if (nearbyLocations.length === 0) return [];
+
+    // Fetch available copies at all nearby locations in parallel
+    const copiesByLocation = await Promise.all(
+      nearbyLocations.map((loc) =>
+        ctx.db
+          .query("copies")
+          .withIndex("by_location", (q) =>
+            q.eq("currentLocationId", loc._id).eq("status", "available"),
+          )
+          .collect()
+          .then((copies) => ({ locationId: loc._id, locationName: loc.name, distanceKm: loc.distanceKm, copies })),
+      ),
+    );
+
+    // Build book → nearest location map (a book may be at multiple locations)
+    const bookNearest = new Map<
+      string,
+      { locationName: string; distanceKm: number; copiesAtLocation: number }
+    >();
+    const bookCopyTotal = new Map<string, number>();
+
+    for (const { locationName, distanceKm, copies } of copiesByLocation) {
+      const perBook = new Map<string, number>();
+      for (const copy of copies) {
+        perBook.set(copy.bookId, (perBook.get(copy.bookId) ?? 0) + 1);
+        bookCopyTotal.set(copy.bookId, (bookCopyTotal.get(copy.bookId) ?? 0) + 1);
+      }
+      for (const [bookId, count] of perBook) {
+        const existing = bookNearest.get(bookId);
+        if (!existing || distanceKm < existing.distanceKm) {
+          bookNearest.set(bookId, { locationName, distanceKm, copiesAtLocation: count });
+        }
+      }
+    }
+
+    // Fetch unique books
+    const bookIds = [...bookNearest.keys()];
+    const books = await Promise.all(
+      bookIds.map((id) => ctx.db.get(id as Id<"books">)),
+    );
+
+    return books
+      .filter((b): b is NonNullable<typeof b> => b !== null)
+      .map((book) => {
+        const nearest = bookNearest.get(book._id)!;
+        return {
+          ...book,
+          availableCopies: bookCopyTotal.get(book._id) ?? 0,
+          totalCopies: bookCopyTotal.get(book._id) ?? 0,
+          nearestLocationName: nearest.locationName,
+          nearestDistanceKm: Math.round(nearest.distanceKm * 10) / 10,
+          copiesAtNearest: nearest.copiesAtLocation,
+        };
+      })
+      .sort((a, b) => a.nearestDistanceKm - b.nearestDistanceKm);
   },
 });

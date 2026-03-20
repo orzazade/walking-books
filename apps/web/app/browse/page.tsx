@@ -7,10 +7,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CategoryGrid } from "@/components/category-grid";
 import { BookCard } from "@/components/book-card";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { HeaderActionLink } from "@/components/header-action-link";
-import { BookOpen, Check, MapPin, X } from "lucide-react";
+import { BookOpen, Check, Loader2, MapPin, Navigation, X } from "lucide-react";
 import {
   sortBooks,
   filterAvailableOnly,
@@ -58,6 +58,43 @@ function LocationFilter({
   );
 }
 
+function useGeolocation() {
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLoading(false);
+      },
+      (err) => {
+        setError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location access denied"
+            : "Could not get location",
+        );
+        setLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000 },
+    );
+  }, []);
+
+  const clear = useCallback(() => {
+    setCoords(null);
+    setError(null);
+  }, []);
+
+  return { coords, loading, error, requestLocation, clear };
+}
+
 function BrowseContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
@@ -66,22 +103,35 @@ function BrowseContent() {
   const [locationId, setLocationId] = useState<Id<"partnerLocations"> | null>(
     null,
   );
+  const geo = useGeolocation();
+  const nearMeActive = geo.coords !== null;
 
   // Data sources — pick based on active filters
   const filteredBooks = useQuery(
     api.books.byCategoryCatalog,
-    category && !locationId ? { category } : "skip",
+    category && !locationId && !nearMeActive ? { category } : "skip",
   );
   const allBooks = useQuery(
     api.books.listCatalog,
-    !category && !locationId ? {} : "skip",
+    !category && !locationId && !nearMeActive ? {} : "skip",
   );
   const locationBooks = useQuery(
     api.books.atLocationCatalog,
-    locationId ? { locationId } : "skip",
+    locationId && !nearMeActive ? { locationId } : "skip",
+  );
+  const nearMeBooks = useQuery(
+    api.books.nearMe,
+    nearMeActive ? { lat: geo.coords!.lat, lng: geo.coords!.lng } : "skip",
   );
 
   const rawBooks = useMemo(() => {
+    if (nearMeActive) {
+      if (!nearMeBooks) return undefined;
+      if (category) {
+        return nearMeBooks.filter((b) => b.categories.includes(category));
+      }
+      return nearMeBooks;
+    }
     if (locationId) {
       if (!locationBooks) return undefined;
       // If category is also active, filter client-side
@@ -91,16 +141,36 @@ function BrowseContent() {
       return locationBooks;
     }
     return category ? filteredBooks : allBooks;
-  }, [locationId, locationBooks, category, filteredBooks, allBooks]);
+  }, [nearMeActive, nearMeBooks, locationId, locationBooks, category, filteredBooks, allBooks]);
 
   const books = useMemo(() => {
     if (!rawBooks) return undefined;
     const filtered = availableOnly ? filterAvailableOnly(rawBooks) : rawBooks;
+    // When near-me is active, preserve distance sort by default
+    if (nearMeActive && sortBy === "availability") return filtered;
     return sortBooks(filtered, sortBy);
-  }, [rawBooks, sortBy, availableOnly]);
+  }, [rawBooks, sortBy, availableOnly, nearMeActive]);
 
   const availableCopies =
     rawBooks?.reduce((sum, book) => sum + book.availableCopies, 0) ?? 0;
+
+  const subtitle = nearMeActive
+    ? "Showing books available near you"
+    : locationId
+      ? "Showing books available at this location"
+      : category
+        ? `Showing books in ${category}`
+        : "All books currently in the network";
+
+  function handleNearMeToggle() {
+    if (nearMeActive) {
+      geo.clear();
+    } else {
+      // Clear location filter when switching to near-me
+      setLocationId(null);
+      geo.requestLocation();
+    }
+  }
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -112,11 +182,7 @@ function BrowseContent() {
             {category ? category : "Browse Books"}
           </h1>
           <p className="mt-1.5 text-[0.875rem] text-muted-foreground">
-            {locationId
-              ? "Showing books available at this location"
-              : category
-                ? `Showing books in ${category}`
-                : "All books currently in the network"}
+            {subtitle}
           </p>
         </div>
 
@@ -135,13 +201,16 @@ function BrowseContent() {
               Clear filter
             </HeaderActionLink>
           )}
-          {!category && locationId && (
+          {!category && (locationId || nearMeActive) && (
             <button
-              onClick={() => setLocationId(null)}
+              onClick={() => {
+                setLocationId(null);
+                geo.clear();
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[0.8125rem] font-medium text-foreground transition-colors hover:bg-muted"
             >
               <X className="h-3 w-3" />
-              Clear location
+              {nearMeActive ? "Clear Near Me" : "Clear location"}
             </button>
           )}
         </div>
@@ -183,8 +252,33 @@ function BrowseContent() {
           Available Now
         </button>
         <div className="mx-1 h-5 w-px bg-border/50" />
-        <LocationFilter locationId={locationId} onSelect={setLocationId} />
+        <button
+          onClick={handleNearMeToggle}
+          disabled={geo.loading}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+            nearMeActive
+              ? "bg-blue-600 text-white"
+              : "border border-border/50 bg-card/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+        >
+          {geo.loading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Navigation className="h-3.5 w-3.5" />
+          )}
+          Near Me
+        </button>
+        {!nearMeActive && (
+          <LocationFilter locationId={locationId} onSelect={(id) => { setLocationId(id); if (id) geo.clear(); }} />
+        )}
       </div>
+
+      {/* Geolocation error */}
+      {geo.error && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-[0.8125rem] text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-200">
+          {geo.error}. Try selecting a specific location instead.
+        </div>
+      )}
 
       {/* Books grid */}
       {books === undefined ? (
@@ -196,19 +290,22 @@ function BrowseContent() {
           icon={BookOpen}
           title="No books found"
           message={
-            locationId
-              ? "No books are currently available at this location."
-              : availableOnly
-                ? "No books are currently available. Try removing the filter."
-                : "Try a different category or search by title."
+            nearMeActive
+              ? "No books available near you. Try expanding your search."
+              : locationId
+                ? "No books are currently available at this location."
+                : availableOnly
+                  ? "No books are currently available. Try removing the filter."
+                  : "Try a different category or search by title."
           }
         >
           <div className="mt-4 flex justify-center gap-3">
-            {(availableOnly || locationId) && (
+            {(availableOnly || locationId || nearMeActive) && (
               <button
                 onClick={() => {
                   setAvailableOnly(false);
                   setLocationId(null);
+                  geo.clear();
                 }}
                 className="rounded-lg bg-primary px-4 py-2 text-[0.8125rem] font-medium text-primary-foreground"
               >

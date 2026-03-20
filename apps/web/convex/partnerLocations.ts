@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { validatePhotos } from "./lib/validators";
+import { haversineKm } from "./lib/geo";
 
 export const myLocation = query({
   args: {},
@@ -95,24 +96,6 @@ export const byId = query({
     return await ctx.db.get(args.locationId);
   },
 });
-
-/** Haversine distance in km between two lat/lng points. */
-function haversineKm(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 /** Top books picked up from this location, ranked by pickup count. */
 export const popularBooks = query({

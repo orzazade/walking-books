@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { type Id } from "@/convex/_generated/dataModel";
-import { Star } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 
 interface BookCardProps {
   book: {
@@ -14,6 +14,8 @@ interface BookCardProps {
     categories: string[];
     availableCopies: number;
     totalCopies: number;
+    nearestLocationName?: string;
+    nearestDistanceKm?: number;
   };
 }
 
@@ -69,6 +71,18 @@ export function BookCard({ book }: BookCardProps) {
               </span>
             ))}
           </div>
+
+          {book.nearestLocationName && book.nearestDistanceKm !== undefined && (
+            <div className="flex items-center gap-1.5 text-[0.75rem] text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0 text-primary/70" />
+              <span className="truncate">{book.nearestLocationName}</span>
+              <span className="shrink-0 font-medium">
+                {book.nearestDistanceKm < 1
+                  ? `${Math.round(book.nearestDistanceKm * 1000)}m`
+                  : `${book.nearestDistanceKm}km`}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between border-t border-border/40 pt-2.5 text-[0.8125rem]">
             <div className="flex items-center gap-1 text-muted-foreground">
