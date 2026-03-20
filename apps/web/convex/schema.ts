@@ -181,6 +181,15 @@ export default defineSchema({
     .index("by_collection", ["collectionId"])
     .index("by_collection_book", ["collectionId", "bookId"]),
 
+  collectionFollows: defineTable({
+    followerId: v.id("users"),
+    collectionId: v.id("collections"),
+    followedAt: v.number(),
+  })
+    .index("by_follower", ["followerId"])
+    .index("by_collection", ["collectionId"])
+    .index("by_pair", ["followerId", "collectionId"]),
+
   bookNotes: defineTable({
     userId: v.id("users"),
     bookId: v.id("books"),

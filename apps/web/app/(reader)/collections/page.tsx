@@ -16,6 +16,7 @@ import {
   BookOpen,
   ChevronRight,
   Users,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
@@ -168,6 +169,68 @@ function CollectionCard({
   );
 }
 
+function FollowedCollections() {
+  const collections = useQuery(api.collections.followedCollections);
+
+  if (collections === undefined) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-border/40 bg-card/60 p-4"
+          >
+            <div className="animate-shimmer h-4 w-40 rounded-md bg-muted" />
+            <div className="animate-shimmer mt-2 h-3 w-24 rounded-md bg-muted" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (collections.length === 0) {
+    return (
+      <EmptyState
+        icon={Heart}
+        title="No followed collections"
+        message="Follow public collections from the community to keep track of curated reading lists."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {collections.map((collection) => (
+        <Link
+          key={collection._id}
+          href={`/collections/${collection._id}`}
+          className="group block rounded-xl border border-border/40 bg-card/60 p-4 transition-colors hover:bg-card/80"
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-[0.9375rem] font-medium">
+              {collection.name}
+            </h3>
+            <Heart className="h-3 w-3 shrink-0 fill-current text-primary" />
+          </div>
+          {collection.description && (
+            <p className="mt-0.5 line-clamp-1 text-[0.8125rem] text-muted-foreground">
+              {collection.description}
+            </p>
+          )}
+          <div className="mt-2 flex items-center gap-3 text-[0.75rem] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3 w-3" />
+              {collection.bookCount} {collection.bookCount === 1 ? "book" : "books"}
+            </span>
+            <span>by {collection.ownerName}</span>
+            <ChevronRight className="ml-auto h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function CommunityCollections() {
   const collections = useQuery(api.collections.publicCollections);
 
@@ -221,6 +284,12 @@ function CommunityCollections() {
               <BookOpen className="h-3 w-3" />
               {collection.bookCount} {collection.bookCount === 1 ? "book" : "books"}
             </span>
+            {collection.followerCount > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Heart className="h-3 w-3" />
+                {collection.followerCount}
+              </span>
+            )}
             <span>by {collection.ownerName}</span>
             <ChevronRight className="ml-auto h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
           </div>
@@ -331,6 +400,19 @@ export default function CollectionsPage() {
       <Unauthenticated>
         <SignInPrompt message="Sign in to create and manage your book collections." />
       </Unauthenticated>
+
+      {/* Followed Collections (auth-gated) */}
+      <Authenticated>
+        <div className="mt-10">
+          <h2 className="mb-4 font-serif text-[1.25rem] font-semibold tracking-[-0.01em]">
+            Following
+          </h2>
+          <p className="mb-5 text-[0.8125rem] text-muted-foreground">
+            Collections you follow — stay updated on curated reading lists
+          </p>
+          <FollowedCollections />
+        </div>
+      </Authenticated>
 
       {/* Community Collections (public) */}
       <div className="mt-10">

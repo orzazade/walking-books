@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Globe,
@@ -12,6 +13,8 @@ import {
   BookOpen,
   Trash2,
   User,
+  Heart,
+  Users,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { toast } from "sonner";
@@ -24,12 +27,36 @@ function CollectionDetail({
   collectionId: Id<"collections">;
 }) {
   const { isAuthenticated } = useConvexAuth();
-  const collection = useQuery(
-    api.collections.getCollection,
+  const collection = useQuery(api.collections.getCollection, { collectionId });
+  const isFollowing = useQuery(
+    api.collections.isFollowing,
     isAuthenticated ? { collectionId } : "skip",
   );
+  const followerCount = useQuery(api.collections.followerCount, {
+    collectionId,
+  });
+  const followMut = useMutation(api.collections.follow);
+  const unfollowMut = useMutation(api.collections.unfollow);
   const removeBook = useMutation(api.collections.removeBook);
   const [removingBookId, setRemovingBookId] = useState<string | null>(null);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  async function handleToggleFollow() {
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await unfollowMut({ collectionId });
+        toast.success("Unfollowed collection");
+      } else {
+        await followMut({ collectionId });
+        toast.success("Following collection");
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update follow"));
+    } finally {
+      setFollowLoading(false);
+    }
+  }
 
   async function handleRemoveBook(bookId: Id<"books">) {
     setRemovingBookId(bookId);
@@ -91,31 +118,58 @@ function CollectionDetail({
     <div>
       {/* Collection header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="font-serif text-[1.75rem] font-semibold tracking-[-0.01em]">
-            {collection.name}
-          </h1>
-          {collection.isPublic ? (
-            <Globe className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Lock className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif text-[1.75rem] font-semibold tracking-[-0.01em]">
+                {collection.name}
+              </h1>
+              {collection.isPublic ? (
+                <Globe className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            {collection.description && (
+              <p className="mt-1 text-[0.875rem] text-muted-foreground">
+                {collection.description}
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {collection.ownerName}
+              </span>
+              <span className="flex items-center gap-1">
+                <BookOpen className="h-3 w-3" />
+                {collection.books.length}{" "}
+                {collection.books.length === 1 ? "book" : "books"}
+              </span>
+              {followerCount !== undefined && followerCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {followerCount}{" "}
+                  {followerCount === 1 ? "follower" : "followers"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Follow button — only for public collections the user doesn't own */}
+          {collection.isPublic && isAuthenticated && isFollowing !== undefined && (
+            <Button
+              size="sm"
+              variant={isFollowing ? "outline" : "default"}
+              onClick={handleToggleFollow}
+              disabled={followLoading}
+              className="shrink-0"
+            >
+              <Heart
+                className={`mr-1.5 h-3.5 w-3.5 ${isFollowing ? "fill-current" : ""}`}
+              />
+              {isFollowing ? "Following" : "Follow"}
+            </Button>
           )}
-        </div>
-        {collection.description && (
-          <p className="mt-1 text-[0.875rem] text-muted-foreground">
-            {collection.description}
-          </p>
-        )}
-        <div className="mt-2 flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            {collection.ownerName}
-          </span>
-          <span className="flex items-center gap-1">
-            <BookOpen className="h-3 w-3" />
-            {collection.books.length}{" "}
-            {collection.books.length === 1 ? "book" : "books"}
-          </span>
         </div>
       </div>
 

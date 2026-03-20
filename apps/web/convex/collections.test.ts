@@ -365,6 +365,144 @@ describe("collections", () => {
     expect(result[0].bookCount).toBe(2);
   });
 
+  it("follow and unfollow a public collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const uid1 = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_coll2", name: "Follower", phone: "+9999999999" }),
+      );
+      return await ctx.db.insert("collections", {
+        userId: uid1,
+        name: "Great Reads",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+    });
+
+    const follower = t.withIdentity({ subject: "user_coll2" });
+
+    // Follow the collection
+    await follower.mutation(api.collections.follow, { collectionId });
+
+    // Verify isFollowing
+    const following = await follower.query(api.collections.isFollowing, { collectionId });
+    expect(following).toBe(true);
+
+    // Verify followerCount
+    const count = await follower.query(api.collections.followerCount, { collectionId });
+    expect(count).toBe(1);
+
+    // Verify followedCollections
+    const followed = await follower.query(api.collections.followedCollections, {});
+    expect(followed).toHaveLength(1);
+    expect(followed[0].name).toBe("Great Reads");
+
+    // Unfollow
+    await follower.mutation(api.collections.unfollow, { collectionId });
+    const afterUnfollow = await follower.query(api.collections.isFollowing, { collectionId });
+    expect(afterUnfollow).toBe(false);
+
+    const countAfter = await follower.query(api.collections.followerCount, { collectionId });
+    expect(countAfter).toBe(0);
+  });
+
+  it("cannot follow own collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      return await ctx.db.insert("collections", {
+        userId: uid,
+        name: "My List",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.follow, { collectionId }),
+    ).rejects.toThrow("Cannot follow your own collection");
+  });
+
+  it("cannot follow a private collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_coll2", name: "Other", phone: "+9999999999" }),
+      );
+      return await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Secret",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+    });
+
+    const other = t.withIdentity({ subject: "user_coll2" });
+    await expect(
+      other.mutation(api.collections.follow, { collectionId }),
+    ).rejects.toThrow("Cannot follow a private collection");
+  });
+
+  it("cannot follow same collection twice", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_coll2", name: "Follower", phone: "+9999999999" }),
+      );
+      return await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Popular",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+    });
+
+    const follower = t.withIdentity({ subject: "user_coll2" });
+    await follower.mutation(api.collections.follow, { collectionId });
+    await expect(
+      follower.mutation(api.collections.follow, { collectionId }),
+    ).rejects.toThrow("Already following this collection");
+  });
+
+  it("publicCollections includes follower counts", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const uid1 = await ctx.db.insert("users", makeUser());
+      const uid2 = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_coll2", name: "Follower", phone: "+9999999999" }),
+      );
+      const colId = await ctx.db.insert("collections", {
+        userId: uid1,
+        name: "Followed List",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("collectionFollows", {
+        followerId: uid2,
+        collectionId: colId,
+        followedAt: Date.now(),
+      });
+      return colId;
+    });
+
+    const result = await t.query(api.collections.publicCollections, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].followerCount).toBe(1);
+  });
+
   it("publicCollections returns empty when no public collections exist", async () => {
     const t = convexTest(schema, modules);
 

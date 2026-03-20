@@ -158,24 +158,135 @@ export const publicCollections = query({
 
     return Promise.all(
       publicOnes.map(async (c) => {
-        const [items, owner] = await Promise.all([
+        const [items, owner, followers] = await Promise.all([
           ctx.db
             .query("collectionItems")
             .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
             .collect(),
           ctx.db.get(c.userId),
+          ctx.db
+            .query("collectionFollows")
+            .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
+            .collect(),
         ]);
         return {
           _id: c._id,
           name: c.name,
           description: c.description,
           bookCount: items.length,
+          followerCount: followers.length,
           createdAt: c.createdAt,
           ownerName: owner?.name ?? "Unknown",
           ownerId: c.userId,
         };
       }),
     );
+  },
+});
+
+export const follow = mutation({
+  args: { collectionId: v.id("collections") },
+  handler: async (ctx, args) => {
+    const user = await requireCurrentUser(ctx);
+    const collection = await ctx.db.get(args.collectionId);
+    if (!collection) throw new Error("Collection not found");
+    if (!collection.isPublic) throw new Error("Cannot follow a private collection");
+    if (collection.userId === user._id) throw new Error("Cannot follow your own collection");
+
+    const existing = await ctx.db
+      .query("collectionFollows")
+      .withIndex("by_pair", (q) =>
+        q.eq("followerId", user._id).eq("collectionId", args.collectionId),
+      )
+      .unique();
+    if (existing) throw new Error("Already following this collection");
+
+    await ctx.db.insert("collectionFollows", {
+      followerId: user._id,
+      collectionId: args.collectionId,
+      followedAt: Date.now(),
+    });
+  },
+});
+
+export const unfollow = mutation({
+  args: { collectionId: v.id("collections") },
+  handler: async (ctx, args) => {
+    const user = await requireCurrentUser(ctx);
+    const existing = await ctx.db
+      .query("collectionFollows")
+      .withIndex("by_pair", (q) =>
+        q.eq("followerId", user._id).eq("collectionId", args.collectionId),
+      )
+      .unique();
+    if (!existing) throw new Error("Not following this collection");
+    await ctx.db.delete(existing._id);
+  },
+});
+
+export const isFollowing = query({
+  args: { collectionId: v.id("collections") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return false;
+    const existing = await ctx.db
+      .query("collectionFollows")
+      .withIndex("by_pair", (q) =>
+        q.eq("followerId", user._id).eq("collectionId", args.collectionId),
+      )
+      .unique();
+    return existing !== null;
+  },
+});
+
+export const followerCount = query({
+  args: { collectionId: v.id("collections") },
+  handler: async (ctx, args) => {
+    const followers = await ctx.db
+      .query("collectionFollows")
+      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
+      .collect();
+    return followers.length;
+  },
+});
+
+export const followedCollections = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const follows = await ctx.db
+      .query("collectionFollows")
+      .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+      .collect();
+
+    const results = await Promise.all(
+      follows.map(async (f) => {
+        const collection = await ctx.db.get(f.collectionId);
+        if (!collection || !collection.isPublic) return null;
+        const [items, owner] = await Promise.all([
+          ctx.db
+            .query("collectionItems")
+            .withIndex("by_collection", (q) => q.eq("collectionId", f.collectionId))
+            .collect(),
+          ctx.db.get(collection.userId),
+        ]);
+        return {
+          _id: collection._id,
+          name: collection.name,
+          description: collection.description,
+          bookCount: items.length,
+          createdAt: collection.createdAt,
+          ownerName: owner?.name ?? "Unknown",
+          ownerId: collection.userId,
+          followedAt: f.followedAt,
+        };
+      }),
+    );
+
+    return results
+      .filter((r) => r !== null)
+      .sort((a, b) => b.followedAt - a.followedAt);
   },
 });
 
