@@ -608,6 +608,128 @@ describe("copies.returnCopy", () => {
   });
 });
 
+describe("copies.recall", () => {
+  it("sharer recalls an available copy", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_sharer" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert("copies", makeCopy(bookId, locId, sharerId));
+    });
+
+    const authed = t.withIdentity({ subject: "user_recall_sharer" });
+    const result = await authed.mutation(api.copies.recall, { copyId });
+    expect(result).toEqual({ success: true });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("recalled");
+  });
+
+  it("sharer recalls a reserved copy and cancels the reservation", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_sharer2" }));
+    });
+    const readerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_reserver", phone: "+9876543210" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert("copies", makeCopy(bookId, locId, sharerId, { status: "reserved" }));
+    });
+    const reservationId = await t.run(async (ctx) => {
+      return await ctx.db.insert("reservations", {
+        copyId,
+        userId: readerId,
+        locationId: locId,
+        status: "active" as const,
+        expiresAt: Date.now() + 86400000,
+        reservedAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_recall_sharer2" });
+    await authed.mutation(api.copies.recall, { copyId });
+
+    const [copy, reservation] = await t.run(async (ctx) => {
+      return [await ctx.db.get(copyId), await ctx.db.get(reservationId)];
+    });
+    expect(copy!.status).toBe("recalled");
+    expect(reservation!.status).toBe("cancelled");
+  });
+
+  it("sharer recalls a checked-out copy and sets grace deadline", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_sharer3" }));
+    });
+    const holderId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_holder", phone: "+5555555555" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const farDeadline = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days out
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: farDeadline,
+        }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_recall_sharer3" });
+    await authed.mutation(api.copies.recall, { copyId });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("recalled");
+    // Grace deadline should be shorter than the original far deadline
+    expect(copy!.returnDeadline).toBeLessThan(farDeadline);
+  });
+
+  it("rejects recall by non-sharer", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_recall_owner" }));
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_recall_stranger", phone: "+1111111111" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert("copies", makeCopy(bookId, locId, sharerId));
+    });
+
+    const stranger = t.withIdentity({ subject: "user_recall_stranger" });
+    await expect(
+      stranger.mutation(api.copies.recall, { copyId }),
+    ).rejects.toThrow("Only the sharer can recall");
+  });
+});
+
 describe("copies.relist", () => {
   it("sharer can relist a recalled copy as available", async () => {
     const t = convexTest(schema, modules);
