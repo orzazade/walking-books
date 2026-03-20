@@ -687,4 +687,62 @@ describe("books.nearMe", () => {
     const result = await t.query(api.books.nearMe, { lat: 0, lng: 0, radiusKm: 5 });
     expect(result).toEqual([]);
   });
+
+  it("rejects title over 300 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "T".repeat(301),
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Title must be 300 characters or less");
+  });
+
+  it("rejects description over 2000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "D".repeat(2001),
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Description must be 2000 characters or less");
+  });
 });
