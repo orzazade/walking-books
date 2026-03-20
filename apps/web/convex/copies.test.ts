@@ -1258,6 +1258,52 @@ describe("copies.relist", () => {
     ).rejects.toThrow("Only the sharer can relist");
   });
 
+  it("recall rejects already-recalled copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_recall_dup", phone: "+6666666681" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "recalled",
+        }),
+      );
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "sharer_recall_dup" });
+    await expect(
+      authed.mutation(api.copies.recall, { copyId }),
+    ).rejects.toThrow("Cannot recall copy");
+  });
+
+  it("relist rejects recalled copy without a location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_relist_noloc", phone: "+6666666682" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        originalSharerId: sharerId,
+        status: "recalled" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        qrCodeUrl: "",
+        // No currentLocationId
+      });
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "sharer_relist_noloc" });
+    await expect(
+      authed.mutation(api.copies.relist, { copyId }),
+    ).rejects.toThrow("Copy must be at a partner location to relist");
+  });
+
   it("pickup rejects wrong location", async () => {
     const t = convexTest(schema, modules);
 
