@@ -55,6 +55,68 @@ function makeBook(overrides: Record<string, unknown> = {}) {
   };
 }
 
+describe("partnerLocations.update", () => {
+  it("manager can update location name and address", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "mgr_upd", phone: "+3000000000", name: "Manager" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "mgr_upd" });
+    await manager.mutation(api.partnerLocations.update, {
+      locationId,
+      name: "Updated Library",
+      address: "456 New St",
+    });
+
+    const loc = await t.run(async (ctx) => ctx.db.get(locationId));
+    expect(loc!.name).toBe("Updated Library");
+    expect(loc!.address).toBe("456 New St");
+  });
+
+  it("non-manager cannot update location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "mgr_upd2", phone: "+3000000001", name: "Manager" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_upd", phone: "+3000000002", name: "Reader" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const reader = t.withIdentity({ subject: "reader_upd" });
+    await expect(
+      reader.mutation(api.partnerLocations.update, {
+        locationId,
+        name: "Hacked Name",
+      }),
+    ).rejects.toThrow("Only the manager can update location settings");
+  });
+
+  it("rejects empty name and validates shelf capacity", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "mgr_upd3", phone: "+3000000003", name: "Manager" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "mgr_upd3" });
+
+    await expect(
+      manager.mutation(api.partnerLocations.update, { locationId, name: "   " }),
+    ).rejects.toThrow("Location name cannot be empty");
+
+    await expect(
+      manager.mutation(api.partnerLocations.update, { locationId, shelfCapacity: -1 }),
+    ).rejects.toThrow("Shelf capacity must be a non-negative integer");
+  });
+});
+
 describe("partnerLocations.popularBooks", () => {
   it("returns top books ranked by pickup count at a location", async () => {
     const t = convexTest(schema, modules);
