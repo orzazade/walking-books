@@ -141,6 +141,17 @@ export const create = mutation({
         throw new Error("Capacity must be an integer between 1 and 1000");
     }
 
+    // Per-location limit on upcoming events
+    const MAX_UPCOMING_EVENTS = 50;
+    const now = Date.now();
+    const upcomingCount = await ctx.db
+      .query("locationEvents")
+      .withIndex("by_location", (q) => q.eq("locationId", args.locationId))
+      .collect()
+      .then((events) => events.filter((e) => e.endsAt > now).length);
+    if (upcomingCount >= MAX_UPCOMING_EVENTS)
+      throw new Error(`Maximum ${MAX_UPCOMING_EVENTS} upcoming events per location`);
+
     return await ctx.db.insert("locationEvents", {
       locationId: args.locationId,
       createdByUserId: user._id,

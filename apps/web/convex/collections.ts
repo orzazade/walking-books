@@ -82,6 +82,18 @@ export const addBook = mutation({
     if (!book) throw new Error("Book not found");
     if (existing) throw new Error("Book already in collection");
 
+    // Per-collection limit on items
+    const MAX_ITEMS_PER_COLLECTION = 500;
+    const itemCount = await ctx.db
+      .query("collectionItems")
+      .withIndex("by_collection", (q) =>
+        q.eq("collectionId", args.collectionId),
+      )
+      .collect()
+      .then((r) => r.length);
+    if (itemCount >= MAX_ITEMS_PER_COLLECTION)
+      throw new Error(`Maximum ${MAX_ITEMS_PER_COLLECTION} books per collection`);
+
     const id = await ctx.db.insert("collectionItems", {
       collectionId: args.collectionId,
       bookId: args.bookId,
