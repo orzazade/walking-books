@@ -430,6 +430,69 @@ export const byAuthorName = query({
   },
 });
 
+/** All distinct categories on the platform with book counts and availability. */
+export const allCategories = query({
+  args: {},
+  handler: async (ctx) => {
+    const allBooks = await ctx.db.query("books").collect();
+    const counts = await getBookCopyCounts(ctx);
+
+    const categoryMap = new Map<
+      string,
+      {
+        category: string;
+        bookCount: number;
+        availableCount: number;
+        totalCopies: number;
+        sampleCovers: string[];
+        topAuthors: string[];
+      }
+    >();
+
+    for (const book of allBooks) {
+      const availability = counts.get(book._id) ?? {
+        totalCopies: 0,
+        availableCopies: 0,
+      };
+
+      for (const cat of book.categories) {
+        const key = cat.toLowerCase();
+        const existing = categoryMap.get(key);
+
+        if (existing) {
+          existing.bookCount++;
+          existing.availableCount += availability.availableCopies;
+          existing.totalCopies += availability.totalCopies;
+          if (existing.sampleCovers.length < 4 && book.coverImage) {
+            existing.sampleCovers.push(book.coverImage);
+          }
+          if (
+            !existing.topAuthors.some(
+              (a) => a.toLowerCase() === book.author.toLowerCase(),
+            ) &&
+            existing.topAuthors.length < 3
+          ) {
+            existing.topAuthors.push(book.author);
+          }
+        } else {
+          categoryMap.set(key, {
+            category: cat,
+            bookCount: 1,
+            availableCount: availability.availableCopies,
+            totalCopies: availability.totalCopies,
+            sampleCovers: book.coverImage ? [book.coverImage] : [],
+            topAuthors: [book.author],
+          });
+        }
+      }
+    }
+
+    return [...categoryMap.values()].sort((a, b) =>
+      a.category.localeCompare(b.category),
+    );
+  },
+});
+
 /** Social proof counts for a book — currently reading, wishlisted, completed reads. */
 export const socialProof = query({
   args: { bookId: v.id("books") },

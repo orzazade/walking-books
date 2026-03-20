@@ -353,6 +353,52 @@ describe("books.byAuthorName", () => {
   });
 });
 
+describe("books.allCategories", () => {
+  it("returns empty when no books exist", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.books.allCategories, {});
+    expect(result).toEqual([]);
+  });
+
+  it("groups books by category with counts and availability", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const lid = await ctx.db.insert("partnerLocations", makeLocation(uid));
+
+      const book1 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book A", author: "Jane Doe", categories: ["Fiction", "Mystery"] }),
+      );
+      const book2 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book B", author: "John Smith", categories: ["Fiction"] }),
+      );
+      const book3 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book C", author: "Alice", categories: ["Science"] }),
+      );
+
+      await ctx.db.insert("copies", makeCopy(book1, lid, uid));
+      await ctx.db.insert("copies", makeCopy(book2, lid, uid));
+      await ctx.db.insert("copies", makeCopy(book3, lid, uid));
+    });
+
+    const result = await t.query(api.books.allCategories, {});
+    expect(result).toHaveLength(3);
+    // Alphabetical: Fiction, Mystery, Science
+    expect(result[0].category).toBe("Fiction");
+    expect(result[0].bookCount).toBe(2);
+    expect(result[0].availableCount).toBe(2);
+    expect(result[0].topAuthors).toContain("Jane Doe");
+    expect(result[0].topAuthors).toContain("John Smith");
+    expect(result[1].category).toBe("Mystery");
+    expect(result[1].bookCount).toBe(1);
+    expect(result[2].category).toBe("Science");
+    expect(result[2].bookCount).toBe(1);
+  });
+});
+
 describe("books.socialProof", () => {
   it("returns zeros for a book with no activity", async () => {
     const t = convexTest(schema, modules);

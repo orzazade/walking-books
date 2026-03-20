@@ -25,6 +25,7 @@ import {
   Users,
   BarChart3,
   Feather,
+  Tag,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/search", label: "Search", icon: Search },
   { href: "/locations", label: "Locations", icon: MapPin },
+  { href: "/categories", label: "Categories", icon: Tag },
   { href: "/authors", label: "Authors", icon: Feather },
   { href: "/book-requests", label: "Requests", icon: HandHeart },
   { href: "/community", label: "Community", icon: BarChart3 },
