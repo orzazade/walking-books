@@ -523,6 +523,37 @@ describe("copies.pickup", () => {
     expect(copy!.extensionCount).toBe(0);
   });
 
+  it("pickup resets extensionCount to 0 on previously-extended copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_extres", phone: "+9393939391" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_extres", phone: "+9393939392" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string, { currentBookCount: 3 }));
+      // Copy that was previously checked out with 2 extensions, now available again
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          extensionCount: 2,
+        }),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const reader = t.withIdentity({ subject: "reader_extres" });
+    await reader.mutation(api.copies.pickup, {
+      copyId,
+      locationId,
+      conditionAtPickup: "good",
+      photos: [],
+    });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.extensionCount).toBe(0);
+    expect(copy!.status).toBe("checked_out");
+  });
+
   it("rejects pickup of checked-out copy", async () => {
     const t = convexTest(schema, modules);
 
