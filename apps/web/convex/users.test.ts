@@ -20,6 +20,80 @@ function makeUser(overrides: Record<string, unknown> = {}) {
   };
 }
 
+describe("users.ensureUser", () => {
+  it("creates a new user with defaults on first call", async () => {
+    const t = convexTest(schema, modules);
+
+    const authed = t.withIdentity({ subject: "new_user_ensure", phoneNumber: "+5550001111", name: "New Reader" });
+    const userId = await authed.mutation(api.users.ensureUser, {});
+    expect(userId).toBeDefined();
+
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(user).not.toBeNull();
+    expect(user!.clerkId).toBe("new_user_ensure");
+    expect(user!.phone).toBe("+5550001111");
+    expect(user!.name).toBe("New Reader");
+    expect(user!.reputationScore).toBe(50);
+    expect(user!.booksShared).toBe(0);
+    expect(user!.booksRead).toBe(0);
+    expect(user!.roles).toContain("reader");
+  });
+
+  it("returns existing user ID on subsequent calls (idempotent)", async () => {
+    const t = convexTest(schema, modules);
+
+    const authed = t.withIdentity({ subject: "idempotent_user", phoneNumber: "+5550002222", name: "Idem Reader" });
+    const firstId = await authed.mutation(api.users.ensureUser, {});
+    const secondId = await authed.mutation(api.users.ensureUser, {});
+    expect(firstId).toBe(secondId);
+
+    // Only one user record should exist
+    const users = await t.run(async (ctx) =>
+      ctx.db.query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "idempotent_user"))
+        .collect(),
+    );
+    expect(users).toHaveLength(1);
+  });
+
+  it("rejects unauthenticated calls", async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(api.users.ensureUser, {}),
+    ).rejects.toThrow("Not authenticated");
+  });
+});
+
+describe("users.profile", () => {
+  it("returns public profile without sensitive fields", async () => {
+    const t = convexTest(schema, modules);
+
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", makeUser({ clerkId: "profile_user", phone: "+5550003333", name: "Profile User" })),
+    );
+
+    const profile = await t.query(api.users.profile, { userId });
+    expect(profile).not.toBeNull();
+    expect(profile!.name).toBe("Profile User");
+    // Sensitive fields must be excluded
+    expect("phone" in profile!).toBe(false);
+    expect("clerkId" in profile!).toBe(false);
+  });
+
+  it("returns null for nonexistent user", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("users", makeUser());
+      await ctx.db.delete(id);
+      return id;
+    });
+
+    const profile = await t.query(api.users.profile, { userId: fakeId });
+    expect(profile).toBeNull();
+  });
+});
+
 describe("users.update", () => {
   it("updates name successfully", async () => {
     const t = convexTest(schema, modules);
