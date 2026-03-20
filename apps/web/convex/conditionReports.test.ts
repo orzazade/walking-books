@@ -440,4 +440,41 @@ describe("conditionReports", () => {
       }),
     ).rejects.toThrow("Description is required");
   });
+
+  it("rejects description over 2000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", {
+        clerkId: "user_cr_long",
+        phone: "+1234567897",
+        name: "Long Desc User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 1,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const bookId = await ctx.db.insert("books", {
+        title: "Long Book", author: "Author", coverImage: "", description: "",
+        categories: [], pageCount: 100, language: "English", avgRating: 0, reviewCount: 0,
+      });
+      return await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, qrCodeUrl: "",
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_cr_long" });
+    await expect(
+      authed.mutation(api.conditionReports.create, {
+        copyId,
+        type: "damage_report",
+        photos: [],
+        description: "A".repeat(2001),
+        newCondition: "worn",
+      }),
+    ).rejects.toThrow("Description must be 2000 characters or less");
+  });
 });

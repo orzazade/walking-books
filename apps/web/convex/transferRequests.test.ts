@@ -494,4 +494,61 @@ describe("transferRequests", () => {
       reader.mutation(api.transferRequests.create, { copyId, toLocationId: sameLocId }),
     ).rejects.toThrow("Copy is already at this location");
   });
+
+  it("cancel rejects non-owner of request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_can1", phone: "+1111111199", name: "Manager" }));
+      const requesterId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("users", makeUser({ clerkId: "other_user", phone: "+2222222222", name: "Other" }));
+      const bId = await ctx.db.insert("books", {
+        title: "Test Book", author: "Author", coverImage: "", description: "", categories: ["fiction"], pageCount: 200, language: "English", avgRating: 0, reviewCount: 0,
+      });
+      const fromLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, { name: "Dest Cafe", address: "456 Other St" }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: managerId, currentLocationId: fromLocId, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("transferRequests", {
+        copyId: cId, bookId: bId, requesterId, fromLocationId: fromLocId, toLocationId: toLocId,
+        status: "pending", createdAt: Date.now(),
+      });
+      return { requestId: rId };
+    });
+
+    const otherUser = t.withIdentity({ subject: "other_user" });
+    await expect(
+      otherUser.mutation(api.transferRequests.cancel, { requestId }),
+    ).rejects.toThrow("Not authorized");
+  });
+
+  it("cancel rejects already-resolved request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_can2", phone: "+1111111198", name: "Manager" }));
+      const requesterId = await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", {
+        title: "Test Book", author: "Author", coverImage: "", description: "", categories: ["fiction"], pageCount: 200, language: "English", avgRating: 0, reviewCount: 0,
+      });
+      const fromLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, { name: "Dest Cafe", address: "456 Other St" }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: managerId, currentLocationId: fromLocId, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("transferRequests", {
+        copyId: cId, bookId: bId, requesterId, fromLocationId: fromLocId, toLocationId: toLocId,
+        status: "rejected", createdAt: Date.now(), resolvedAt: Date.now(),
+      });
+      return { requestId: rId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_tr1" });
+    await expect(
+      authed.mutation(api.transferRequests.cancel, { requestId }),
+    ).rejects.toThrow("Only pending requests can be cancelled");
+  });
 });
