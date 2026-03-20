@@ -828,6 +828,77 @@ describe("collections.byUser", () => {
     ).rejects.toThrow("Maximum 500 books per collection");
   });
 
+  it("getCollection returns null for nonexistent collection ID", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("collections", {
+        name: "temp",
+        isPublic: true,
+        userId: await ctx.db.insert("users", makeUser()),
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(id);
+      return id;
+    });
+
+    const result = await t.query(api.collections.getCollection, { collectionId: fakeId });
+    expect(result).toBeNull();
+  });
+
+  it("getCollection blocks access to private collection by non-owner", async () => {
+    const t = convexTest(schema, modules);
+
+    const collectionId = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("users", makeUser({ clerkId: "other_gc", phone: "+1111111111" }));
+      return ctx.db.insert("collections", {
+        name: "Secret List",
+        isPublic: false,
+        userId: ownerId,
+        createdAt: Date.now(),
+      });
+    });
+
+    // Non-owner should get null
+    const otherAuthed = t.withIdentity({ subject: "other_gc" });
+    const result = await otherAuthed.query(api.collections.getCollection, { collectionId });
+    expect(result).toBeNull();
+
+    // Unauthenticated should also get null
+    const unauthed = await t.query(api.collections.getCollection, { collectionId });
+    expect(unauthed).toBeNull();
+  });
+
+  it("getCollection returns details with books for owner of private collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId, bookId } = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("collections", {
+        name: "My Private List",
+        isPublic: false,
+        userId: ownerId,
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("collectionItems", {
+        collectionId: cId,
+        bookId: bId,
+        addedAt: Date.now(),
+      });
+      return { collectionId: cId, bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    const result = await authed.query(api.collections.getCollection, { collectionId });
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe("My Private List");
+    expect(result!.books).toHaveLength(1);
+    expect(result!.books[0].book._id).toBe(bookId);
+    expect(result!.ownerName).toBe("Collection User");
+  });
+
   it("remove cleans up collection follows (no orphaned records)", async () => {
     const t = convexTest(schema, modules);
 
