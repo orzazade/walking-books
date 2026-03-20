@@ -233,6 +233,74 @@ describe("recommendations", () => {
     const recs = await t.query(api.recommendations.forMe, {});
     expect(recs).toEqual([]);
   });
+
+  it("returns all fields needed by RecommendedBooksSection dashboard widget", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", {
+        clerkId: "user_widget",
+        phone: "+1234500000",
+        name: "Widget User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 50,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: ["fiction"],
+      });
+      const lid = await ctx.db.insert("partnerLocations", {
+        name: "Widget Cafe",
+        address: "1 Widget St",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+0000000000",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 10,
+        currentBookCount: 1,
+        managedByUserId: uid,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+
+      const bookId = await ctx.db.insert("books", {
+        title: "Dashboard Book",
+        author: "Dash Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book for the dashboard",
+        categories: ["fiction", "drama"],
+        pageCount: 280,
+        language: "English",
+        avgRating: 4.3,
+        reviewCount: 12,
+      });
+      await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: uid,
+        qrCodeUrl: "",
+        currentLocationId: lid,
+      });
+    });
+
+    const recs = await t.withIdentity({ subject: "user_widget" }).query(api.recommendations.forMe, {});
+
+    expect(recs).toHaveLength(1);
+    const rec = recs[0];
+    // Verify every field the RecommendedBooksSection component uses
+    expect(rec).toHaveProperty("_id");
+    expect(rec.title).toBe("Dashboard Book");
+    expect(rec.author).toBe("Dash Author");
+    expect(rec.coverImage).toBe("https://example.com/cover.jpg");
+    expect(rec.categories).toEqual(["fiction", "drama"]);
+    expect(rec.avgRating).toBe(4.3);
+    expect(rec.reviewCount).toBe(12);
+    expect(rec.availableCopies).toBe(1);
+  });
 });
 
 describe("recommendations.forBook", () => {

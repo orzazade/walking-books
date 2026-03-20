@@ -11,6 +11,7 @@ import { SharedCopiesSection } from "@/components/shared-copies-section";
 import { ActiveReservationsSection } from "@/components/active-reservations-section";
 import { HeldCopiesSection } from "@/components/held-copies-section";
 import { FriendsReadingSection } from "@/components/friends-reading-section";
+import { RecommendedBooksSection } from "@/components/recommended-books-section";
 import {
   BookOpen,
   Clock,
@@ -106,6 +107,9 @@ function DashboardContent() {
 
       {/* Friends Reading */}
       <FriendsReadingSection />
+
+      {/* Recommended for You */}
+      <RecommendedBooksSection />
 
       {/* Currently Reading */}
       <HeldCopiesSection />
