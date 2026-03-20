@@ -1211,4 +1211,74 @@ describe("copies.relist", () => {
       }),
     ).rejects.toThrow("Reader note must be 1000 characters or less");
   });
+
+  it("pickup rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, fakeLocId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_noloc", phone: "+4444444441" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_noloc", phone: "+4444444442" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string),
+      );
+      // Create and delete a location to get a valid-shaped but nonexistent ID
+      const fakeId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      await ctx.db.delete(fakeId);
+      return { copyId: cId, fakeLocId: fakeId };
+    });
+
+    const authed = t.withIdentity({ subject: "reader_noloc" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId: fakeLocId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Location not found");
+  });
+
+  it("returnCopy rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, fakeLocId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_retloc", phone: "+5555555551" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_retloc", phone: "+5555555552" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 86400000,
+        }),
+      );
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: holderId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      const fakeId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      await ctx.db.delete(fakeId);
+      return { copyId: cId, fakeLocId: fakeId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_retloc" });
+    await expect(
+      authed.mutation(api.copies.returnCopy, {
+        copyId,
+        locationId: fakeLocId,
+        conditionAtReturn: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Location not found");
+  });
 });
