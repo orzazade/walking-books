@@ -173,6 +173,41 @@ export const forCopy = query({
   },
 });
 
+/** Get finished readings for a specific user (public — for profile pages). */
+export const forUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const entries = await ctx.db
+      .query("readingProgress")
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", args.userId).eq("status", "finished"),
+      )
+      .collect();
+
+    const enriched = await Promise.all(
+      entries.map(async (entry) => {
+        const book = await ctx.db.get(entry.bookId);
+        if (!book) return null;
+
+        return {
+          _id: entry._id,
+          bookId: entry.bookId,
+          bookTitle: book.title,
+          bookAuthor: book.author,
+          coverImage: book.coverImage,
+          totalPages: entry.totalPages,
+          startedAt: entry.startedAt,
+          finishedAt: entry.finishedAt!,
+        };
+      }),
+    );
+
+    return enriched
+      .filter((e): e is NonNullable<typeof e> => e !== null)
+      .sort((a, b) => b.finishedAt - a.finishedAt);
+  },
+});
+
 /** Get all reading progress entries for the current user (all statuses). */
 export const myReadings = query({
   args: {

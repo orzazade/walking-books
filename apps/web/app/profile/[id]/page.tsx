@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { getErrorMessage } from "@/lib/utils";
 import { ProfileActivitySection } from "@/components/profile-activity-section";
+import { ProfileReadingTimeline } from "@/components/profile-reading-timeline";
 import { ProfileReviewsSection } from "@/components/profile-reviews-section";
 import { ProfileCollectionsSection } from "@/components/profile-collections-section";
 import { Button } from "@/components/ui/button";
@@ -281,6 +282,11 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Reading Timeline */}
+      <div className="mt-8">
+        <ProfileReadingTimeline userId={userId} />
+      </div>
 
       {/* Collections */}
       <ProfileCollectionsSection userId={userId} />

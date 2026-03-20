@@ -584,6 +584,105 @@ describe("readingProgress", () => {
     ).rejects.toThrow("Not authenticated");
   });
 
+  it("forUser returns finished readings sorted by finishedAt desc", async () => {
+    const t = convexTest(schema, modules);
+
+    let userId: Id<"users">;
+
+    await t.run(async (ctx) => {
+      userId = await ctx.db.insert("users", makeUser());
+      const bookId1 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "First Book", author: "Author A", pageCount: 100 }),
+      );
+      const bookId2 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Second Book", author: "Author B", pageCount: 200 }),
+      );
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId),
+      );
+      const copyId1 = await ctx.db.insert("copies", {
+        bookId: bookId1,
+        status: "checked_out" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      const copyId2 = await ctx.db.insert("copies", {
+        bookId: bookId2,
+        status: "checked_out" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      // Older finished reading
+      await ctx.db.insert("readingProgress", {
+        userId,
+        copyId: copyId1,
+        bookId: bookId1,
+        currentPage: 100,
+        totalPages: 100,
+        status: "finished" as const,
+        startedAt: Date.now() - 30 * 86400000,
+        lastUpdatedAt: Date.now() - 20 * 86400000,
+        finishedAt: Date.now() - 20 * 86400000,
+      });
+      // Newer finished reading
+      await ctx.db.insert("readingProgress", {
+        userId,
+        copyId: copyId2,
+        bookId: bookId2,
+        currentPage: 200,
+        totalPages: 200,
+        status: "finished" as const,
+        startedAt: Date.now() - 10 * 86400000,
+        lastUpdatedAt: Date.now() - 2 * 86400000,
+        finishedAt: Date.now() - 2 * 86400000,
+      });
+      // Active reading (should NOT appear)
+      const bookId3 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Still Reading", pageCount: 300 }),
+      );
+      const copyId3 = await ctx.db.insert("copies", {
+        bookId: bookId3,
+        status: "checked_out" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        originalSharerId: userId,
+        currentHolderId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      await ctx.db.insert("readingProgress", {
+        userId,
+        copyId: copyId3,
+        bookId: bookId3,
+        currentPage: 50,
+        totalPages: 300,
+        status: "reading" as const,
+        startedAt: Date.now() - 5 * 86400000,
+        lastUpdatedAt: Date.now(),
+      });
+    });
+
+    const result = await t.query(api.readingProgress.forUser, { userId: userId! });
+    expect(result).toHaveLength(2);
+    // Newest first
+    expect(result[0].bookTitle).toBe("Second Book");
+    expect(result[1].bookTitle).toBe("First Book");
+    expect(result[0].totalPages).toBe(200);
+    expect(result[0].finishedAt).toBeDefined();
+  });
+
   it("currentlyReading returns empty for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
     const result = await t.query(api.readingProgress.currentlyReading, {});
