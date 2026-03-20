@@ -311,6 +311,150 @@ describe("readingGoals", () => {
     expect(progress!.progressPercent).toBeNull();
   });
 
+  it("setMonthlyGoal creates and tracks per-month progress", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId, locationId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Monthly Library",
+        address: "100 Monthly St",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+1000000010",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 0,
+        managedByUserId: uid,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return { userId: uid, locationId: locId };
+    });
+
+    // Create a completed read in January 2026
+    await t.run(async (ctx) => {
+      const bookId = await ctx.db.insert("books", {
+        title: "Jan Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        qrCodeUrl: "",
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: userId,
+        pickupLocationId: locationId,
+        pickedUpAt: new Date(2026, 0, 5).getTime(),
+        returnedAt: new Date(2026, 0, 25).getTime(),
+        conditionAtPickup: "good",
+        conditionAtReturn: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    // Set a monthly goal for January: 2 books
+    await authed.mutation(api.readingGoals.setMonthlyGoal, {
+      year: 2026,
+      month: 1,
+      targetBooks: 2,
+    });
+
+    const monthly = await authed.query(api.readingGoals.getMonthlyProgress, {
+      year: 2026,
+    });
+    expect(monthly).not.toBeNull();
+    expect(monthly!.months).toHaveLength(12);
+
+    // January: 1 read out of 2 target = 50%
+    const jan = monthly!.months[0];
+    expect(jan.month).toBe(1);
+    expect(jan.targetBooks).toBe(2);
+    expect(jan.completedReads).toBe(1);
+    expect(jan.progressPercent).toBe(50);
+
+    // February: no goal, no reads
+    const feb = monthly!.months[1];
+    expect(feb.targetBooks).toBeNull();
+    expect(feb.completedReads).toBe(0);
+    expect(feb.progressPercent).toBeNull();
+
+    // Update the monthly goal
+    await authed.mutation(api.readingGoals.setMonthlyGoal, {
+      year: 2026,
+      month: 1,
+      targetBooks: 1,
+    });
+    const updated = await authed.query(api.readingGoals.getMonthlyProgress, {
+      year: 2026,
+    });
+    expect(updated!.months[0].targetBooks).toBe(1);
+    expect(updated!.months[0].progressPercent).toBe(100);
+
+    // Remove monthly goal
+    await authed.mutation(api.readingGoals.removeMonthlyGoal, {
+      year: 2026,
+      month: 1,
+    });
+    const removed = await authed.query(api.readingGoals.getMonthlyProgress, {
+      year: 2026,
+    });
+    expect(removed!.months[0].targetBooks).toBeNull();
+  });
+
+  it("monthly goals don't interfere with annual goals", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    // Set annual goal
+    await authed.mutation(api.readingGoals.setGoal, {
+      year: 2026,
+      targetBooks: 24,
+    });
+
+    // Set monthly goal for March
+    await authed.mutation(api.readingGoals.setMonthlyGoal, {
+      year: 2026,
+      month: 3,
+      targetBooks: 3,
+    });
+
+    // Annual goal should still be 24
+    const annual = await authed.query(api.readingGoals.getProgress, {
+      year: 2026,
+    });
+    expect(annual!.targetBooks).toBe(24);
+
+    // Monthly goals should show March=3, others null
+    const monthly = await authed.query(api.readingGoals.getMonthlyProgress, {
+      year: 2026,
+    });
+    expect(monthly!.months[2].targetBooks).toBe(3);
+    expect(monthly!.months[0].targetBooks).toBeNull();
+  });
+
   it("progressPercent caps at 100 when goal is exceeded", async () => {
     const t = convexTest(schema, modules);
 

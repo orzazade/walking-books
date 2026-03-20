@@ -151,9 +151,11 @@ export default defineSchema({
     userId: v.id("users"),
     year: v.number(),
     targetBooks: v.number(),
+    month: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_user_year", ["userId", "year"]),
+    .index("by_user_year", ["userId", "year"])
+    .index("by_user_year_month", ["userId", "year", "month"]),
 
   wishlist: defineTable({
     userId: v.id("users"),
