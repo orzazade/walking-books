@@ -551,3 +551,64 @@ describe("collections", () => {
     expect(result[1].ownerName).toBe("Collection User");
   });
 });
+
+describe("collections.byUser", () => {
+  it("returns only public collections for a given user with book and follower counts", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+
+      // Public collection with 1 book
+      const pubId = await ctx.db.insert("collections", {
+        userId: uid,
+        name: "My Favorites",
+        description: "Books I love",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Fav Book" }));
+      await ctx.db.insert("collectionItems", {
+        collectionId: pubId,
+        bookId,
+        addedAt: Date.now(),
+      });
+
+      // Private collection — should be excluded
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Private List",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+
+      return { userId: uid };
+    });
+
+    const result = await t.query(api.collections.byUser, { userId });
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("My Favorites");
+    expect(result[0].description).toBe("Books I love");
+    expect(result[0].bookCount).toBe(1);
+    expect(result[0].followerCount).toBe(0);
+    expect(result[0]).toHaveProperty("_id");
+  });
+
+  it("returns empty array when user has no public collections", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser({ clerkId: "no_pub" }));
+      await ctx.db.insert("collections", {
+        userId: uid,
+        name: "Secret",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+      return { userId: uid };
+    });
+
+    const result = await t.query(api.collections.byUser, { userId });
+    expect(result).toEqual([]);
+  });
+});

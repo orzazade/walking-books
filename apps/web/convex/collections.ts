@@ -184,6 +184,44 @@ export const publicCollections = query({
   },
 });
 
+/**
+ * Public collections for a given user — shown on their profile page.
+ */
+export const byUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const collections = await ctx.db
+      .query("collections")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const publicOnes = collections.filter((c) => c.isPublic);
+    if (publicOnes.length === 0) return [];
+
+    return Promise.all(
+      publicOnes.map(async (c) => {
+        const [items, followers] = await Promise.all([
+          ctx.db
+            .query("collectionItems")
+            .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
+            .collect(),
+          ctx.db
+            .query("collectionFollows")
+            .withIndex("by_collection", (q) => q.eq("collectionId", c._id))
+            .collect(),
+        ]);
+        return {
+          _id: c._id,
+          name: c.name,
+          description: c.description,
+          bookCount: items.length,
+          followerCount: followers.length,
+        };
+      }),
+    );
+  },
+});
+
 export const follow = mutation({
   args: { collectionId: v.id("collections") },
   handler: async (ctx, args) => {
