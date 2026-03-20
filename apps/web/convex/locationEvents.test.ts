@@ -368,6 +368,29 @@ describe("locationEvents", () => {
     ).rejects.toThrow("No RSVP found");
   });
 
+  it("create rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeLocId = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      await ctx.db.delete(locId);
+      return locId;
+    });
+
+    const manager = t.withIdentity({ subject: "manager1" });
+    await expect(
+      manager.mutation(api.locationEvents.create, {
+        locationId: fakeLocId,
+        title: "Ghost Location Event",
+        description: "Location does not exist",
+        eventType: "workshop",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+      }),
+    ).rejects.toThrow("Location not found");
+  });
+
   it("rsvp rejects nonexistent event", async () => {
     const t = convexTest(schema, modules);
 

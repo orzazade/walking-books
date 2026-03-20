@@ -318,6 +318,22 @@ describe("waitlist", () => {
     ).rejects.toThrow("No copies of this book exist in the system");
   });
 
+  it("join rejects nonexistent book", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeBookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.delete(bId);
+      return bId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_wl1" });
+    await expect(
+      authed.mutation(api.waitlist.join, { bookId: fakeBookId }),
+    ).rejects.toThrow("Book not found");
+  });
+
   it("leave rejects when user is not on waitlist", async () => {
     const t = convexTest(schema, modules);
 
