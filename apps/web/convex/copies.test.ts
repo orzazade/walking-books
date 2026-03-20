@@ -646,6 +646,106 @@ describe("copies.returnCopy", () => {
     expect(copy!.currentHolderId).toBeUndefined();
   });
 
+  it("on-time return with good condition increases reputation by 5", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, holderId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_rep_sharer", name: "Sharer", phone: "+1111111111" }),
+      );
+      const hId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_rep_holder", name: "Holder", reputationScore: 50 }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sId, { currentBookCount: 3 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sId, {
+          status: "checked_out",
+          currentHolderId: hId,
+          returnDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000, // due in 7 days (on time)
+        }),
+      );
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: hId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId, holderId: hId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_rep_holder" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId,
+      locationId,
+      conditionAtReturn: "good",
+      photos: [],
+    });
+
+    // On-time (+3) + good condition (+2) = +5
+    const holder = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(holder!.reputationScore).toBe(55);
+  });
+
+  it("late return with good condition decreases reputation by 3", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, holderId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_late_sharer", name: "Sharer", phone: "+2222222222" }),
+      );
+      const hId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_late_holder", name: "Holder", reputationScore: 50 }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sId, { currentBookCount: 3 }),
+      );
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sId, {
+          status: "checked_out",
+          currentHolderId: hId,
+          returnDeadline: Date.now() - 86400000, // deadline was yesterday (late)
+        }),
+      );
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: hId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 7 * 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId, holderId: hId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_late_holder" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId,
+      locationId,
+      conditionAtReturn: "good",
+      photos: [],
+    });
+
+    // Late (-5) + good condition (+2) = -3, so 50 - 3 = 47
+    const holder = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(holder!.reputationScore).toBe(47);
+  });
+
   it("rejects return by non-holder", async () => {
     const t = convexTest(schema, modules);
 
