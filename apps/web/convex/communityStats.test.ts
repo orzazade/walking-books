@@ -450,4 +450,42 @@ describe("communityStats.recentActivity", () => {
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe("return");
   });
+
+  it("excludes entries with deleted readers or books", async () => {
+    const t = convexTest(schema, modules);
+    const now = Date.now();
+
+    await t.run(async (ctx) => {
+      const keepReader = await ctx.db.insert("users", makeUser({ clerkId: "reader_keep", phone: "+5550001111" }));
+      const deleteReader = await ctx.db.insert("users", makeUser({ clerkId: "reader_del", phone: "+5550002222" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(keepReader as unknown as string));
+      const keepBook = await ctx.db.insert("books", makeBook({ title: "Kept Book" }));
+      const deleteBook = await ctx.db.insert("books", makeBook({ title: "Deleted Book" }));
+      const keepCopy = await ctx.db.insert("copies", {
+        bookId: keepBook, status: "checked_out" as const, condition: "good" as const,
+        ownershipType: "donated" as const, originalSharerId: keepReader, currentHolderId: keepReader, qrCodeUrl: "",
+      });
+      const deleteCopy = await ctx.db.insert("copies", {
+        bookId: deleteBook, status: "checked_out" as const, condition: "good" as const,
+        ownershipType: "donated" as const, originalSharerId: deleteReader, currentHolderId: deleteReader, qrCodeUrl: "",
+      });
+      // Journey with kept reader and book
+      await ctx.db.insert("journeyEntries", {
+        copyId: keepCopy, readerId: keepReader, pickupLocationId: locId,
+        pickedUpAt: now - 3600000, conditionAtPickup: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      // Journey with deleted reader
+      await ctx.db.insert("journeyEntries", {
+        copyId: deleteCopy, readerId: deleteReader, pickupLocationId: locId,
+        pickedUpAt: now - 7200000, conditionAtPickup: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      // Delete the reader and book
+      await ctx.db.delete(deleteReader);
+      await ctx.db.delete(deleteBook);
+    });
+
+    const result = await t.query(api.communityStats.recentActivity, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].bookTitle).toBe("Kept Book");
+  });
 });
