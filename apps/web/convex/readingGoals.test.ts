@@ -455,6 +455,37 @@ describe("readingGoals", () => {
     expect(monthly!.months[0].targetBooks).toBeNull();
   });
 
+  it("removeGoal rejects invalid year", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    await expect(
+      authed.mutation(api.readingGoals.removeGoal, { year: 1999 }),
+    ).rejects.toThrow("Invalid year");
+  });
+
+  it("removeMonthlyGoal rejects invalid month", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_goal1" });
+
+    await expect(
+      authed.mutation(api.readingGoals.removeMonthlyGoal, {
+        year: 2026,
+        month: 13,
+      }),
+    ).rejects.toThrow("Month must be between 1 and 12");
+  });
+
   it("progressPercent caps at 100 when goal is exceeded", async () => {
     const t = convexTest(schema, modules);
 

@@ -37,6 +37,8 @@ export const removeGoal = mutation({
   args: { year: v.number() },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
+    if (!Number.isInteger(args.year) || args.year < 2000 || args.year > 2100)
+      throw new Error("Invalid year");
     const existing = await ctx.db
       .query("readingGoals")
       .withIndex("by_user_year_month", (q) =>
@@ -85,6 +87,10 @@ export const removeMonthlyGoal = mutation({
   args: { year: v.number(), month: v.number() },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
+    if (!Number.isInteger(args.year) || args.year < 2000 || args.year > 2100)
+      throw new Error("Invalid year");
+    if (!Number.isInteger(args.month) || args.month < 1 || args.month > 12)
+      throw new Error("Month must be between 1 and 12");
     const existing = await ctx.db
       .query("readingGoals")
       .withIndex("by_user_year_month", (q) =>
