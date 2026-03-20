@@ -56,6 +56,7 @@ const AUTH_ITEMS = [
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/waitlist", label: "Waitlist", icon: Clock },
   { href: "/share", label: "Share", icon: Share2 },
+  { href: "/reading-stats", label: "Stats", icon: BarChart3 },
 ] as const;
 
 function NotificationBell() {

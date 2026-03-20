@@ -64,6 +64,22 @@ export const getStats = query({
       .slice(0, 5)
       .map(([genre, count]) => ({ genre, count }));
 
+    // Favorite authors (top 5 by completed reads)
+    const authorCounts: Record<string, number> = {};
+    let totalPagesRead = 0;
+    for (const copy of copies) {
+      if (!copy) continue;
+      const book = bookMap.get(copy.bookId);
+      if (!book) continue;
+      authorCounts[book.author] = (authorCounts[book.author] || 0) + 1;
+      totalPagesRead += book.pageCount;
+    }
+
+    const favoriteAuthors = Object.entries(authorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([author, count]) => ({ author, count }));
+
     // Monthly reading activity (last 12 months)
     const now = Date.now();
     const monthlyActivity: { month: string; count: number }[] = [];
@@ -95,6 +111,8 @@ export const getStats = query({
       currentlyReading: inProgress.length,
       avgDaysPerBook,
       topGenres,
+      favoriteAuthors,
+      totalPagesRead,
       monthlyActivity,
       uniqueLocationsVisited: uniqueLocations,
     };

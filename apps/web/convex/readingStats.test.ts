@@ -41,6 +41,8 @@ describe("readingStats", () => {
     expect(stats!.currentlyReading).toBe(0);
     expect(stats!.avgDaysPerBook).toBeNull();
     expect(stats!.topGenres).toEqual([]);
+    expect(stats!.favoriteAuthors).toEqual([]);
+    expect(stats!.totalPagesRead).toBe(0);
     expect(stats!.uniqueLocationsVisited).toBe(0);
     expect(stats!.monthlyActivity).toHaveLength(12);
   });
@@ -177,6 +179,15 @@ describe("readingStats", () => {
     const genreNames = stats!.topGenres.map((g) => g.genre);
     expect(genreNames).toContain("fiction");
     expect(genreNames).toContain("science-fiction");
+
+    // Favorite authors: Author A=1, Author B=1
+    expect(stats!.favoriteAuthors).toHaveLength(2);
+    const authorNames = stats!.favoriteAuthors.map((a) => a.author);
+    expect(authorNames).toContain("Author A");
+    expect(authorNames).toContain("Author B");
+
+    // Total pages: 300 + 250 = 550
+    expect(stats!.totalPagesRead).toBe(550);
   });
 
   it("allows viewing another user's stats by userId", async () => {

@@ -117,6 +117,12 @@ export function ReadingInsightsWidget({ stats }: { stats: ReadingStatsData }) {
 
         <div className="mt-3 flex gap-3 text-[0.75rem]">
           <Link
+            href="/reading-stats"
+            className="text-primary hover:underline"
+          >
+            Full stats
+          </Link>
+          <Link
             href="/reading-goals"
             className="text-primary hover:underline"
           >
