@@ -51,6 +51,15 @@ export const toggle = mutation({
       await ctx.db.delete(existing._id);
       return { following: false };
     }
+    const MAX_FOLLOWING = 500;
+    const followCount = (
+      await ctx.db
+        .query("follows")
+        .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+        .collect()
+    ).length;
+    if (followCount >= MAX_FOLLOWING)
+      throw new Error(`Maximum ${MAX_FOLLOWING} users can be followed`);
     await ctx.db.insert("follows", {
       followerId: user._id,
       followingId: args.targetUserId,

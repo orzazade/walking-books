@@ -247,6 +247,16 @@ export const follow = mutation({
       .unique();
     if (existing) throw new Error("Already following this collection");
 
+    const MAX_COLLECTION_FOLLOWS = 200;
+    const followCount = (
+      await ctx.db
+        .query("collectionFollows")
+        .withIndex("by_follower", (q) => q.eq("followerId", user._id))
+        .collect()
+    ).length;
+    if (followCount >= MAX_COLLECTION_FOLLOWS)
+      throw new Error(`Maximum ${MAX_COLLECTION_FOLLOWS} collection follows allowed`);
+
     await ctx.db.insert("collectionFollows", {
       followerId: user._id,
       collectionId: args.collectionId,

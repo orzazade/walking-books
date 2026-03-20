@@ -35,6 +35,15 @@ export const toggle = mutation({
       await ctx.db.delete(existing._id);
       return { wishlisted: false };
     }
+    const MAX_WISHLIST = 200;
+    const count = (
+      await ctx.db
+        .query("wishlist")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect()
+    ).length;
+    if (count >= MAX_WISHLIST)
+      throw new Error(`Maximum ${MAX_WISHLIST} books in wishlist`);
     await ctx.db.insert("wishlist", {
       userId: user._id,
       bookId: args.bookId,
