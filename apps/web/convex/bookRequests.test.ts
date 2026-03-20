@@ -461,4 +461,43 @@ describe("bookRequests", () => {
     const active = await authed.query(api.bookRequests.active, {});
     expect(active).toHaveLength(1);
   });
+
+  it("myRequests returns all fields needed by PendingRequestsSection dashboard widget", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      // Open request
+      await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Pending Book",
+        author: "Some Author",
+        note: "Would love to read this",
+        status: "open",
+        createdAt: Date.now(),
+      });
+      // Fulfilled request
+      await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Found Book",
+        status: "fulfilled",
+        createdAt: Date.now() - 86400000,
+        fulfilledAt: Date.now(),
+        fulfilledBy: userId,
+      });
+    });
+
+    const requests = await t.withIdentity({ subject: "user_req1" }).query(api.bookRequests.myRequests, {});
+    expect(requests).toHaveLength(2);
+
+    const open = requests.find((r: { title: string }) => r.title === "Pending Book")!;
+    expect(open.status).toBe("open");
+    expect(open.author).toBe("Some Author");
+    expect(open.note).toBe("Would love to read this");
+    expect(open).toHaveProperty("_id");
+
+    const fulfilled = requests.find((r: { title: string }) => r.title === "Found Book")!;
+    expect(fulfilled.status).toBe("fulfilled");
+    expect(fulfilled.fulfilledAt).toBeTypeOf("number");
+  });
 });

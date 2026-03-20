@@ -12,6 +12,7 @@ import { ActiveReservationsSection } from "@/components/active-reservations-sect
 import { HeldCopiesSection } from "@/components/held-copies-section";
 import { FriendsReadingSection } from "@/components/friends-reading-section";
 import { RecommendedBooksSection } from "@/components/recommended-books-section";
+import { PendingRequestsSection } from "@/components/pending-requests-section";
 import {
   BookOpen,
   Clock,
@@ -116,6 +117,9 @@ function DashboardContent() {
 
       {/* Active Reservations */}
       <ActiveReservationsSection />
+
+      {/* Pending Book Requests */}
+      <PendingRequestsSection />
 
       {/* Waiting For */}
       <WaitlistPreviewSection />
