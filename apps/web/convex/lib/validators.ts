@@ -99,7 +99,8 @@ export type NotificationType =
   | "reputation_milestone"
   | "achievement_unlocked"
   | "book_request_fulfilled"
-  | "transfer_accepted";
+  | "transfer_accepted"
+  | "reservation_cancelled";
 
 export const notificationTypeValidator = v.union(
   v.literal("reservation_confirmed"),
