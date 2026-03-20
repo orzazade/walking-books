@@ -55,6 +55,113 @@ function makeBook(overrides: Record<string, unknown> = {}) {
   };
 }
 
+describe("partnerLocations.popularBooks", () => {
+  it("returns top books ranked by pickup count at a location", async () => {
+    const t = convexTest(schema, modules);
+
+    let locId: any;
+
+    await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "mgr_pop", phone: "+2000000000", name: "Manager" }),
+      );
+      const readerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "rdr_pop", phone: "+2000000001", name: "Reader" }),
+      );
+
+      locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(managerId as unknown as string, { name: "Popular Cafe" }),
+      );
+
+      const bookA = await ctx.db.insert("books", makeBook({ title: "Popular Book" }));
+      const bookB = await ctx.db.insert("books", makeBook({ title: "Less Popular", isbn: "9999999999" }));
+
+      const copyA = await ctx.db.insert("copies", {
+        bookId: bookA,
+        status: "available",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: managerId,
+        currentLocationId: locId,
+        qrCodeUrl: "qr_pop1",
+      });
+
+      const copyB = await ctx.db.insert("copies", {
+        bookId: bookB,
+        status: "available",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: managerId,
+        currentLocationId: locId,
+        qrCodeUrl: "qr_pop2",
+      });
+
+      const now = Date.now();
+
+      // Book A picked up 3 times at this location
+      for (let i = 0; i < 3; i++) {
+        await ctx.db.insert("journeyEntries", {
+          copyId: copyA,
+          readerId,
+          pickupLocationId: locId,
+          pickedUpAt: now - (i + 1) * 86400000,
+          conditionAtPickup: "good",
+          pickupPhotos: [],
+          returnPhotos: [],
+        });
+      }
+
+      // Book B picked up 1 time at this location
+      await ctx.db.insert("journeyEntries", {
+        copyId: copyB,
+        readerId,
+        pickupLocationId: locId,
+        pickedUpAt: now - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+    });
+
+    const results = await t.query(api.partnerLocations.popularBooks, {
+      locationId: locId,
+    });
+
+    expect(results).toHaveLength(2);
+    // Most popular first
+    expect(results[0].title).toBe("Popular Book");
+    expect(results[0].pickupCount).toBe(3);
+    expect(results[1].title).toBe("Less Popular");
+    expect(results[1].pickupCount).toBe(1);
+  });
+
+  it("returns empty array when no pickups at location", async () => {
+    const t = convexTest(schema, modules);
+
+    let locId: any;
+
+    await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "mgr_empty", phone: "+3000000000", name: "Manager" }),
+      );
+      locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(managerId as unknown as string, { name: "Empty Cafe" }),
+      );
+    });
+
+    const results = await t.query(api.partnerLocations.popularBooks, {
+      locationId: locId,
+    });
+
+    expect(results).toHaveLength(0);
+  });
+});
+
 describe("partnerLocations.nearby", () => {
   it("returns locations sorted by distance with available book counts", async () => {
     const t = convexTest(schema, modules);

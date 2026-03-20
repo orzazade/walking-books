@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { LocationMap } from "@/components/location-map";
 import { LocationReviewsSection } from "@/components/location-reviews-section";
+import { PopularBooksSection } from "@/components/popular-books-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -135,6 +136,10 @@ export default function LocationDetailPage() {
           </div>
         </>
       )}
+
+      <Separator className="my-6" />
+
+      <PopularBooksSection locationId={locationId} />
 
       <Separator className="my-6" />
 

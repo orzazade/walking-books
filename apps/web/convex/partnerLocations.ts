@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { validatePhotos } from "./lib/validators";
 
@@ -112,6 +113,62 @@ function haversineKm(
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+/** Top books picked up from this location, ranked by pickup count. */
+export const popularBooks = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    const entries = await ctx.db.query("journeyEntries").collect();
+    const atLocation = entries.filter(
+      (e) => e.pickupLocationId === args.locationId,
+    );
+
+    if (atLocation.length === 0) return [];
+
+    // Batch-fetch all copies to get bookIds
+    const uniqueCopyIds = [...new Set(atLocation.map((e) => e.copyId))];
+    const copies = await Promise.all(uniqueCopyIds.map((id) => ctx.db.get(id)));
+    const copyToBook = new Map<string, Id<"books">>();
+    for (let i = 0; i < uniqueCopyIds.length; i++) {
+      const copy = copies[i];
+      if (copy) copyToBook.set(uniqueCopyIds[i] as string, copy.bookId);
+    }
+
+    // Count pickups per book
+    const bookCounts = new Map<string, number>();
+    for (const entry of atLocation) {
+      const bookId = copyToBook.get(entry.copyId as string);
+      if (bookId) {
+        bookCounts.set(bookId as string, (bookCounts.get(bookId as string) ?? 0) + 1);
+      }
+    }
+
+    // Sort by count descending, take top 6
+    const sorted = [...bookCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+
+    // Batch-fetch books
+    const bookIds = sorted.map(([id]) => id as unknown as Id<"books">);
+    const books = await Promise.all(
+      bookIds.map((id) => ctx.db.get(id)),
+    );
+
+    return sorted
+      .map(([, count], i) => {
+        const book = books[i];
+        if (!book) return null;
+        return {
+          _id: book._id,
+          title: book.title,
+          author: book.author,
+          coverImage: book.coverImage,
+          pickupCount: count,
+        };
+      })
+      .filter((b) => b !== null);
+  },
+});
 
 export const nearby = query({
   args: { lat: v.number(), lng: v.number() },
