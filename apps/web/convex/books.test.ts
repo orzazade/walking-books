@@ -966,3 +966,69 @@ describe("books.nearMe", () => {
     expect(reports[0].description).toContain("Initial condition");
   });
 });
+
+describe("books.searchCatalog", () => {
+  it("finds books by title case-insensitively", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("books", makeBook({ title: "The Great Gatsby", author: "F. Scott Fitzgerald" }));
+      await ctx.db.insert("books", makeBook({ title: "Gatsby Notes", author: "Someone" }));
+      await ctx.db.insert("books", makeBook({ title: "Unrelated Book", author: "Another" }));
+    });
+
+    const results = await t.query(api.books.searchCatalog, { query: "gatsby" });
+    expect(results).toHaveLength(2);
+  });
+
+  it("finds books by author", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("books", makeBook({ title: "Book A", author: "Hemingway" }));
+      await ctx.db.insert("books", makeBook({ title: "Book B", author: "Fitzgerald" }));
+    });
+
+    const results = await t.query(api.books.searchCatalog, { query: "hemingway" });
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Book A");
+  });
+
+  it("returns empty for blank query", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("books", makeBook());
+    });
+
+    const results = await t.query(api.books.searchCatalog, { query: "   " });
+    expect(results).toEqual([]);
+  });
+});
+
+describe("books.byId", () => {
+  it("returns book details for valid ID", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) =>
+      ctx.db.insert("books", makeBook({ title: "Found Book" })),
+    );
+
+    const book = await t.query(api.books.byId, { bookId });
+    expect(book).not.toBeNull();
+    expect(book!.title).toBe("Found Book");
+  });
+
+  it("returns null for deleted book", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("books", makeBook());
+      await ctx.db.delete(id);
+      return id;
+    });
+
+    const book = await t.query(api.books.byId, { bookId: fakeId });
+    expect(book).toBeNull();
+  });
+});
