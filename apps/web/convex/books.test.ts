@@ -892,6 +892,54 @@ describe("books.nearMe", () => {
     expect(notifications[0].message).toContain("Test Location");
   });
 
+  it("register rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeLocationId = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(uId as unknown as string));
+      await ctx.db.delete(locId);
+      return locId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Test", author: "Author", coverImage: "https://example.com/c.jpg",
+        description: "A book", categories: ["fiction"], pageCount: 200, language: "English",
+        ownershipType: "donated", condition: "good", locationId: fakeLocationId,
+      }),
+    ).rejects.toThrow("Location not found");
+  });
+
+  it("register rejects when at max 200 active shared copies", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(uId as unknown as string));
+      const bookId = await ctx.db.insert("books", makeBook());
+      // Create 200 active copies owned by this user
+      for (let i = 0; i < 200; i++) {
+        await ctx.db.insert("copies", makeCopy(
+          bookId as unknown as string,
+          locId as unknown as string,
+          uId as unknown as string,
+        ));
+      }
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "One More", author: "Author", coverImage: "https://example.com/c.jpg",
+        description: "A book", categories: ["fiction"], pageCount: 200, language: "English",
+        ownershipType: "donated", condition: "good", locationId,
+      }),
+    ).rejects.toThrow("Maximum 200 active shared copies allowed");
+  });
+
   it("register creates initial condition report for the new copy", async () => {
     const t = convexTest(schema, modules);
     const { locationId } = await t.run(async (ctx) => {
