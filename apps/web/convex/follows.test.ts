@@ -251,6 +251,59 @@ describe("follows enriched queries", () => {
     ).rejects.toThrow("Not authenticated");
   });
 
+  it("isFollowing returns false for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const targetId = await t.run(async (ctx) =>
+      ctx.db.insert("users", makeUser("user_isf_target", "Target")),
+    );
+
+    const result = await t.query(api.follows.isFollowing, { targetUserId: targetId });
+    expect(result).toBe(false);
+  });
+
+  it("isFollowing returns true after follow and false after unfollow", async () => {
+    const t = convexTest(schema, modules);
+
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser("user_isf_follower", "Follower"));
+      return ctx.db.insert("users", makeUser("user_isf_target2", "Target"));
+    });
+
+    const authed = t.withIdentity({ subject: "user_isf_follower" });
+
+    // Before follow
+    expect(await authed.query(api.follows.isFollowing, { targetUserId: targetId })).toBe(false);
+
+    // After follow
+    await authed.mutation(api.follows.toggle, { targetUserId: targetId });
+    expect(await authed.query(api.follows.isFollowing, { targetUserId: targetId })).toBe(true);
+
+    // After unfollow
+    await authed.mutation(api.follows.toggle, { targetUserId: targetId });
+    expect(await authed.query(api.follows.isFollowing, { targetUserId: targetId })).toBe(false);
+  });
+
+  it("followers and following queries return correct counts", async () => {
+    const t = convexTest(schema, modules);
+
+    const { aliceId, bobId } = await t.run(async (ctx) => {
+      const aId = await ctx.db.insert("users", makeUser("user_fc_alice", "Alice"));
+      const bId = await ctx.db.insert("users", makeUser("user_fc_bob", "Bob"));
+      await ctx.db.insert("follows", { followerId: aId, followingId: bId });
+      return { aliceId: aId, bobId: bId };
+    });
+
+    const aliceFollowing = await t.query(api.follows.following, { userId: aliceId });
+    expect(aliceFollowing).toHaveLength(1);
+
+    const bobFollowers = await t.query(api.follows.followers, { userId: bobId });
+    expect(bobFollowers).toHaveLength(1);
+
+    const aliceFollowers = await t.query(api.follows.followers, { userId: aliceId });
+    expect(aliceFollowers).toHaveLength(0);
+  });
+
   it("toggle rejects nonexistent target user", async () => {
     const t = convexTest(schema, modules);
 
