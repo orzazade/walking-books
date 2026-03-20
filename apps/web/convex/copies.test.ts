@@ -1647,6 +1647,36 @@ describe("copies.pickup side effects", () => {
     expect(journeyEntries).toHaveLength(1);
     expect(journeyEntries[0].readerId).toBe(pickupUserId);
   });
+
+  it("pickup of reserved copy fulfills the reservation", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId, reservationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_res_pu", name: "Sharer" }));
+      const pId = await ctx.db.insert("users", makeUser({ clerkId: "picker_res_pu", name: "Picker" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "reserved",
+      }));
+      const rId = await ctx.db.insert("reservations", {
+        userId: pId, copyId: cId, locationId: locId,
+        reservedAt: Date.now(), status: "active", expiresAt: Date.now() + 86400000,
+      });
+      return { copyId: cId, locationId: locId, reservationId: rId };
+    });
+
+    const authed = t.withIdentity({ subject: "picker_res_pu" });
+    await authed.mutation(api.copies.pickup, {
+      copyId, locationId, reservationId, conditionAtPickup: "good", photos: [],
+    });
+
+    const { copy, reservation } = await t.run(async (ctx) => ({
+      copy: await ctx.db.get(copyId),
+      reservation: await ctx.db.get(reservationId),
+    }));
+    expect(copy!.status).toBe("checked_out");
+    expect(reservation!.status).toBe("fulfilled");
+  });
 });
 
 describe("copies.returnCopy side effects", () => {
