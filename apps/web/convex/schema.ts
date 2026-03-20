@@ -161,7 +161,8 @@ export default defineSchema({
     addedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_book", ["userId", "bookId"]),
+    .index("by_user_book", ["userId", "bookId"])
+    .index("by_book", ["bookId"]),
 
   collections: defineTable({
     userId: v.id("users"),
@@ -266,6 +267,7 @@ export default defineSchema({
     waitlist_available: v.boolean(),
     reputation_milestone: v.boolean(),
     achievement_unlocked: v.boolean(),
+    wishlist_available: v.boolean(),
     book_request_fulfilled: v.boolean(),
   })
     .index("by_user", ["userId"]),

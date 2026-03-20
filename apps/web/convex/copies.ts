@@ -6,6 +6,7 @@ import { REPUTATION, clampScore, calculateReturnRepChange, getUserRestrictions }
 import { conditionValidator, CONDITION_LABELS, validatePhotos } from "./lib/validators";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { notifyNextWaiter } from "./lib/waitlist";
+import { notifyWishlisters } from "./lib/wishlistNotify";
 import { createNotification } from "./lib/notifications";
 
 export const byBook = query({
@@ -340,6 +341,14 @@ export const returnCopy = mutation({
     }
     if (newStatus === "available") {
       secondaryOps.push(notifyNextWaiter(ctx, copy.bookId, args.copyId, now));
+      secondaryOps.push(
+        notifyWishlisters(ctx, {
+          bookId: copy.bookId,
+          copyId: args.copyId,
+          locationId: args.locationId,
+          actingUserId: user._id,
+        }),
+      );
     }
     await Promise.all(secondaryOps);
 

@@ -28,6 +28,7 @@ const ALL_ENABLED = {
   book_recalled: true,
   waitlist_notified: true,
   waitlist_available: true,
+  wishlist_available: true,
   reputation_milestone: true,
   achievement_unlocked: true,
   book_request_fulfilled: true,

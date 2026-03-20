@@ -95,6 +95,7 @@ export type NotificationType =
   | "book_recalled"
   | "waitlist_notified"
   | "waitlist_available"
+  | "wishlist_available"
   | "reputation_milestone"
   | "achievement_unlocked"
   | "book_request_fulfilled";
@@ -107,6 +108,7 @@ export const notificationTypeValidator = v.union(
   v.literal("book_recalled"),
   v.literal("waitlist_notified"),
   v.literal("waitlist_available"),
+  v.literal("wishlist_available"),
   v.literal("reputation_milestone"),
   v.literal("achievement_unlocked"),
   v.literal("book_request_fulfilled"),
