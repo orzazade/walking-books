@@ -740,4 +740,55 @@ describe("collections.byUser", () => {
       }),
     ).rejects.toThrow("Maximum 50 collections allowed");
   });
+
+  it("follow rejects nonexistent collection", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeCollId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const cId = await ctx.db.insert("collections", {
+        userId: (await ctx.db.query("users").first())!._id,
+        name: "Ghost Collection",
+        isPublic: true,
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(cId);
+      return cId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.follow, { collectionId: fakeCollId }),
+    ).rejects.toThrow("Collection not found");
+  });
+
+  it("addBook rejects when collection has 500 books", async () => {
+    const t = convexTest(schema, modules);
+
+    const { collectionId, bookId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const collId = await ctx.db.insert("collections", {
+        userId,
+        name: "Full Collection",
+        isPublic: false,
+        createdAt: Date.now(),
+      });
+      // Insert 500 items
+      for (let i = 0; i < 500; i++) {
+        const bId = await ctx.db.insert("books", makeBook({ title: `Book ${i}` }));
+        await ctx.db.insert("collectionItems", {
+          collectionId: collId,
+          bookId: bId,
+          addedAt: Date.now(),
+        });
+      }
+      const extraBook = await ctx.db.insert("books", makeBook({ title: "One Too Many" }));
+      return { collectionId: collId, bookId: extraBook };
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.addBook, { collectionId, bookId }),
+    ).rejects.toThrow("Maximum 500 books per collection");
+  });
 });
