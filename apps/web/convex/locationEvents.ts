@@ -165,6 +165,15 @@ export const rsvp = mutation({
     if (!event) throw new Error("Event not found");
     if (event.endsAt <= Date.now()) throw new Error("This event has already ended");
 
+    // Per-user limit on active RSVPs
+    const rsvpCount = await ctx.db
+      .query("eventRsvps")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+      .then((r) => r.length);
+    if (rsvpCount >= 100)
+      throw new Error("Maximum 100 active RSVPs allowed");
+
     // Check for existing RSVP
     const existing = await ctx.db
       .query("eventRsvps")

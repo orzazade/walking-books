@@ -56,6 +56,15 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
 
+    // Per-user limit on condition reports
+    const reportCount = await ctx.db
+      .query("conditionReports")
+      .filter((q) => q.eq(q.field("reportedByUserId"), user._id))
+      .collect()
+      .then((r) => r.length);
+    if (reportCount >= 100)
+      throw new Error("Maximum 100 condition reports allowed per user");
+
     validatePhotos(args.photos);
 
     const trimmed = args.description.trim();

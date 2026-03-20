@@ -25,6 +25,16 @@ export const create = mutation({
     const toLocation = await ctx.db.get(args.toLocationId);
     if (!toLocation) throw new Error("Destination location not found");
 
+    // Per-user limit on pending transfer requests
+    const pendingCount = await ctx.db
+      .query("transferRequests")
+      .withIndex("by_requester", (q) => q.eq("requesterId", user._id))
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .collect()
+      .then((r) => r.length);
+    if (pendingCount >= 50)
+      throw new Error("Maximum 50 pending transfer requests allowed");
+
     // Check for existing pending request for this copy by this user
     const existing = await ctx.db
       .query("transferRequests")
