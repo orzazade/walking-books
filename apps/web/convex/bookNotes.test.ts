@@ -201,6 +201,26 @@ describe("bookNotes", () => {
     ).rejects.toThrow("Note must be 10000 characters or less");
   });
 
+  it("save rejects nonexistent book", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeBookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.delete(bId);
+      return bId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_notes1" });
+
+    await expect(
+      authed.mutation(api.bookNotes.save, {
+        bookId: fakeBookId,
+        content: "A note for a ghost book",
+      }),
+    ).rejects.toThrow("Book not found");
+  });
+
   it("notes are private — users cannot see each other's notes", async () => {
     const t = convexTest(schema, modules);
 
