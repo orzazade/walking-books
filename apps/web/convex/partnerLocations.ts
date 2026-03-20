@@ -94,3 +94,47 @@ export const byId = query({
     return await ctx.db.get(args.locationId);
   },
 });
+
+/** Haversine distance in km between two lat/lng points. */
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export const nearby = query({
+  args: { lat: v.number(), lng: v.number() },
+  handler: async (ctx, args) => {
+    const locations = await ctx.db.query("partnerLocations").collect();
+
+    const enriched = await Promise.all(
+      locations.map(async (loc) => {
+        const copies = await ctx.db
+          .query("copies")
+          .withIndex("by_location", (q) =>
+            q.eq("currentLocationId", loc._id).eq("status", "available"),
+          )
+          .collect();
+
+        return {
+          ...loc,
+          distanceKm: haversineKm(args.lat, args.lng, loc.lat, loc.lng),
+          availableBooks: copies.length,
+        };
+      }),
+    );
+
+    return enriched.sort((a, b) => a.distanceKm - b.distanceKm);
+  },
+});
