@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { getErrorMessage } from "@/lib/utils";
 import { ProfileActivitySection } from "@/components/profile-activity-section";
+import { ProfileReviewsSection } from "@/components/profile-reviews-section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -279,6 +280,11 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Reviews */}
+      <div className="mt-8">
+        <ProfileReviewsSection userId={userId} />
+      </div>
 
       {/* Divider */}
       <div className="editorial-divider my-8">

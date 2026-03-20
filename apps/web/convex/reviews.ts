@@ -13,6 +13,39 @@ export const byBook = query({
   },
 });
 
+export const byUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const reviews = await ctx.db
+      .query("reviews")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const bookIds = [...new Set(reviews.map((r) => r.bookId))];
+    const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
+    const bookMap = new Map(
+      books.filter(Boolean).map((b) => [b!._id, b!]),
+    );
+
+    return reviews
+      .map((r) => {
+        const book = bookMap.get(r.bookId);
+        if (!book) return null;
+        return {
+          _id: r._id,
+          _creationTime: r._creationTime,
+          bookId: r.bookId,
+          rating: r.rating,
+          text: r.text,
+          bookTitle: book.title,
+          bookAuthor: book.author,
+          bookCoverImage: book.coverImage,
+        };
+      })
+      .filter(Boolean);
+  },
+});
+
 export const create = mutation({
   args: {
     bookId: v.id("books"),
