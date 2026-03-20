@@ -17,10 +17,24 @@ import {
   ArrowRightLeft,
   Trophy,
   Tag,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from "lucide-react";
+
+function timeAgo(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export default function CommunityPage() {
   const stats = useQuery(api.communityStats.getStats, {});
+  const activity = useQuery(api.communityStats.recentActivity, {});
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -166,6 +180,82 @@ export default function CommunityPage() {
               />
             </div>
           </section>
+
+          {/* Live Activity */}
+          {activity && activity.length > 0 && (
+            <section>
+              <h2 className="mb-4 font-serif text-lg font-semibold">
+                Live Activity
+              </h2>
+              <div className="space-y-2">
+                {activity.map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/60 p-3"
+                  >
+                    {/* Activity icon */}
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        item.type === "pickup"
+                          ? "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400"
+                          : "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400"
+                      }`}
+                    >
+                      {item.type === "pickup" ? (
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDownLeft className="h-3.5 w-3.5" />
+                      )}
+                    </div>
+
+                    {/* Book cover */}
+                    <Link href={`/book/${item.bookId}`} className="shrink-0">
+                      {item.coverImage ? (
+                        <img
+                          src={item.coverImage}
+                          alt={item.bookTitle}
+                          className="h-10 w-7 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-7 items-center justify-center rounded-md bg-muted">
+                          <BookOpen className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Details */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm">
+                        <Link
+                          href={`/profile/${item.readerId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {item.readerName}
+                        </Link>
+                        <span className="text-muted-foreground">
+                          {item.type === "pickup"
+                            ? " picked up "
+                            : " returned "}
+                        </span>
+                        <Link
+                          href={`/book/${item.bookId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {item.bookTitle}
+                        </Link>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        <MapPin className="mr-0.5 inline h-3 w-3" />
+                        {item.locationName}
+                        <span className="mx-1">&middot;</span>
+                        {timeAgo(item.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Highlights */}
           {(stats.topLocation || stats.topGenre) && (

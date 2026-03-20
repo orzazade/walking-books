@@ -357,3 +357,97 @@ describe("communityStats", () => {
     expect(result.totalBooks).toBe(1);
   });
 });
+
+describe("communityStats.recentActivity", () => {
+  it("returns recent pickups with book, reader, and location details", async () => {
+    const t = convexTest(schema, modules);
+    const now = Date.now();
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({
+        clerkId: "activity_user",
+        name: "Active Reader",
+        avatarUrl: "https://example.com/avatar.jpg",
+      }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string, {
+        name: "Cozy Cafe",
+      }));
+      const bookId = await ctx.db.insert("books", makeBook({
+        title: "The Great Novel",
+        author: "Famous Author",
+        coverImage: "https://example.com/cover.jpg",
+      }));
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        qrCodeUrl: "",
+        currentHolderId: userId,
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: userId,
+        pickupLocationId: locId,
+        pickedUpAt: now - 3600000, // 1 hour ago
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+    });
+
+    const result = await t.query(api.communityStats.recentActivity, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("pickup");
+    expect(result[0].bookTitle).toBe("The Great Novel");
+    expect(result[0].bookAuthor).toBe("Famous Author");
+    expect(result[0].readerName).toBe("Active Reader");
+    expect(result[0].locationName).toBe("Cozy Cafe");
+    expect(result[0].coverImage).toBe("https://example.com/cover.jpg");
+    expect(result[0]).toHaveProperty("bookId");
+    expect(result[0]).toHaveProperty("readerId");
+    expect(result[0]).toHaveProperty("timestamp");
+  });
+
+  it("returns empty array when no recent activity", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.communityStats.recentActivity, {});
+    expect(result).toEqual([]);
+  });
+
+  it("marks returned entries as type return", async () => {
+    const t = convexTest(schema, modules);
+    const now = Date.now();
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "return_user" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        qrCodeUrl: "",
+        currentLocationId: locId,
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: userId,
+        pickupLocationId: locId,
+        pickedUpAt: now - 7200000,
+        returnedAt: now - 3600000,
+        conditionAtPickup: "good",
+        conditionAtReturn: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+    });
+
+    const result = await t.query(api.communityStats.recentActivity, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("return");
+  });
+});

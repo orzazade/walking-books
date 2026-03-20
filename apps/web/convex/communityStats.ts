@@ -98,3 +98,72 @@ export const getStats = query({
     };
   },
 });
+
+/**
+ * Recent community activity — public feed of recent book pickups and returns.
+ * Shows the latest 10 handoffs so visitors see the platform is alive.
+ */
+export const recentActivity = query({
+  args: {},
+  handler: async (ctx) => {
+    const sevenDaysAgo = Date.now() - 7 * DAY_MS;
+
+    // Get recent journey entries (pickups in last 7 days)
+    const recentEntries = await ctx.db
+      .query("journeyEntries")
+      .withIndex("by_pickedUpAt", (q) => q.gte("pickedUpAt", sevenDaysAgo))
+      .order("desc")
+      .take(20);
+
+    if (recentEntries.length === 0) return [];
+
+    // Batch-fetch all related entities
+    const copyIds = [...new Set(recentEntries.map((e) => e.copyId))];
+    const readerIds = [...new Set(recentEntries.map((e) => e.readerId))];
+    const locationIds = [...new Set(recentEntries.map((e) => e.pickupLocationId))];
+
+    const [copies, readers, locations] = await Promise.all([
+      Promise.all(copyIds.map((id) => ctx.db.get(id))),
+      Promise.all(readerIds.map((id) => ctx.db.get(id))),
+      Promise.all(locationIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const copyMap = new Map(copies.filter(Boolean).map((c) => [c!._id, c!]));
+    const readerMap = new Map(readers.filter(Boolean).map((r) => [r!._id, r!]));
+    const locationMap = new Map(locations.filter(Boolean).map((l) => [l!._id, l!]));
+
+    // Fetch book details for each copy
+    const bookIds = [...new Set(
+      copies.filter(Boolean).map((c) => c!.bookId),
+    )];
+    const books = await Promise.all(bookIds.map((id) => ctx.db.get(id)));
+    const bookMap = new Map(books.filter(Boolean).map((b) => [b!._id, b!]));
+
+    const activities = recentEntries
+      .map((entry) => {
+        const copy = copyMap.get(entry.copyId);
+        const reader = readerMap.get(entry.readerId);
+        const location = locationMap.get(entry.pickupLocationId);
+        const book = copy ? bookMap.get(copy.bookId) : null;
+        if (!book || !reader || !location) return null;
+
+        return {
+          _id: entry._id,
+          type: entry.returnedAt ? ("return" as const) : ("pickup" as const),
+          timestamp: entry.returnedAt ?? entry.pickedUpAt,
+          bookTitle: book.title,
+          bookAuthor: book.author,
+          bookId: book._id,
+          coverImage: book.coverImage,
+          readerName: reader.name,
+          readerId: reader._id,
+          avatarUrl: reader.avatarUrl,
+          locationName: location.name,
+        };
+      })
+      .filter((a) => a !== null)
+      .slice(0, 10);
+
+    return activities;
+  },
+});
