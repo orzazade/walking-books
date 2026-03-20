@@ -75,6 +75,39 @@ describe("collections", () => {
     ).rejects.toThrow("Collection name is required");
   });
 
+  it("create rejects name over 100 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.create, {
+        name: "A".repeat(101),
+        isPublic: false,
+      }),
+    ).rejects.toThrow("Collection name must be 100 characters or less");
+  });
+
+  it("create rejects description over 500 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.create, {
+        name: "Valid Name",
+        isPublic: false,
+        description: "D".repeat(501),
+      }),
+    ).rejects.toThrow("Collection description must be 500 characters or less");
+  });
+
   it("create rejects unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
