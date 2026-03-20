@@ -677,4 +677,49 @@ describe("reservations.myActive", () => {
       authed.mutation(api.reservations.cancel, { reservationId }),
     ).rejects.toThrow("Not your reservation");
   });
+
+  it("create rejects nonexistent copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { fakeCopyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_noc", phone: "+5555555555" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.delete(cId);
+      return { fakeCopyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId: fakeCopyId, locationId }),
+    ).rejects.toThrow("Copy not found");
+  });
+
+  it("create rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, fakeLocationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_nol", phone: "+5555555556" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      const fakeLocId = await ctx.db.insert("partnerLocations", makeLocation(sharerId, { name: "Ghost" }));
+      await ctx.db.delete(fakeLocId);
+      return { copyId: cId, fakeLocationId: fakeLocId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId: fakeLocationId }),
+    ).rejects.toThrow("Location not found");
+  });
 });
