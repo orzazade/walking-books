@@ -683,6 +683,61 @@ describe("readingProgress", () => {
     expect(result[0].finishedAt).toBeDefined();
   });
 
+  it("forUser excludes finished readings where the book was deleted", async () => {
+    const t = convexTest(schema, modules);
+
+    let userId: Id<"users">;
+
+    await t.run(async (ctx) => {
+      userId = await ctx.db.insert("users", makeUser());
+      const bookId1 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Kept Book", pageCount: 100 }),
+      );
+      const deletedBookId = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Deleted Book", pageCount: 200 }),
+      );
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Cafe", address: "1 Main", lat: 0, lng: 0,
+        contactPhone: "+1000000000", operatingHours: {}, photos: [],
+        shelfCapacity: 50, currentBookCount: 0,
+        managedByUserId: userId as unknown as string,
+        staffUserIds: [], avgRating: 0, reviewCount: 0,
+      });
+      const copyId1 = await ctx.db.insert("copies", {
+        bookId: bookId1, status: "available" as const, condition: "good" as const,
+        ownershipType: "lent" as const, originalSharerId: userId,
+        currentLocationId: locId, qrCodeUrl: "",
+      });
+      const copyId2 = await ctx.db.insert("copies", {
+        bookId: deletedBookId, status: "available" as const, condition: "good" as const,
+        ownershipType: "lent" as const, originalSharerId: userId,
+        currentLocationId: locId, qrCodeUrl: "",
+      });
+      // Finished reading for kept book
+      await ctx.db.insert("readingProgress", {
+        userId, copyId: copyId1, bookId: bookId1,
+        currentPage: 100, totalPages: 100, status: "finished" as const,
+        startedAt: Date.now() - 86400000, lastUpdatedAt: Date.now(),
+        finishedAt: Date.now(),
+      });
+      // Finished reading for book that will be deleted
+      await ctx.db.insert("readingProgress", {
+        userId, copyId: copyId2, bookId: deletedBookId,
+        currentPage: 200, totalPages: 200, status: "finished" as const,
+        startedAt: Date.now() - 86400000, lastUpdatedAt: Date.now(),
+        finishedAt: Date.now() - 3600000,
+      });
+      // Delete the second book
+      await ctx.db.delete(deletedBookId);
+    });
+
+    const result = await t.query(api.readingProgress.forUser, { userId: userId! });
+    expect(result).toHaveLength(1);
+    expect(result[0].bookTitle).toBe("Kept Book");
+  });
+
   it("currentlyReading returns empty for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
     const result = await t.query(api.readingProgress.currentlyReading, {});

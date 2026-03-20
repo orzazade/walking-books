@@ -1235,6 +1235,32 @@ describe("copies.relist", () => {
     ).rejects.toThrow("Maximum 2 extensions allowed");
   });
 
+  it("extend rejects donated copy with no return deadline", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ext_donated", phone: "+8888888896" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ext_donated", phone: "+8888888897" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          ownershipType: "donated",
+          // No returnDeadline — donated books don't have one
+        }),
+      );
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_ext_donated" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("no return deadline");
+  });
+
   it("relist rejects non-sharer", async () => {
     const t = convexTest(schema, modules);
 
