@@ -264,6 +264,7 @@ describe("wishlist availability notifications", () => {
           reputation_milestone: true,
           achievement_unlocked: true,
           book_request_fulfilled: true,
+          transfer_accepted: true,
         });
         return { wisherId: wid, bookId: bid, copyId: cid, locationId: locId };
       },

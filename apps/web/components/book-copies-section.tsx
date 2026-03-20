@@ -13,13 +13,14 @@ import { CheckCircle, Clock, MapPin, History } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { LocationHoursBadge } from "@/components/location-hours-badge";
+import { RequestTransferDialog } from "@/components/request-transfer-dialog";
 
 const COPY_STATUS_COLOR: Record<string, string> = {
   available: "bg-primary/10 text-primary border-primary/20",
   reserved: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
 };
 
-export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
+export function BookCopiesSection({ bookId, bookTitle }: { bookId: Id<"books">; bookTitle?: string }) {
   const copies = useQuery(api.copies.byBookEnriched, { bookId });
   const activeReservations = useQuery(api.reservations.active);
   const createReservation = useMutation(api.reservations.create);
@@ -126,6 +127,13 @@ export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
                     </Link>
 
                     <Authenticated>
+                      {copy.status === "available" && copy.currentLocationId && (
+                        <RequestTransferDialog
+                          copyId={copy._id}
+                          currentLocationId={copy.currentLocationId as Id<"partnerLocations">}
+                          bookTitle={bookTitle ?? "this book"}
+                        />
+                      )}
                       {isJustReserved ? (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-primary" />

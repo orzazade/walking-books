@@ -23,6 +23,7 @@ const NOTIFICATION_TYPES = [
   { key: "reputation_milestone", label: "Reputation Milestone", description: "When you reach a reputation milestone" },
   { key: "achievement_unlocked", label: "Achievement Unlocked", description: "When you earn an achievement" },
   { key: "book_request_fulfilled", label: "Book Request Fulfilled", description: "When someone fulfills your book request" },
+  { key: "transfer_accepted", label: "Transfer Accepted", description: "When a partner accepts your book transfer request" },
 ] as const;
 
 const GENRE_OPTIONS = [
@@ -280,6 +281,7 @@ function SettingsContent() {
                   reputation_milestone: notifSettings.reputation_milestone ?? true,
                   achievement_unlocked: notifSettings.achievement_unlocked ?? true,
                   book_request_fulfilled: notifSettings.book_request_fulfilled ?? true,
+                  transfer_accepted: notifSettings.transfer_accepted ?? true,
                 });
                 setNotifsSaved(true);
                 setTimeout(() => setNotifsSaved(false), 3000);

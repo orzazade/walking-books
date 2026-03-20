@@ -98,7 +98,8 @@ export type NotificationType =
   | "wishlist_available"
   | "reputation_milestone"
   | "achievement_unlocked"
-  | "book_request_fulfilled";
+  | "book_request_fulfilled"
+  | "transfer_accepted";
 
 export const notificationTypeValidator = v.union(
   v.literal("reservation_confirmed"),
@@ -112,6 +113,7 @@ export const notificationTypeValidator = v.union(
   v.literal("reputation_milestone"),
   v.literal("achievement_unlocked"),
   v.literal("book_request_fulfilled"),
+  v.literal("transfer_accepted"),
 );
 
 export type EventType = "reading_meetup" | "author_visit" | "book_club" | "workshop" | "other";
@@ -135,6 +137,22 @@ export const eventTypeValidator = v.union(
 export const bookRequestStatusValidator = v.union(
   v.literal("open"),
   v.literal("fulfilled"),
+  v.literal("cancelled"),
+);
+
+export type TransferRequestStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+export const TRANSFER_REQUEST_STATUS_LABELS: Record<TransferRequestStatus, string> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+};
+
+export const transferRequestStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("accepted"),
+  v.literal("rejected"),
   v.literal("cancelled"),
 );
 

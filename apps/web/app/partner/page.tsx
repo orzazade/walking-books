@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,13 @@ import {
   Calendar,
   Users,
   TrendingUp,
+  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
 import { CONDITION_LABELS, COPY_STATUS_LABELS, EVENT_TYPE_LABELS, type CopyStatus, type Condition, type EventType } from "@/convex/lib/validators";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import { CreateEventDialog } from "@/components/create-event-dialog";
 
 function PartnerDashboardContent() {
@@ -59,6 +62,9 @@ function LocationDashboard({
   const allCopies = useQuery(api.copies.allAtLocation, { locationId });
   const reservations = useQuery(api.reservations.byLocation, { locationId });
   const events = useQuery(api.locationEvents.byLocation, { locationId });
+  const transferRequests = useQuery(api.transferRequests.forLocation, { locationId });
+  const acceptTransfer = useMutation(api.transferRequests.accept);
+  const rejectTransfer = useMutation(api.transferRequests.reject);
 
   if (allCopies === undefined || reservations === undefined) {
     return <p className="text-muted-foreground">Loading...</p>;
@@ -298,6 +304,74 @@ function LocationDashboard({
           </div>
         )}
       </section>
+
+      {/* Transfer requests */}
+      {transferRequests && transferRequests.length > 0 && (
+        <>
+          <Separator className="my-6" />
+          <section>
+            <h2 className="mb-3 text-lg font-semibold flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-primary" /> Transfer Requests
+              <Badge variant="secondary" className="ml-1">{transferRequests.length}</Badge>
+            </h2>
+            <div className="space-y-3">
+              {transferRequests.map((req) => (
+                <Card key={req._id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="font-medium truncate">{req.bookTitle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          by {req.bookAuthor}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Requested by {req.requesterName} → {req.toLocationName}
+                        </p>
+                        {req.note && (
+                          <p className="text-xs text-muted-foreground italic">
+                            &ldquo;{req.note}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={async () => {
+                            try {
+                              await rejectTransfer({ requestId: req._id });
+                              toast.success("Transfer request rejected");
+                            } catch (err: unknown) {
+                              toast.error(getErrorMessage(err, "Failed to reject"));
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="text-xs"
+                          onClick={async () => {
+                            try {
+                              await acceptTransfer({ requestId: req._id });
+                              toast.success("Transfer accepted — book moved!");
+                            } catch (err: unknown) {
+                              toast.error(getErrorMessage(err, "Failed to accept"));
+                            }
+                          }}
+                        >
+                          Accept
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Flagged items */}
       {damagedCopies.length > 0 && (

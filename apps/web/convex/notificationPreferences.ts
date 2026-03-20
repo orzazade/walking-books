@@ -15,6 +15,7 @@ const NOTIFICATION_TYPE_KEYS: NotificationType[] = [
   "reputation_milestone",
   "achievement_unlocked",
   "book_request_fulfilled",
+  "transfer_accepted",
 ];
 
 /** Get notification preferences for the current user. All default to true. */
@@ -60,6 +61,7 @@ export const update = mutation({
     reputation_milestone: v.boolean(),
     achievement_unlocked: v.boolean(),
     book_request_fulfilled: v.boolean(),
+    transfer_accepted: v.boolean(),
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);

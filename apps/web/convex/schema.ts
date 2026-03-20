@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { bookRequestStatusValidator, conditionValidator, copyStatusValidator, eventTypeValidator, notificationTypeValidator, ownershipTypeValidator, readingProgressStatusValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
+import { bookRequestStatusValidator, conditionValidator, copyStatusValidator, eventTypeValidator, notificationTypeValidator, ownershipTypeValidator, readingProgressStatusValidator, reportTypeValidator, reservationStatusValidator, transferRequestStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -269,6 +269,7 @@ export default defineSchema({
     achievement_unlocked: v.boolean(),
     wishlist_available: v.boolean(),
     book_request_fulfilled: v.boolean(),
+    transfer_accepted: v.boolean(),
   })
     .index("by_user", ["userId"]),
 
@@ -309,4 +310,20 @@ export default defineSchema({
     .index("by_event", ["eventId"])
     .index("by_user", ["userId"])
     .index("by_pair", ["userId", "eventId"]),
+
+  transferRequests: defineTable({
+    copyId: v.id("copies"),
+    bookId: v.id("books"),
+    requesterId: v.id("users"),
+    fromLocationId: v.id("partnerLocations"),
+    toLocationId: v.id("partnerLocations"),
+    status: transferRequestStatusValidator,
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_copy", ["copyId", "status"])
+    .index("by_requester", ["requesterId", "status"])
+    .index("by_from_location", ["fromLocationId", "status"])
+    .index("by_to_location", ["toLocationId", "status"]),
 });

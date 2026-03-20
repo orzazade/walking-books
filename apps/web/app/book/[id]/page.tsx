@@ -201,7 +201,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* Copies */}
-      <BookCopiesSection bookId={bookId} />
+      <BookCopiesSection bookId={bookId} bookTitle={book?.title} />
 
       {/* Waitlist */}
       <Authenticated>
