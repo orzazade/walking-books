@@ -336,4 +336,108 @@ describe("conditionReports", () => {
       }),
     ).rejects.toThrow("Only the holder, sharer, or location staff can report condition");
   });
+
+  it("damage report by sharer updates copy condition", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", {
+        clerkId: "user_cr_sharer2",
+        phone: "+3333333333",
+        name: "Sharer",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 1,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const bookId = await ctx.db.insert("books", {
+        title: "Damage Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        qrCodeUrl: "",
+      });
+    });
+
+    const sharer = t.withIdentity({ subject: "user_cr_sharer2" });
+    await sharer.mutation(api.conditionReports.create, {
+      copyId,
+      type: "damage_report",
+      photos: [],
+      description: "Spine is cracked",
+      newCondition: "worn",
+    });
+
+    // Verify copy condition was updated
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.condition).toBe("worn");
+
+    // Verify report was created with correct fields
+    const reports = await t.query(api.conditionReports.byCopy, { copyId });
+    expect(reports).toHaveLength(1);
+    expect(reports[0].previousCondition).toBe("good");
+    expect(reports[0].newCondition).toBe("worn");
+  });
+
+  it("rejects empty description", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", {
+        clerkId: "user_cr_desc",
+        phone: "+4444444444",
+        name: "Desc Tester",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 1,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const bookId = await ctx.db.insert("books", {
+        title: "Desc Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      return await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        qrCodeUrl: "",
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_cr_desc" });
+    await expect(
+      authed.mutation(api.conditionReports.create, {
+        copyId,
+        type: "damage_report",
+        photos: [],
+        description: "   ",
+        newCondition: "worn",
+      }),
+    ).rejects.toThrow("Description is required");
+  });
 });
