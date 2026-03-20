@@ -535,4 +535,36 @@ describe("bookRequests", () => {
       }),
     ).rejects.toThrow("Title must be 300 characters or less");
   });
+
+  it("create rejects author over 200 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.create, {
+        title: "Valid Title",
+        author: "A".repeat(201),
+      }),
+    ).rejects.toThrow("Author must be 200 characters or less");
+  });
+
+  it("create rejects note over 500 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.create, {
+        title: "Valid Title",
+        note: "A".repeat(501),
+      }),
+    ).rejects.toThrow("Note must be 500 characters or less");
+  });
 });
