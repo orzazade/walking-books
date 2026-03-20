@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./lib/auth";
 import { updateReadingStreak } from "./lib/streaks";
 import { readingProgressStatusValidator } from "./lib/validators";
+import { computeReadingPace } from "./lib/readingPace";
 
 /** Log or update reading progress for a copy the user is currently holding. */
 export const update = mutation({
@@ -127,6 +128,15 @@ export const currentlyReading = query({
             ? Math.round((entry.currentPage / entry.totalPages) * 100)
             : 0;
 
+        const returnDeadline = copy?.returnDeadline ?? null;
+        const pace = computeReadingPace(
+          entry.currentPage,
+          entry.totalPages,
+          entry.startedAt,
+          Date.now(),
+          returnDeadline,
+        );
+
         return {
           ...entry,
           bookTitle: book.title,
@@ -134,7 +144,11 @@ export const currentlyReading = query({
           coverImage: book.coverImage,
           percentComplete,
           pagesRemaining: entry.totalPages - entry.currentPage,
-          hasReturnDeadline: copy?.returnDeadline ?? null,
+          hasReturnDeadline: returnDeadline,
+          pagesPerDay: pace.pagesPerDay,
+          estimatedFinishDate: pace.estimatedFinishDate,
+          estimatedDaysLeft: pace.estimatedDaysLeft,
+          onTrack: pace.onTrack,
         };
       }),
     );

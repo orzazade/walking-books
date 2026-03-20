@@ -9,7 +9,57 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Gauge, CalendarClock, AlertTriangle } from "lucide-react";
+
+function formatEstimate(estimatedFinishDate: number): string {
+  const date = new Date(estimatedFinishDate);
+  const now = new Date();
+  const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays <= 7) return `${diffDays} days`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function PaceIndicator({
+  pagesPerDay,
+  estimatedFinishDate,
+  estimatedDaysLeft,
+  onTrack,
+  hasReturnDeadline,
+}: {
+  pagesPerDay: number;
+  estimatedFinishDate: number | null;
+  estimatedDaysLeft: number | null;
+  onTrack: boolean | null;
+  hasReturnDeadline: number | null;
+}) {
+  if (pagesPerDay === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6875rem] text-muted-foreground">
+      <span className="flex items-center gap-1">
+        <Gauge className="h-3 w-3" />
+        {pagesPerDay} pg/day
+      </span>
+      {estimatedFinishDate && estimatedDaysLeft !== null && estimatedDaysLeft > 0 && (
+        <span className="flex items-center gap-1">
+          <CalendarClock className="h-3 w-3" />
+          ~{formatEstimate(estimatedFinishDate)}
+        </span>
+      )}
+      {onTrack === false && hasReturnDeadline && (
+        <span className="flex items-center gap-1 font-medium text-amber-500">
+          <AlertTriangle className="h-3 w-3" />
+          May miss return date
+        </span>
+      )}
+      {onTrack === true && hasReturnDeadline && (
+        <span className="text-emerald-500">On track</span>
+      )}
+    </div>
+  );
+}
 
 function ProgressBar({ percent }: { percent: number }) {
   return (
@@ -140,6 +190,15 @@ export function CurrentlyReadingSection() {
                   <span className="font-medium">{item.percentComplete}%</span>
                 </div>
               </div>
+
+              {/* Reading pace */}
+              <PaceIndicator
+                pagesPerDay={item.pagesPerDay}
+                estimatedFinishDate={item.estimatedFinishDate}
+                estimatedDaysLeft={item.estimatedDaysLeft}
+                onTrack={item.onTrack}
+                hasReturnDeadline={item.hasReturnDeadline}
+              />
 
               {/* Update progress inline */}
               {updatingId === item.copyId ? (
