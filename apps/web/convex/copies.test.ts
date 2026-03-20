@@ -1884,6 +1884,40 @@ describe("copies.returnCopy side effects", () => {
     expect(waitlistEntry!.notifiedCopyId).toBe(copyId);
   });
 
+  it("returnCopy stores reader note in journey entry", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_note", name: "Sharer" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_note", name: "Holder" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() + 86400000,
+      }));
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId, readerId: hId, pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000, conditionAtPickup: "good",
+        pickupPhotos: [], returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_note" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId, locationId, conditionAtReturn: "good", photos: [],
+      readerNote: "  Great read, highly recommend!  ",
+    });
+
+    const journeyEntry = await t.run(async (ctx) =>
+      ctx.db.query("journeyEntries")
+        .withIndex("by_copy", (q) => q.eq("copyId", copyId))
+        .first(),
+    );
+    expect(journeyEntry!.readerNote).toBe("Great read, highly recommend!"); // trimmed
+  });
+
   it("returnCopy to different location updates copy currentLocationId and both location counts", async () => {
     const t = convexTest(schema, modules);
     const { copyId, pickupLocId, returnLocId } = await t.run(async (ctx) => {
