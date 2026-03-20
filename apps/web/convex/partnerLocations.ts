@@ -153,6 +153,69 @@ export const popularBooks = query({
   },
 });
 
+/** Aggregate stats for a partner location: pickups, returns, unique readers, weekly trend. */
+export const locationStats = query({
+  args: { locationId: v.id("partnerLocations") },
+  handler: async (ctx, args) => {
+    const entries = await ctx.db.query("journeyEntries").collect();
+    const atLocation = entries.filter(
+      (e) => e.pickupLocationId === args.locationId,
+    );
+
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 86400000;
+    const recentEntries = atLocation.filter((e) => e.pickedUpAt >= thirtyDaysAgo);
+
+    const totalPickups = atLocation.length;
+    const totalReturns = atLocation.filter((e) => e.returnedAt).length;
+    const uniqueReaders = new Set(atLocation.map((e) => e.readerId)).size;
+
+    const pickupsLast30 = recentEntries.length;
+    const returnsLast30 = recentEntries.filter((e) => e.returnedAt).length;
+    const readersLast30 = new Set(recentEntries.map((e) => e.readerId)).size;
+
+    // Weekly trend (last 4 weeks)
+    const weeklyPickups: { week: string; count: number }[] = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = now - (i + 1) * 7 * 86400000;
+      const weekEnd = now - i * 7 * 86400000;
+      const count = atLocation.filter(
+        (e) => e.pickedUpAt >= weekStart && e.pickedUpAt < weekEnd,
+      ).length;
+      const label = new Date(weekStart).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
+      weeklyPickups.push({ week: label, count });
+    }
+
+    // Average lending duration (completed lendings only)
+    const completedLendings = atLocation.filter((e) => e.returnedAt);
+    const avgDays =
+      completedLendings.length > 0
+        ? Math.round(
+            completedLendings.reduce(
+              (sum, e) => sum + (e.returnedAt! - e.pickedUpAt),
+              0,
+            ) /
+              completedLendings.length /
+              86400000,
+          )
+        : 0;
+
+    return {
+      totalPickups,
+      totalReturns,
+      uniqueReaders,
+      pickupsLast30,
+      returnsLast30,
+      readersLast30,
+      avgLendingDays: avgDays,
+      weeklyPickups,
+    };
+  },
+});
+
 export const nearby = query({
   args: { lat: v.number(), lng: v.number() },
   handler: async (ctx, args) => {

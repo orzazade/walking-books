@@ -162,6 +162,82 @@ describe("partnerLocations.popularBooks", () => {
   });
 });
 
+describe("partnerLocations.locationStats", () => {
+  it("aggregates pickup, return, and reader stats for a location", async () => {
+    const t = convexTest(schema, modules);
+
+    let locId: any;
+
+    await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "mgr_stats", phone: "+4000000000", name: "Manager" }),
+      );
+      const reader1 = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "rdr_stats1", phone: "+4000000001", name: "Reader 1" }),
+      );
+      const reader2 = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "rdr_stats2", phone: "+4000000002", name: "Reader 2" }),
+      );
+
+      locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(managerId as unknown as string, { name: "Stats Cafe" }),
+      );
+
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Stats Book" }));
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "lent",
+        originalSharerId: managerId,
+        currentLocationId: locId,
+        qrCodeUrl: "qr_stats",
+      });
+
+      const now = Date.now();
+
+      // Reader 1: picked up 3 days ago, returned 1 day ago (2-day lending)
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: reader1,
+        pickupLocationId: locId,
+        pickedUpAt: now - 3 * 86400000,
+        returnedAt: now - 1 * 86400000,
+        conditionAtPickup: "good",
+        conditionAtReturn: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+
+      // Reader 2: picked up 2 days ago, not yet returned
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: reader2,
+        pickupLocationId: locId,
+        pickedUpAt: now - 2 * 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+    });
+
+    const stats = await t.query(api.partnerLocations.locationStats, {
+      locationId: locId,
+    });
+
+    expect(stats.totalPickups).toBe(2);
+    expect(stats.totalReturns).toBe(1);
+    expect(stats.uniqueReaders).toBe(2);
+    expect(stats.pickupsLast30).toBe(2);
+    expect(stats.avgLendingDays).toBe(2);
+    expect(stats.weeklyPickups).toHaveLength(4);
+  });
+});
+
 describe("partnerLocations.nearby", () => {
   it("returns locations sorted by distance with available book counts", async () => {
     const t = convexTest(schema, modules);

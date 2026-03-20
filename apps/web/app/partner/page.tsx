@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Calendar,
   Users,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
@@ -95,6 +96,11 @@ function LocationDashboard({
         <Link href="/partner/inventory">
           <Button variant="outline" className="gap-2">
             <Package className="h-4 w-4" /> View Inventory
+          </Button>
+        </Link>
+        <Link href="/partner/analytics">
+          <Button variant="outline" className="gap-2">
+            <TrendingUp className="h-4 w-4" /> Analytics
           </Button>
         </Link>
         <CreateEventDialog locationId={locationId} />
