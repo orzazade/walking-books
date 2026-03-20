@@ -34,6 +34,7 @@ const STATUS_STYLE: Record<string, string> = {
 function MyBooksContent() {
   const copies = useQuery(api.copies.bySharerEnriched, {});
   const recallCopy = useMutation(api.copies.recall);
+  const relistCopy = useMutation(api.copies.relist);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   if (copies === undefined) {
@@ -65,6 +66,18 @@ function MyBooksContent() {
         </Link>
       </div>
     );
+  }
+
+  async function handleRelist(copyId: string) {
+    setActionLoading(`relist-${copyId}`);
+    try {
+      await relistCopy({ copyId: copyId as Parameters<typeof relistCopy>[0]["copyId"] });
+      toast.success("Copy is now available for lending again.");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Something went wrong"));
+    } finally {
+      setActionLoading(null);
+    }
   }
 
   async function handleRecall(copyId: string) {
@@ -191,7 +204,7 @@ function MyBooksContent() {
                         </Button>
                       </Link>
                       {copy.ownershipType === "lent" &&
-                        (copy.status === "available" || copy.status === "checked_out") && (
+                        (copy.status === "available" || copy.status === "checked_out" || copy.status === "reserved") && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -202,6 +215,17 @@ function MyBooksContent() {
                             <RotateCcw className="mr-1 h-3 w-3" /> Recall
                           </Button>
                         )}
+                      {copy.status === "recalled" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 rounded-lg text-xs"
+                          disabled={actionLoading === `relist-${copy._id}`}
+                          onClick={() => handleRelist(copy._id)}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Relist
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

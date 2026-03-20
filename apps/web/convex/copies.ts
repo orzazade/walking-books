@@ -547,6 +547,33 @@ export const recall = mutation({
   },
 });
 
+/** Sharer re-lists a recalled copy, making it available for lending again. */
+export const relist = mutation({
+  args: { copyId: v.id("copies") },
+  handler: async (ctx, args) => {
+    const user = await requireCurrentUser(ctx);
+
+    const copy = await ctx.db.get(args.copyId);
+    if (!copy) throw new Error("Copy not found");
+    if (copy.originalSharerId !== user._id)
+      throw new Error("Only the sharer can relist");
+    if (copy.status !== "recalled")
+      throw new Error("Only recalled copies can be relisted");
+    if (!copy.currentLocationId)
+      throw new Error("Copy must be at a partner location to relist");
+
+    await ctx.db.patch(args.copyId, {
+      status: "available",
+      currentHolderId: undefined,
+      returnDeadline: undefined,
+      lendingPeriodDays: undefined,
+      extensionCount: undefined,
+    });
+
+    return { success: true };
+  },
+});
+
 export const extend = mutation({
   args: { copyId: v.id("copies") },
   handler: async (ctx, args) => {

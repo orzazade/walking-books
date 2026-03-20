@@ -405,3 +405,51 @@ describe("copies.extend", () => {
     ).rejects.toThrow("Maximum 2 extensions allowed");
   });
 });
+
+describe("copies.relist", () => {
+  it("sharer can relist a recalled copy as available", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_relist_sharer" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, { status: "recalled" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_relist_sharer" });
+    await authed.mutation(api.copies.relist, { copyId });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("available");
+  });
+
+  it("rejects relist for non-recalled copies", async () => {
+    const t = convexTest(schema, modules);
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_relist_fail" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert("copies", makeCopy(bookId, locId, sharerId));
+    });
+
+    const authed = t.withIdentity({ subject: "user_relist_fail" });
+    await expect(
+      authed.mutation(api.copies.relist, { copyId }),
+    ).rejects.toThrow("Only recalled copies can be relisted");
+  });
+});
