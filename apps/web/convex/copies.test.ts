@@ -787,6 +787,36 @@ describe("copies.returnCopy", () => {
       }),
     ).rejects.toThrow("You are not the current holder");
   });
+
+  it("rejects returning a copy that is not checked out", async () => {
+    const t = convexTest(schema, modules);
+
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_return_status" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_return_status" });
+    await expect(
+      authed.mutation(api.copies.returnCopy, {
+        copyId,
+        locationId: locId,
+        conditionAtReturn: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Copy is not checked out");
+  });
 });
 
 describe("copies.recall", () => {
