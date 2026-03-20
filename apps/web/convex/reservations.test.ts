@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -721,5 +721,133 @@ describe("reservations.myActive", () => {
     await expect(
       authed.mutation(api.reservations.create, { copyId, locationId: fakeLocationId }),
     ).rejects.toThrow("Location not found");
+  });
+});
+
+describe("reservations.expireStale", () => {
+  it("expires past-due reservations and releases reserved copies", async () => {
+    const t = convexTest(schema, modules);
+    const { reservationId, copyId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire1" }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire1", phone: "+9999999901" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("reservations", {
+        userId,
+        copyId: cId,
+        locationId: locId,
+        reservedAt: Date.now() - 172800000,
+        status: "active",
+        expiresAt: Date.now() - 86400000, // expired 1 day ago
+      });
+      return { reservationId: rId, copyId: cId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    const { reservation, copy } = await t.run(async (ctx) => ({
+      reservation: await ctx.db.get(reservationId),
+      copy: await ctx.db.get(copyId),
+    }));
+    expect(reservation!.status).toBe("expired");
+    expect(copy!.status).toBe("available"); // released back
+  });
+
+  it("does not expire reservations that have not yet passed expiresAt", async () => {
+    const t = convexTest(schema, modules);
+    const { reservationId, copyId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire2" }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire2", phone: "+9999999902" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      const rId = await ctx.db.insert("reservations", {
+        userId,
+        copyId: cId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        status: "active",
+        expiresAt: Date.now() + 86400000, // still valid
+      });
+      return { reservationId: rId, copyId: cId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    const { reservation, copy } = await t.run(async (ctx) => ({
+      reservation: await ctx.db.get(reservationId),
+      copy: await ctx.db.get(copyId),
+    }));
+    expect(reservation!.status).toBe("active"); // unchanged
+    expect(copy!.status).toBe("reserved"); // unchanged
+  });
+
+  it("applies no-show reputation penalty to user with expired reservation", async () => {
+    const t = convexTest(schema, modules);
+    const startingRep = 50;
+    const { userId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire3", reputationScore: startingRep }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire3", phone: "+9999999903" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("reservations", {
+        userId: uId,
+        copyId: cId,
+        locationId: locId,
+        reservedAt: Date.now() - 172800000,
+        status: "active",
+        expiresAt: Date.now() - 86400000,
+      });
+      return { userId: uId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(user!.reputationScore).toBe(startingRep - 3); // NO_SHOW = -3
+  });
+
+  it("sends reservation_expired notification to user", async () => {
+    const t = convexTest(schema, modules);
+    const { userId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire4" }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire4", phone: "+9999999904" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Expired Book" }));
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("reservations", {
+        userId: uId,
+        copyId: cId,
+        locationId: locId,
+        reservedAt: Date.now() - 172800000,
+        status: "active",
+        expiresAt: Date.now() - 86400000,
+      });
+      return { userId: uId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    const notifications = await t.run(async (ctx) =>
+      ctx.db.query("userNotifications").collect(),
+    );
+    expect(notifications.length).toBe(1);
+    expect(notifications[0].type).toBe("reservation_expired");
+    expect(notifications[0].title).toBe("Reservation expired");
+    expect(notifications[0].message).toContain("Expired Book");
   });
 });
