@@ -290,6 +290,30 @@ describe("userNotifications", () => {
     expect(list).toHaveLength(3);
   });
 
+  it("remove rejects nonexistent notification", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeNotifId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const nId = await ctx.db.insert("userNotifications", {
+        userId,
+        type: "book_picked_up",
+        title: "Test",
+        message: "Test message",
+        read: false,
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(nId);
+      return nId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_notif1" });
+
+    await expect(
+      authed.mutation(api.userNotifications.remove, { notificationId: fakeNotifId }),
+    ).rejects.toThrow("Notification not found");
+  });
+
   it("markRead rejects nonexistent notification", async () => {
     const t = convexTest(schema, modules);
 

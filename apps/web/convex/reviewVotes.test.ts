@@ -172,6 +172,23 @@ describe("reviewVotes", () => {
     expect(counts.unhelpfulCount).toBe(1);
   });
 
+  it("vote rejects nonexistent review", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeReviewId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const rid = await ctx.db.insert("reviews", { bookId, userId: (await ctx.db.insert("users", makeUser({ clerkId: "tmp", phone: "+9999999999" }))), rating: 3, text: "Temp" });
+      await ctx.db.delete(rid);
+      return rid;
+    });
+
+    const authed = t.withIdentity({ subject: "user_rv1" });
+    await expect(
+      authed.mutation(api.reviewVotes.vote, { reviewId: fakeReviewId, helpful: true }),
+    ).rejects.toThrow("Review not found");
+  });
+
   it("vote rejects unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
