@@ -115,6 +115,26 @@ describe("partnerLocations.update", () => {
       manager.mutation(api.partnerLocations.update, { locationId, shelfCapacity: -1 }),
     ).rejects.toThrow("Shelf capacity must be a non-negative integer");
   });
+
+  it("rejects name over 200 characters and address over 500 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "mgr_upd4", phone: "+3000000004", name: "Manager" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "mgr_upd4" });
+
+    await expect(
+      manager.mutation(api.partnerLocations.update, { locationId, name: "A".repeat(201) }),
+    ).rejects.toThrow("Location name must be 200 characters or less");
+
+    await expect(
+      manager.mutation(api.partnerLocations.update, { locationId, address: "B".repeat(501) }),
+    ).rejects.toThrow("Address must be 500 characters or less");
+  });
 });
 
 describe("partnerLocations.popularBooks", () => {
