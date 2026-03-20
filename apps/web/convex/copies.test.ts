@@ -1648,6 +1648,39 @@ describe("copies.processOverdue", () => {
     expect(user!.reputationScore).toBe(startingRep); // unchanged
   });
 
+  it("skips deleted users gracefully (cron safety)", async () => {
+    const t = convexTest(schema, modules);
+    const { otherHolderId } = await t.run(async (ctx) => {
+      // Deleted holder with overdue copy
+      const deletedId = await ctx.db.insert("users", makeUser({ clerkId: "holder_deleted", reputationScore: 50 }));
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_deleted" }));
+      const otherHId = await ctx.db.insert("users", makeUser({ clerkId: "holder_other_del", reputationScore: 50, phone: "+7777777777" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      // Overdue copy held by a user that will be deleted
+      await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: deletedId,
+        returnDeadline: Date.now() - 86400000,
+      }));
+      // Overdue copy held by a real user
+      await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: otherHId,
+        returnDeadline: Date.now() - 86400000,
+      }));
+      // Delete the first holder
+      await ctx.db.delete(deletedId);
+      return { otherHolderId: otherHId };
+    });
+
+    // Should not throw — deleted user is skipped, other user still penalized
+    await t.mutation(internal.copies.processOverdue, {});
+
+    const otherUser = await t.run(async (ctx) => ctx.db.get(otherHolderId));
+    expect(otherUser!.reputationScore).toBe(49); // -1 penalty applied
+  });
+
   it("clamps reputation score at 0 (never goes negative)", async () => {
     const t = convexTest(schema, modules);
     const { holderId } = await t.run(async (ctx) => {
