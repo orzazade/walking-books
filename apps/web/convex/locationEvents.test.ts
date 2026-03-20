@@ -496,4 +496,46 @@ describe("locationEvents", () => {
       authed.mutation(api.locationEvents.rsvp, { eventId: fakeEventId }),
     ).rejects.toThrow("Event not found");
   });
+
+  it("cancelRsvp deletes RSVP record and decrements event rsvpCount", async () => {
+    const t = convexTest(schema, modules);
+    const { eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_cancel", roles: ["partner"] }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        title: "Cancel Test Event",
+        description: "Testing cancel",
+        eventType: "book_club",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+        createdByUserId: managerId,
+      });
+      return { eventId: evId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_ev1" });
+
+    // First RSVP
+    await authed.mutation(api.locationEvents.rsvp, { eventId });
+
+    // Verify RSVP exists and count is 1
+    const beforeEvent = await t.run(async (ctx) => ctx.db.get(eventId));
+    expect(beforeEvent!.rsvpCount).toBe(1);
+
+    // Cancel RSVP
+    await authed.mutation(api.locationEvents.cancelRsvp, { eventId });
+
+    // Verify RSVP deleted and count decremented
+    const { event, rsvps } = await t.run(async (ctx) => ({
+      event: await ctx.db.get(eventId),
+      rsvps: await ctx.db.query("eventRsvps")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .collect(),
+    }));
+    expect(event!.rsvpCount).toBe(0);
+    expect(rsvps).toHaveLength(0);
+  });
 });
