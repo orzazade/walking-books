@@ -77,6 +77,44 @@ describe("users.update", () => {
   });
 });
 
+describe("users.updateStatus", () => {
+  it("rejects non-admin caller", async () => {
+    const t = convexTest(schema, modules);
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser({ clerkId: "user_status_caller" }));
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_status_target", phone: "+6666666666" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_status_caller" });
+    await expect(
+      authed.mutation(api.users.updateStatus, { userId: targetId, status: "restricted" }),
+    ).rejects.toThrow();
+  });
+
+  it("admin can update user status", async () => {
+    const t = convexTest(schema, modules);
+    const targetId = await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_status_admin", roles: ["reader", "admin"] }),
+      );
+      return await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_status_target2", phone: "+5555555555" }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_status_admin" });
+    await authed.mutation(api.users.updateStatus, { userId: targetId, status: "restricted" });
+
+    const user = await t.run(async (ctx) => ctx.db.get(targetId));
+    expect(user!.status).toBe("restricted");
+  });
+});
+
 describe("users.updateRoles", () => {
   it("rejects non-admin caller", async () => {
     const t = convexTest(schema, modules);
