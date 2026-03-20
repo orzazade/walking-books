@@ -234,6 +234,121 @@ describe("favoriteLocations", () => {
     expect(arrivals[0].bookId).toBe(bookId);
   });
 
+  it("toggle rejects nonexistent location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { fakeLocationId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "user_fav_noloc",
+        phone: "+1234567899",
+        name: "No Loc User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const uid = await ctx.db.insert("users", {
+        clerkId: "tmp_mgr",
+        phone: "+1000000099",
+        name: "Tmp Manager",
+        roles: ["partner"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Ghost Loc",
+        address: "0 Nowhere",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+1000000099",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 10,
+        currentBookCount: 0,
+        managedByUserId: uid,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      await ctx.db.delete(locId);
+      return { fakeLocationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_fav_noloc" });
+    await expect(
+      authed.mutation(api.favoriteLocations.toggle, { locationId: fakeLocationId }),
+    ).rejects.toThrow("Location not found");
+  });
+
+  it("toggle rejects when at max favorites limit", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationIds } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", {
+        clerkId: "user_fav_limit",
+        phone: "+1234567898",
+        name: "Limit User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const mgrId = await ctx.db.insert("users", {
+        clerkId: "mgr_limit",
+        phone: "+1000000098",
+        name: "Mgr Limit",
+        roles: ["partner"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      const ids: string[] = [];
+      // Create 51 locations, favorite the first 50 directly
+      for (let i = 0; i < 51; i++) {
+        const locId = await ctx.db.insert("partnerLocations", {
+          name: `Loc ${i}`,
+          address: `${i} St`,
+          lat: 0,
+          lng: 0,
+          contactPhone: "+1000000000",
+          operatingHours: {},
+          photos: [],
+          shelfCapacity: 10,
+          currentBookCount: 0,
+          managedByUserId: mgrId,
+          staffUserIds: [],
+          avgRating: 0,
+          reviewCount: 0,
+        });
+        ids.push(locId as string);
+        if (i < 50) {
+          await ctx.db.insert("favoriteLocations", {
+            userId,
+            locationId: locId,
+            favoritedAt: Date.now(),
+          });
+        }
+      }
+      return { locationIds: ids };
+    });
+
+    const authed = t.withIdentity({ subject: "user_fav_limit" });
+    await expect(
+      authed.mutation(api.favoriteLocations.toggle, {
+        locationId: locationIds[50] as any,
+      }),
+    ).rejects.toThrow("Maximum 50 favorite locations allowed");
+  });
+
   it("isFavorited returns false for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
