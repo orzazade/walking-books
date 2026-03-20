@@ -957,4 +957,47 @@ describe("copies.relist", () => {
       authed.mutation(api.copies.relist, { copyId }),
     ).rejects.toThrow("Only recalled copies can be relisted");
   });
+
+  it("rejects pickup of reserved copy without reservation ID", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_resv_sharer", name: "Reserver Sharer" }),
+      );
+      const readerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_reserver", name: "Reserver" }),
+      );
+      // Third user who will try to pick up without reservation
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_pickup_norez", name: "No Reservation" }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "reserved",
+        }),
+      );
+      // Create a reservation by the reserver
+      await ctx.db.insert("reservations", {
+        copyId: cId,
+        userId: readerId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_pickup_norez" });
+    await expect(
+      authed.mutation(api.copies.pickup, { copyId, locationId, conditionAtPickup: "good", photos: [] }),
+    ).rejects.toThrow("This copy is reserved — a reservation ID is required");
+  });
 });
