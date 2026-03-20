@@ -193,6 +193,19 @@ describe("follows enriched queries", () => {
     expect(result).toEqual([]);
   });
 
+  it("toggle rejects self-follow", async () => {
+    const t = convexTest(schema, modules);
+    let aliceId: string;
+    await t.run(async (ctx) => {
+      aliceId = await ctx.db.insert("users", makeUser("user_a", "Alice"));
+    });
+
+    await expect(
+      t.withIdentity({ subject: "user_a" })
+        .mutation(api.follows.toggle, { targetUserId: aliceId! as any }),
+    ).rejects.toThrow("Cannot follow yourself");
+  });
+
   it("toggle creates and removes follows", async () => {
     const t = convexTest(schema, modules);
     let bobId: string;
