@@ -73,6 +73,92 @@ function makeCopy(
   };
 }
 
+describe("copies.byId", () => {
+  it("returns copy for valid ID", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_byid" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      return ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string));
+    });
+
+    const copy = await t.query(api.copies.byId, { copyId });
+    expect(copy).not.toBeNull();
+    expect(copy!.status).toBe("available");
+  });
+
+  it("returns null for deleted copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeId = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_byid2" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string));
+      await ctx.db.delete(cId);
+      return cId;
+    });
+
+    const copy = await t.query(api.copies.byId, { copyId: fakeId });
+    expect(copy).toBeNull();
+  });
+});
+
+describe("copies.journey", () => {
+  it("returns journey entries for a copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "reader_journey" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, userId as unknown as string));
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId, readerId: userId, pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000, conditionAtPickup: "good", pickupPhotos: [], returnPhotos: [],
+      });
+      return { copyId: cId };
+    });
+
+    const journey = await t.query(api.copies.journey, { copyId });
+    expect(journey).toHaveLength(1);
+  });
+
+  it("returns empty array for copy with no journey", async () => {
+    const t = convexTest(schema, modules);
+
+    const copyId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "reader_nojourney" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      return ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, userId as unknown as string));
+    });
+
+    const journey = await t.query(api.copies.journey, { copyId });
+    expect(journey).toHaveLength(0);
+  });
+});
+
+describe("copies.allAtLocation", () => {
+  it("returns all copies at a given location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_allloc" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const lId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, lId as unknown as string, userId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, lId as unknown as string, userId as unknown as string, { status: "checked_out" }));
+      return { locId: lId };
+    });
+
+    const copies = await t.query(api.copies.allAtLocation, { locationId: locId });
+    expect(copies).toHaveLength(2);
+  });
+});
+
 describe("copies.byHolder", () => {
   it("returns empty for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
