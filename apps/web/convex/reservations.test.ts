@@ -450,4 +450,79 @@ describe("reservations.myActive", () => {
     expect(result[0].locationName).toBe("Uptown Cafe");
     expect(result[0].locationAddress).toBe("456 Elm St");
   });
+
+  it("rejects reservation when copy is at a different location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, wrongLocationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_loc", name: "Sharer Loc" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locA = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { name: "Location A" }),
+      );
+      const locB = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { name: "Location B" }),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locA,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, wrongLocationId: locB };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, {
+        copyId,
+        locationId: wrongLocationId,
+      }),
+    ).rejects.toThrow("Copy is not at the specified location");
+  });
+
+  it("rejects reservation when reputation is too low", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_rep", name: "Sharer Rep" }),
+      );
+      // Create user with reputation score below 15 (suspended)
+      await ctx.db.insert(
+        "users",
+        makeUser({ reputationScore: 10 }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow("Your reputation is too low to reserve books");
+  });
 });
