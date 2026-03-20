@@ -803,4 +803,58 @@ describe("books.nearMe", () => {
       }),
     ).rejects.toThrow("Maximum 10 categories allowed");
   });
+
+  it("register increments booksShared and location currentBookCount", async () => {
+    const t = convexTest(schema, modules);
+    const { locationId, userId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser({ booksShared: 3 }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(uId as unknown as string, { currentBookCount: 7 }));
+      return { locationId: locId, userId: uId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await authed.mutation(api.books.register, {
+      title: "Side Effect Book", author: "Author", coverImage: "https://example.com/c.jpg",
+      description: "A book", categories: ["fiction"], pageCount: 200, language: "English",
+      ownershipType: "donated", condition: "good", locationId,
+    });
+
+    const { user, loc } = await t.run(async (ctx) => ({
+      user: await ctx.db.get(userId),
+      loc: await ctx.db.get(locationId),
+    }));
+    expect(user!.booksShared).toBe(4); // incremented from 3
+    expect(loc!.currentBookCount).toBe(8); // incremented from 7
+  });
+
+  it("register deduplicates books by ISBN (reuses existing book record)", async () => {
+    const t = convexTest(schema, modules);
+    const { locationId, existingBookId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(uId as unknown as string));
+      const bId = await ctx.db.insert("books", {
+        title: "Original Title", author: "Original Author", isbn: "978-1234567890",
+        coverImage: "https://example.com/orig.jpg", description: "Original",
+        categories: ["fiction"], pageCount: 300, language: "English", avgRating: 4.5, reviewCount: 10,
+      });
+      return { locationId: locId, existingBookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    const result = await authed.mutation(api.books.register, {
+      title: "Different Title", author: "Different Author", isbn: "978-1234567890",
+      coverImage: "https://example.com/new.jpg", description: "New copy",
+      categories: ["nonfiction"], pageCount: 300, language: "English",
+      ownershipType: "lent", condition: "good", locationId,
+    });
+
+    // Should reuse the existing book, not create a new one
+    expect(result.bookId).toBe(existingBookId);
+
+    // Original book record should be untouched
+    const book = await t.run(async (ctx) => ctx.db.get(existingBookId));
+    expect(book!.title).toBe("Original Title");
+    expect(book!.avgRating).toBe(4.5);
+    expect(book!.reviewCount).toBe(10);
+  });
 });
