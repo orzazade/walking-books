@@ -263,6 +263,43 @@ describe("reviews", () => {
     ).rejects.toThrow("Book not found");
   });
 
+  it("byBook returns all reviews for a given book", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      const u1 = await ctx.db.insert("users", makeUser());
+      const u2 = await ctx.db.insert("users", makeUser({ clerkId: "user_r2", phone: "+2222222222", name: "Reviewer 2" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.insert("reviews", { userId: u1, bookId: bId, rating: 5, text: "Loved it!" });
+      await ctx.db.insert("reviews", { userId: u2, bookId: bId, rating: 3, text: "It was okay" });
+      return { bookId: bId };
+    });
+
+    const reviews = await t.query(api.reviews.byBook, { bookId });
+    expect(reviews).toHaveLength(2);
+    const ratings = reviews.map((r: { rating: number }) => r.rating).sort();
+    expect(ratings).toEqual([3, 5]);
+  });
+
+  it("byBook returns empty array for book with no reviews", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => ctx.db.insert("books", makeBook()));
+
+    const reviews = await t.query(api.reviews.byBook, { bookId });
+    expect(reviews).toHaveLength(0);
+  });
+
+  it("create rejects unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => ctx.db.insert("books", makeBook()));
+
+    await expect(
+      t.mutation(api.reviews.create, { bookId, rating: 4, text: "Nice" }),
+    ).rejects.toThrow("Not authenticated");
+  });
+
   it("create rejects review text over 5000 characters", async () => {
     const t = convexTest(schema, modules);
 
