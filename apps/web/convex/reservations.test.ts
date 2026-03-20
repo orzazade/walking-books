@@ -54,6 +54,201 @@ function makeLocation(userId: unknown, overrides: Record<string, unknown> = {}) 
   };
 }
 
+describe("reservations.create", () => {
+  it("creates a reservation for an available copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_c", name: "Sharer" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    const result = await authed.mutation(api.reservations.create, {
+      copyId,
+      locationId,
+    });
+
+    expect(result.reservationId).toBeDefined();
+    expect(result.expiresAt).toBeGreaterThan(Date.now());
+
+    // Copy should now be reserved
+    const active = await authed.query(api.reservations.myActive, {});
+    expect(active).toHaveLength(1);
+    expect(active[0].bookTitle).toBe("Reserved Book");
+  });
+
+  it("rejects reservation on already-reserved copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_d", name: "Sharer D" }),
+      );
+      await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        currentHolderId: sharerId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow("Copy is not available");
+  });
+
+  it("rejects reservation on own book", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId),
+      );
+      const cId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow("Cannot reserve your own book");
+  });
+});
+
+describe("reservations.cancel", () => {
+  it("cancels an active reservation and releases the copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_e", name: "Sharer E" }),
+      );
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "reserved",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      const resId = await ctx.db.insert("reservations", {
+        copyId,
+        userId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+      return { reservationId: resId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    const result = await authed.mutation(api.reservations.cancel, {
+      reservationId,
+    });
+    expect(result.success).toBe(true);
+
+    // No active reservations left
+    const active = await authed.query(api.reservations.myActive, {});
+    expect(active).toHaveLength(0);
+  });
+
+  it("rejects cancellation by non-owner", async () => {
+    const t = convexTest(schema, modules);
+
+    const { reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_f", name: "Sharer F" }),
+      );
+      const userId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_other", phone: "+9999999999", name: "Other" }),
+      );
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId),
+      );
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "reserved",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locId,
+        qrCodeUrl: "",
+      });
+      const resId = await ctx.db.insert("reservations", {
+        copyId,
+        userId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+      return { reservationId: resId };
+    });
+
+    const other = t.withIdentity({ subject: "user_other" });
+    await expect(
+      other.mutation(api.reservations.cancel, { reservationId }),
+    ).rejects.toThrow("Not your reservation");
+  });
+});
+
 describe("reservations.myHistory", () => {
   it("returns past reservations sorted newest-first with enriched details", async () => {
     const t = convexTest(schema, modules);
