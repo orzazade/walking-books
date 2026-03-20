@@ -915,3 +915,24 @@ describe("reservations.cancel side effects", () => {
     expect(reservation!.status).toBe("cancelled");
   });
 });
+
+describe("reservations.create auth guards", () => {
+  it("rejects sharer reserving their own book", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_self" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "available", condition: "good", ownershipType: "lent",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "sharer_self" });
+    await expect(
+      authed.mutation(api.reservations.create, { copyId, locationId }),
+    ).rejects.toThrow("Cannot reserve your own book");
+  });
+});
