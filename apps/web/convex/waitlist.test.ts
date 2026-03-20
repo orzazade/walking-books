@@ -302,6 +302,37 @@ describe("waitlist", () => {
     expect(list[0].position).toBe(1);
   });
 
+  it("join rejects when no copies exist in system", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      // No copies inserted
+      return { bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_wl1" });
+    await expect(
+      authed.mutation(api.waitlist.join, { bookId }),
+    ).rejects.toThrow("No copies of this book exist in the system");
+  });
+
+  it("leave rejects when user is not on waitlist", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      return { bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_wl1" });
+    await expect(
+      authed.mutation(api.waitlist.leave, { bookId }),
+    ).rejects.toThrow("Not on waitlist for this book");
+  });
+
   it("join throws for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
