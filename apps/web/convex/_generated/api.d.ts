@@ -24,6 +24,7 @@ import type * as http from "../http.js";
 import type * as journeyEntries from "../journeyEntries.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as lib_lending from "../lib/lending.js";
+import type * as locationEvents from "../locationEvents.js";
 import type * as locationReviews from "../locationReviews.js";
 import type * as lib_reputation from "../lib/reputation.js";
 import type * as newArrivals from "../newArrivals.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   journeyEntries: typeof journeyEntries;
   leaderboard: typeof leaderboard;
   "lib/lending": typeof lib_lending;
+  locationEvents: typeof locationEvents;
   locationReviews: typeof locationReviews;
   "lib/reputation": typeof lib_reputation;
   newArrivals: typeof newArrivals;

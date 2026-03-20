@@ -26,6 +26,7 @@ import {
   BarChart3,
   Feather,
   Tag,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { href: "/categories", label: "Categories", icon: Tag },
   { href: "/authors", label: "Authors", icon: Feather },
   { href: "/book-requests", label: "Requests", icon: HandHeart },
+  { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/community", label: "Community", icon: BarChart3 },
 ] as const;
 

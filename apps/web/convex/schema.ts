@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { bookRequestStatusValidator, conditionValidator, copyStatusValidator, notificationTypeValidator, ownershipTypeValidator, readingProgressStatusValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
+import { bookRequestStatusValidator, conditionValidator, copyStatusValidator, eventTypeValidator, notificationTypeValidator, ownershipTypeValidator, readingProgressStatusValidator, reportTypeValidator, reservationStatusValidator, userStatusValidator, waitlistStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   books: defineTable({
@@ -286,4 +286,27 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_copy", ["userId", "copyId"])
     .index("by_user_status", ["userId", "status"]),
+
+  locationEvents: defineTable({
+    locationId: v.id("partnerLocations"),
+    createdByUserId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    eventType: eventTypeValidator,
+    startsAt: v.number(),
+    endsAt: v.number(),
+    capacity: v.optional(v.number()),
+    rsvpCount: v.number(),
+  })
+    .index("by_location", ["locationId", "startsAt"])
+    .index("by_starts_at", ["startsAt"]),
+
+  eventRsvps: defineTable({
+    eventId: v.id("locationEvents"),
+    userId: v.id("users"),
+    rsvpedAt: v.number(),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_user", ["userId"])
+    .index("by_pair", ["userId", "eventId"]),
 });

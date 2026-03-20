@@ -114,6 +114,24 @@ export const notificationTypeValidator = v.union(
   v.literal("book_request_fulfilled"),
 );
 
+export type EventType = "reading_meetup" | "author_visit" | "book_club" | "workshop" | "other";
+
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  reading_meetup: "Reading Meetup",
+  author_visit: "Author Visit",
+  book_club: "Book Club",
+  workshop: "Workshop",
+  other: "Other",
+};
+
+export const eventTypeValidator = v.union(
+  v.literal("reading_meetup"),
+  v.literal("author_visit"),
+  v.literal("book_club"),
+  v.literal("workshop"),
+  v.literal("other"),
+);
+
 export const bookRequestStatusValidator = v.union(
   v.literal("open"),
   v.literal("fulfilled"),
