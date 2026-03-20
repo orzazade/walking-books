@@ -1698,4 +1698,51 @@ describe("copies.returnCopy side effects", () => {
     expect(journeyEntries[0].returnedAt).toBeDefined();
     expect(journeyEntries[0].conditionAtReturn).toBe("good");
   });
+
+  it("notifies next waitlisted user when copy is returned and becomes available", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId, waiterId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_wl", name: "Sharer" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_wl", name: "Holder" }));
+      const wId = await ctx.db.insert("users", makeUser({ clerkId: "waiter_wl", name: "Waiter", phone: "+8888888888" }));
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Waitlisted Book" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 0 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() + 86400000,
+      }));
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId, readerId: hId, pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000, conditionAtPickup: "good",
+        pickupPhotos: [], returnPhotos: [],
+      });
+      // Waiter is waiting for this book
+      await ctx.db.insert("waitlist", {
+        userId: wId, bookId, status: "waiting", joinedAt: Date.now() - 86400000,
+      });
+      return { copyId: cId, locationId: locId, waiterId: wId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_wl" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId, locationId, conditionAtReturn: "good", photos: [],
+    });
+
+    const { waiterNotifs, waitlistEntry } = await t.run(async (ctx) => ({
+      waiterNotifs: await ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", waiterId).eq("read", false))
+        .collect(),
+      waitlistEntry: await ctx.db.query("waitlist")
+        .withIndex("by_user", (q) => q.eq("userId", waiterId))
+        .first(),
+    }));
+    // Waiter should get a waitlist_available notification
+    const wlNotif = waiterNotifs.find((n) => n.type === "waitlist_available");
+    expect(wlNotif).toBeDefined();
+    expect(wlNotif!.message).toContain("Waitlisted Book");
+    // Waitlist entry should be updated to "notified"
+    expect(waitlistEntry!.status).toBe("notified");
+    expect(waitlistEntry!.notifiedCopyId).toBe(copyId);
+  });
 });
