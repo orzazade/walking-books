@@ -521,6 +521,27 @@ describe("bookRequests", () => {
     ).rejects.toThrow("Request is not open");
   });
 
+  it("create rejects when at max 20 open requests", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      for (let i = 0; i < 20; i++) {
+        await ctx.db.insert("bookRequests", {
+          userId,
+          title: `Request ${i}`,
+          status: "open",
+          createdAt: Date.now(),
+        });
+      }
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.create, { title: "One Too Many" }),
+    ).rejects.toThrow("Maximum 20 open book requests allowed");
+  });
+
   it("fulfill rejects nonexistent request", async () => {
     const t = convexTest(schema, modules);
 

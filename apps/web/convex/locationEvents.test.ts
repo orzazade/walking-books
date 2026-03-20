@@ -368,6 +368,51 @@ describe("locationEvents", () => {
     ).rejects.toThrow("No RSVP found");
   });
 
+  it("rsvp rejects when user has 100 active RSVPs", async () => {
+    const t = convexTest(schema, modules);
+
+    const { eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_maxrsvp", phone: "+1111111198" }));
+      const readerId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      // Create 100 events and RSVP to each
+      for (let i = 0; i < 100; i++) {
+        const evId = await ctx.db.insert("locationEvents", {
+          locationId: locId,
+          createdByUserId: managerId,
+          title: `Event ${i}`,
+          description: `Desc ${i}`,
+          eventType: "other" as const,
+          startsAt: Date.now() + 86400000 + i * 1000,
+          endsAt: Date.now() + 90000000 + i * 1000,
+          rsvpCount: 1,
+        });
+        await ctx.db.insert("eventRsvps", {
+          eventId: evId,
+          userId: readerId,
+          rsvpedAt: Date.now(),
+        });
+      }
+      // Create one more event to try to RSVP to
+      const targetEvent = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        createdByUserId: managerId,
+        title: "One Too Many",
+        description: "Overflow RSVP",
+        eventType: "other" as const,
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+      });
+      return { eventId: targetEvent };
+    });
+
+    const authed = t.withIdentity({ subject: "user_ev1" });
+    await expect(
+      authed.mutation(api.locationEvents.rsvp, { eventId }),
+    ).rejects.toThrow("Maximum 100 active RSVPs allowed");
+  });
+
   it("create rejects nonexistent location", async () => {
     const t = convexTest(schema, modules);
 
