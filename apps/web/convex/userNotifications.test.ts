@@ -337,4 +337,82 @@ describe("userNotifications", () => {
       authed.mutation(api.userNotifications.markRead, { notificationId: fakeNotifId }),
     ).rejects.toThrow("Notification not found");
   });
+
+  it("markAllRead only marks unread notifications, preserves already-read ones", async () => {
+    const t = convexTest(schema, modules);
+    const { readNotifId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const alreadyRead = await ctx.db.insert("userNotifications", {
+        userId,
+        type: "reservation_expired",
+        title: "Old",
+        message: "Already read",
+        read: true,
+        createdAt: Date.now() - 86400000,
+      });
+      await ctx.db.insert("userNotifications", {
+        userId,
+        type: "reservation_expired",
+        title: "New1",
+        message: "Unread 1",
+        read: false,
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("userNotifications", {
+        userId,
+        type: "reservation_expired",
+        title: "New2",
+        message: "Unread 2",
+        read: false,
+        createdAt: Date.now(),
+      });
+      return { readNotifId: alreadyRead };
+    });
+
+    const authed = t.withIdentity({ subject: "user_notif1" });
+    await authed.mutation(api.userNotifications.markAllRead, {});
+
+    const { allNotifs, unreadCount } = await t.run(async (ctx) => {
+      const all = await ctx.db.query("userNotifications").collect();
+      return {
+        allNotifs: all,
+        unreadCount: all.filter((n) => !n.read).length,
+      };
+    });
+    expect(allNotifs).toHaveLength(3); // all 3 still exist
+    expect(unreadCount).toBe(0); // all now read
+    // The already-read notification is still intact
+    const readNotif = allNotifs.find((n) => n._id === readNotifId);
+    expect(readNotif!.read).toBe(true);
+  });
+
+  it("markAllRead does not affect another user's notifications", async () => {
+    const t = convexTest(schema, modules);
+    const { otherUserId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const otherId = await ctx.db.insert("users", makeUser({ clerkId: "user_notif2", phone: "+9999999999" }));
+      // Create unread notification for the other user
+      await ctx.db.insert("userNotifications", {
+        userId: otherId,
+        type: "reservation_expired",
+        title: "Other's notif",
+        message: "Should stay unread",
+        read: false,
+        createdAt: Date.now(),
+      });
+      return { otherUserId: otherId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_notif1" });
+    await authed.mutation(api.userNotifications.markAllRead, {});
+
+    // Other user's notification should still be unread
+    const otherNotifs = await t.run(async (ctx) =>
+      ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", otherUserId).eq("read", false))
+        .collect(),
+    );
+    expect(otherNotifs).toHaveLength(1);
+    expect(otherNotifs[0].title).toBe("Other's notif");
+  });
 });
