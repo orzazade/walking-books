@@ -1708,6 +1708,29 @@ describe("copies.pickup side effects", () => {
     expect(journeyEntries[0].readerId).toBe(pickupUserId);
   });
 
+  it("pickup of donated book sets no return deadline", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_donated", name: "Sharer" }));
+      const pId = await ctx.db.insert("users", makeUser({ clerkId: "picker_donated", name: "Picker" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        ownershipType: "donated",
+      }));
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "picker_donated" });
+    await authed.mutation(api.copies.pickup, {
+      copyId, locationId, conditionAtPickup: "good", photos: [],
+    });
+
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("checked_out");
+    expect(copy!.returnDeadline).toBeUndefined(); // donated books have no deadline
+  });
+
   it("pickup caps lending period at 14 days for warning-tier reputation (30-49)", async () => {
     const t = convexTest(schema, modules);
     const { copyId, locationId } = await t.run(async (ctx) => {
