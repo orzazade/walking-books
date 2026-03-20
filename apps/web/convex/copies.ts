@@ -43,7 +43,7 @@ export const byBookEnriched = query({
     const locationMap = new Map(
       locations
         .filter((l) => l !== null)
-        .map((l) => [l._id, { name: l.name, address: l.address }]),
+        .map((l) => [l._id, { name: l.name, address: l.address, operatingHours: l.operatingHours ?? null }]),
     );
 
     return copies.map((copy) => ({

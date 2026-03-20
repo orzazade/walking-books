@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ReservationTimer } from "@/components/reservation-timer";
 import { BookOpen, Clock, MapPin, PackageCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import { LocationHoursBadge } from "@/components/location-hours-badge";
 
 export function ActiveReservationsSection() {
   const activeReservations = useQuery(api.reservations.myActive, {});
@@ -114,6 +115,11 @@ export function ActiveReservationsSection() {
                         <MapPin className="h-3 w-3 shrink-0" />
                         <span className="truncate">{res.locationName}</span>
                       </div>
+                      {res.operatingHours && (
+                        <div className="mt-0.5 pl-[1.125rem]">
+                          <LocationHoursBadge operatingHours={res.operatingHours as Record<string, string>} />
+                        </div>
+                      )}
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-[0.75rem] text-muted-foreground">
                           Expires in:

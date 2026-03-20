@@ -12,6 +12,7 @@ import { ReservationTimer } from "@/components/reservation-timer";
 import { CheckCircle, Clock, MapPin, History } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { LocationHoursBadge } from "@/components/location-hours-badge";
 
 const COPY_STATUS_COLOR: Record<string, string> = {
   available: "bg-primary/10 text-primary border-primary/20",
@@ -106,6 +107,11 @@ export function BookCopiesSection({ bookId }: { bookId: Id<"books"> }) {
                       <p className="pl-[1.125rem] text-[0.6875rem] text-muted-foreground/70">
                         {copy.location.address}
                       </p>
+                    )}
+                    {copy.location?.operatingHours && (
+                      <div className="pl-[1.125rem]">
+                        <LocationHoursBadge operatingHours={copy.location.operatingHours as Record<string, string>} />
+                      </div>
                     )}
                   </div>
 

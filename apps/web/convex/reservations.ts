@@ -53,6 +53,7 @@ export const myActive = query({
           bookId: copy?.bookId ?? null,
           locationName: location?.name ?? "Unknown location",
           locationAddress: location?.address ?? "",
+          operatingHours: location?.operatingHours ?? null,
         };
       }),
     );

@@ -232,6 +232,7 @@ describe("copies.byBookEnriched", () => {
     expect(result[0].location).toEqual({
       name: "Sunrise Cafe",
       address: "42 Oak Lane",
+      operatingHours: {},
     });
   });
 
@@ -284,6 +285,30 @@ describe("copies.byBookEnriched", () => {
     expect(result).toHaveLength(2);
     expect(result[0].location?.name).toBe("Hub Library");
     expect(result[1].location?.name).toBe("Hub Library");
+  });
+
+  it("includes operatingHours in enriched location data", async () => {
+    const t = convexTest(schema, modules);
+    const hours = { mon: "09:00-18:00", tue: "09:00-18:00", wed: "09:00-18:00" };
+    const userId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser());
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId, { name: "Hours Cafe", operatingHours: hours }),
+      );
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("copies", makeCopy(bookId, locId, userId));
+    });
+
+    const result = await t.query(api.copies.byBookEnriched, { bookId });
+    expect(result).toHaveLength(1);
+    expect(result[0].location?.operatingHours).toEqual(hours);
   });
 
 });
