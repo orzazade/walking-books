@@ -73,6 +73,96 @@ function makeCopy(
   };
 }
 
+describe("books.register", () => {
+  it("registers a new book and creates a copy at the location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    const result = await authed.mutation(api.books.register, {
+      title: "New Shared Book",
+      author: "Great Author",
+      coverImage: "https://example.com/cover.jpg",
+      description: "A wonderful book",
+      categories: ["fiction", "adventure"],
+      pageCount: 300,
+      language: "English",
+      ownershipType: "donated",
+      condition: "like_new",
+      locationId,
+    });
+
+    expect(result.bookId).toBeDefined();
+    expect(result.copyId).toBeDefined();
+  });
+
+  it("rejects empty title", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "   ",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Title is required");
+  });
+
+  it("rejects more than 10 categories", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Book",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: Array.from({ length: 11 }, (_, i) => `cat${i}`),
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Maximum 10 categories");
+  });
+});
+
 describe("books.atLocationCatalog", () => {
   it("returns empty when no copies at location", async () => {
     const t = convexTest(schema, modules);
