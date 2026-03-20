@@ -304,6 +304,35 @@ export const byId = query({
   },
 });
 
+/** Other books by the same author, excluding the current book, enriched with availability. */
+export const byAuthor = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const book = await ctx.db.get(args.bookId);
+    if (!book) return [];
+
+    const allBooks = await ctx.db.query("books").collect();
+    const sameAuthor = allBooks.filter(
+      (b) =>
+        b._id !== args.bookId &&
+        b.author.toLowerCase() === book.author.toLowerCase(),
+    );
+
+    if (sameAuthor.length === 0) return [];
+
+    const enriched = await enrichWithAvailability(ctx, sameAuthor);
+    return enriched.slice(0, 8).map((b) => ({
+      _id: b._id,
+      title: b.title,
+      author: b.author,
+      coverImage: b.coverImage,
+      categories: b.categories,
+      avgRating: b.avgRating,
+      availableCopies: b.availableCopies,
+    }));
+  },
+});
+
 /** Social proof counts for a book — currently reading, wishlisted, completed reads. */
 export const socialProof = query({
   args: { bookId: v.id("books") },

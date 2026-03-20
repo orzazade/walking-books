@@ -181,6 +181,62 @@ describe("books.atLocationCatalog", () => {
   });
 });
 
+describe("books.byAuthor", () => {
+  it("returns empty for a book with no other books by same author", async () => {
+    const t = convexTest(schema, modules);
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook({ author: "Unique Author" }));
+    });
+
+    const result = await t.query(api.books.byAuthor, { bookId });
+    expect(result).toEqual([]);
+  });
+
+  it("returns other books by the same author excluding the current book", async () => {
+    const t = convexTest(schema, modules);
+    const { bookId, otherBookId } = await t.run(async (ctx) => {
+      const bid1 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book One", author: "Jane Doe" }),
+      );
+      const bid2 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book Two", author: "Jane Doe" }),
+      );
+      // Different author — should not appear
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book Three", author: "Someone Else" }),
+      );
+      return { bookId: bid1, otherBookId: bid2 };
+    });
+
+    const result = await t.query(api.books.byAuthor, { bookId });
+    expect(result).toHaveLength(1);
+    expect(result[0]._id).toBe(otherBookId);
+    expect(result[0].title).toBe("Book Two");
+  });
+
+  it("matches author name case-insensitively", async () => {
+    const t = convexTest(schema, modules);
+    const bookId = await t.run(async (ctx) => {
+      const bid = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book A", author: "jane doe" }),
+      );
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book B", author: "Jane Doe" }),
+      );
+      return bid;
+    });
+
+    const result = await t.query(api.books.byAuthor, { bookId });
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe("Book B");
+  });
+});
+
 describe("books.socialProof", () => {
   it("returns zeros for a book with no activity", async () => {
     const t = convexTest(schema, modules);

@@ -15,6 +15,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { SimilarBooksSection } from "@/components/similar-books-section";
+import { MoreByAuthorSection } from "@/components/more-by-author-section";
 import { WaitlistSection } from "@/components/waitlist-section";
 import { BookOpen, Heart, Users, Bookmark, CheckCircle2 } from "lucide-react";
 
@@ -205,6 +206,9 @@ export default function BookDetailPage() {
           <WaitlistSection bookId={bookId} />
         )}
       </Authenticated>
+
+      {/* More by This Author */}
+      <MoreByAuthorSection bookId={bookId} authorName={book.author} />
 
       {/* Readers Also Enjoyed */}
       <SimilarBooksSection bookId={bookId} />
