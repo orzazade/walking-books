@@ -1011,3 +1011,70 @@ describe("reservations.create auth guards", () => {
     ).rejects.toThrow("Cannot reserve your own book");
   });
 });
+
+describe("reservations query edge cases", () => {
+  it("active returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.reservations.active, {});
+    expect(result).toEqual([]);
+  });
+
+  it("myActive returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.reservations.myActive, {});
+    expect(result).toEqual([]);
+  });
+
+  it("myActive returns enriched data with book and location details", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "user_myactive" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId));
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Active Book" }));
+      const copyId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: userId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("reservations", {
+        userId, copyId, locationId: locId,
+        reservedAt: Date.now(), status: "active", expiresAt: Date.now() + 86400000,
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_myactive" });
+    const result = await authed.query(api.reservations.myActive, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].bookTitle).toBe("Active Book");
+    expect(result[0].locationName).toBeDefined();
+  });
+
+  it("byLocation returns only active reservations at the given location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser({ clerkId: "user_byloc_res" }));
+      const lId = await ctx.db.insert("partnerLocations", makeLocation(userId));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const cId = await ctx.db.insert("copies", {
+        bookId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: userId, currentLocationId: lId, qrCodeUrl: "",
+      });
+      // Active reservation
+      await ctx.db.insert("reservations", {
+        userId, copyId: cId, locationId: lId,
+        reservedAt: Date.now(), status: "active", expiresAt: Date.now() + 86400000,
+      });
+      // Expired reservation (should not be returned)
+      await ctx.db.insert("reservations", {
+        userId, copyId: cId, locationId: lId,
+        reservedAt: Date.now() - 172800000, status: "expired", expiresAt: Date.now() - 86400000,
+      });
+      return { locId: lId };
+    });
+
+    const result = await t.query(api.reservations.byLocation, { locationId: locId });
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("active");
+  });
+});
