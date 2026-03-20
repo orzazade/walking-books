@@ -273,6 +273,7 @@ export default defineSchema({
     wishlist_available: v.boolean(),
     book_request_fulfilled: v.boolean(),
     transfer_accepted: v.boolean(),
+    reservation_cancelled: v.boolean(),
   })
     .index("by_user", ["userId"]),
 

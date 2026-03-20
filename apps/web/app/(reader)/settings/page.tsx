@@ -24,6 +24,7 @@ const NOTIFICATION_TYPES = [
   { key: "achievement_unlocked", label: "Achievement Unlocked", description: "When you earn an achievement" },
   { key: "book_request_fulfilled", label: "Book Request Fulfilled", description: "When someone fulfills your book request" },
   { key: "transfer_accepted", label: "Transfer Accepted", description: "When a partner accepts your book transfer request" },
+  { key: "reservation_cancelled", label: "Reservation Cancelled", description: "When your reservation is cancelled due to a recall" },
 ] as const;
 
 const GENRE_OPTIONS = [
@@ -282,6 +283,7 @@ function SettingsContent() {
                   achievement_unlocked: notifSettings.achievement_unlocked ?? true,
                   book_request_fulfilled: notifSettings.book_request_fulfilled ?? true,
                   transfer_accepted: notifSettings.transfer_accepted ?? true,
+                  reservation_cancelled: notifSettings.reservation_cancelled ?? true,
                 });
                 setNotifsSaved(true);
                 setTimeout(() => setNotifsSaved(false), 3000);

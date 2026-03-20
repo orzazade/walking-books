@@ -114,6 +114,7 @@ export const notificationTypeValidator = v.union(
   v.literal("achievement_unlocked"),
   v.literal("book_request_fulfilled"),
   v.literal("transfer_accepted"),
+  v.literal("reservation_cancelled"),
 );
 
 export type EventType = "reading_meetup" | "author_visit" | "book_club" | "workshop" | "other";

@@ -494,7 +494,26 @@ export const recall = mutation({
     if (copy.originalSharerId !== user._id)
       throw new Error("Only the sharer can recall");
 
-    if (copy.status === "available") {
+    if (copy.status === "available" || copy.status === "reserved") {
+      // Cancel any active reservation for this copy
+      const activeReservation = await ctx.db
+        .query("reservations")
+        .withIndex("by_copy", (q) =>
+          q.eq("copyId", args.copyId).eq("status", "active"),
+        )
+        .first();
+      if (activeReservation) {
+        await ctx.db.patch(activeReservation._id, { status: "cancelled" as const });
+        const book = await ctx.db.get(copy.bookId);
+        await createNotification(ctx, {
+          userId: activeReservation.userId,
+          type: "reservation_cancelled",
+          title: "Reservation cancelled — book recalled",
+          message: `The owner recalled "${book?.title ?? "a book"}". Your reservation has been cancelled.`,
+          relatedBookId: copy.bookId,
+          relatedCopyId: args.copyId,
+        });
+      }
       await ctx.db.patch(args.copyId, { status: "recalled" });
     } else if (copy.status === "checked_out") {
       const graceDeadline = Date.now() + RECALL_GRACE_DAYS * DAY_MS;

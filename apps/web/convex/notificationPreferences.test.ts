@@ -33,6 +33,7 @@ const ALL_ENABLED = {
   achievement_unlocked: true,
   book_request_fulfilled: true,
   transfer_accepted: true,
+  reservation_cancelled: true,
 };
 
 describe("notificationPreferences", () => {
