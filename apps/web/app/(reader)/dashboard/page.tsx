@@ -13,6 +13,7 @@ import { HeldCopiesSection } from "@/components/held-copies-section";
 import { FriendsReadingSection } from "@/components/friends-reading-section";
 import { RecommendedBooksSection } from "@/components/recommended-books-section";
 import { PendingRequestsSection } from "@/components/pending-requests-section";
+import { FavoriteLocationsSection } from "@/components/favorite-locations-section";
 import {
   BookOpen,
   Clock,
@@ -123,6 +124,9 @@ function DashboardContent() {
 
       {/* Waiting For */}
       <WaitlistPreviewSection />
+
+      {/* My Favorite Locations */}
+      <FavoriteLocationsSection />
 
       {/* Books I've Shared */}
       <SharedCopiesSection />

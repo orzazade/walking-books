@@ -6,6 +6,8 @@ import { LocationMap } from "@/components/location-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, BookOpen, Navigation, Loader2 } from "lucide-react";
+import { FavoriteLocationButton } from "@/components/favorite-location-button";
+import { type Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -40,9 +42,12 @@ function LocationCard({
             : "border-border/40"
         }`}
       >
-        <h3 className="font-serif text-[0.9375rem] font-semibold">
-          {loc.name}
-        </h3>
+        <div className="flex items-start justify-between">
+          <h3 className="font-serif text-[0.9375rem] font-semibold">
+            {loc.name}
+          </h3>
+          <FavoriteLocationButton locationId={loc._id as Id<"partnerLocations">} />
+        </div>
         <div className="mt-2 flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
           <MapPin className="h-3.5 w-3.5" />
           <span>{loc.address}</span>

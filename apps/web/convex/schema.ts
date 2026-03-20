@@ -311,6 +311,14 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_pair", ["userId", "eventId"]),
 
+  favoriteLocations: defineTable({
+    userId: v.id("users"),
+    locationId: v.id("partnerLocations"),
+    favoritedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_location", ["userId", "locationId"]),
+
   transferRequests: defineTable({
     copyId: v.id("copies"),
     bookId: v.id("books"),

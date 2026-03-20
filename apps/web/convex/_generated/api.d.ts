@@ -19,6 +19,7 @@ import type * as communityStats from "../communityStats.js";
 import type * as conditionReports from "../conditionReports.js";
 import type * as copies from "../copies.js";
 import type * as crons from "../crons.js";
+import type * as favoriteLocations from "../favoriteLocations.js";
 import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as journeyEntries from "../journeyEntries.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   conditionReports: typeof conditionReports;
   copies: typeof copies;
   crons: typeof crons;
+  favoriteLocations: typeof favoriteLocations;
   follows: typeof follows;
   http: typeof http;
   journeyEntries: typeof journeyEntries;

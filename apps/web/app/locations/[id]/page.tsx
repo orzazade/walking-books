@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Clock, BookOpen, Phone, Mail } from "lucide-react";
+import { FavoriteLocationButton } from "@/components/favorite-location-button";
 import Link from "next/link";
 import { CONDITION_LABELS, type Condition } from "@/convex/lib/validators";
 
@@ -45,7 +46,10 @@ export default function LocationDetailPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-3xl font-bold">{location.name}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-3xl font-bold">{location.name}</h1>
+        <FavoriteLocationButton locationId={locationId} />
+      </div>
 
       <div className="mt-2 flex items-center gap-1 text-muted-foreground">
         <MapPin className="h-4 w-4" />
