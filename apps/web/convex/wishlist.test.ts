@@ -329,4 +329,58 @@ describe("wishlist", () => {
       t.mutation(api.wishlist.toggle, { bookId }),
     ).rejects.toThrow("Not authenticated");
   });
+
+  it("toggle rejects when at max wishlist limit", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", {
+        clerkId: "user_wish_limit",
+        phone: "+1234567899",
+        name: "Limit User",
+        roles: ["reader"],
+        status: "active",
+        reputationScore: 100,
+        booksShared: 0,
+        booksRead: 0,
+        favoriteGenres: [],
+      });
+      // Create 200 wishlisted books
+      for (let i = 0; i < 200; i++) {
+        const bId = await ctx.db.insert("books", {
+          title: `Book ${i}`,
+          author: "Author",
+          coverImage: "",
+          description: "",
+          categories: [],
+          pageCount: 100,
+          language: "English",
+          avgRating: 0,
+          reviewCount: 0,
+        });
+        await ctx.db.insert("wishlist", {
+          userId,
+          bookId: bId,
+          addedAt: Date.now(),
+        });
+      }
+      // Create the 201st book to try to wishlist
+      return await ctx.db.insert("books", {
+        title: "One Too Many",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: [],
+        pageCount: 100,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_wish_limit" });
+    await expect(
+      authed.mutation(api.wishlist.toggle, { bookId }),
+    ).rejects.toThrow("Maximum 200 books in wishlist");
+  });
 });

@@ -367,4 +367,31 @@ describe("locationEvents", () => {
       authed.mutation(api.locationEvents.cancelRsvp, { eventId }),
     ).rejects.toThrow("No RSVP found");
   });
+
+  it("rsvp rejects nonexistent event", async () => {
+    const t = convexTest(schema, modules);
+
+    const fakeEventId = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager_rsvp_nope", phone: "+1111111197", name: "Manager" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        title: "Ghost Event",
+        description: "Disappearing",
+        eventType: "reading_meetup",
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+        createdByUserId: managerId,
+      });
+      await ctx.db.delete(evId);
+      return evId;
+    });
+
+    const authed = t.withIdentity({ subject: "user_ev1" });
+    await expect(
+      authed.mutation(api.locationEvents.rsvp, { eventId: fakeEventId }),
+    ).rejects.toThrow("Event not found");
+  });
 });
