@@ -226,6 +226,47 @@ describe("userNotifications", () => {
     ).rejects.toThrow("Not authorized");
   });
 
+  it("list returns relatedBookId and relatedLocationId for deep linking", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Linked Book" }));
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Corner Cafe",
+        address: "456 Oak Ave",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+1000000000",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 0,
+        managedByUserId: userId as unknown as string,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      await ctx.db.insert("userNotifications", {
+        userId,
+        type: "book_picked_up",
+        title: "Book picked up",
+        message: "At Corner Cafe",
+        relatedBookId: bookId,
+        relatedLocationId: locId,
+        read: false,
+        createdAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_notif1" });
+    const list = await authed.query(api.userNotifications.list, {});
+    expect(list).toHaveLength(1);
+    expect(list[0].relatedBookId).toBeDefined();
+    expect(list[0].relatedLocationId).toBeDefined();
+    expect(list[0].bookTitle).toBe("Linked Book");
+  });
+
   it("list respects limit parameter", async () => {
     const t = convexTest(schema, modules);
 

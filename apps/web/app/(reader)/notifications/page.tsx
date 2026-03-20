@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getErrorMessage, timeAgo } from "@/lib/utils";
 import { SignInPrompt } from "@/components/sign-in-prompt";
@@ -53,12 +54,25 @@ export default function NotificationsPage() {
   );
 }
 
+function getNotificationLink(n: {
+  type: string;
+  relatedBookId?: string;
+  relatedCopyId?: string;
+  relatedLocationId?: string;
+}): string | null {
+  if (n.relatedBookId) return `/book/${n.relatedBookId}`;
+  if (n.relatedCopyId) return `/copy/${n.relatedCopyId}`;
+  if (n.relatedLocationId) return `/locations/${n.relatedLocationId}`;
+  return null;
+}
+
 function NotificationsContent() {
   const notifications = useQuery(api.userNotifications.list, { limit: 50 });
   const unreadCount = useQuery(api.userNotifications.unreadCount);
   const markRead = useMutation(api.userNotifications.markRead);
   const markAllRead = useMutation(api.userNotifications.markAllRead);
   const remove = useMutation(api.userNotifications.remove);
+  const router = useRouter();
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [deletingId, setDeletingId] = useState<Id<"userNotifications"> | null>(null);
 
@@ -144,13 +158,24 @@ function NotificationsContent() {
         <div className="space-y-2">
           {notifications.map((n) => {
             const Icon = NOTIFICATION_ICONS[n.type] ?? Bell;
+            const link = getNotificationLink(n);
             return (
               <Card
                 key={n._id}
-                className={
+                className={`${
                   n.read
                     ? "opacity-70"
                     : "border-primary/20 bg-primary/[0.02]"
+                }${link ? " cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
+                onClick={
+                  link
+                    ? async () => {
+                        if (!n.read) {
+                          try { await markRead({ notificationId: n._id }); } catch { /* ignore */ }
+                        }
+                        router.push(link);
+                      }
+                    : undefined
                 }
               >
                 <CardContent className="flex items-start gap-3 py-3 px-4">
@@ -177,8 +202,13 @@ function NotificationsContent() {
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {n.message}
                     </p>
+                    {link && (
+                      <p className="mt-1 text-xs text-primary">
+                        View details →
+                      </p>
+                    )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {!n.read && (
                       <Button
                         variant="ghost"
