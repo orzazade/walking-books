@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -1515,5 +1515,97 @@ describe("copies.relist", () => {
         photos: [],
       }),
     ).rejects.toThrow("Location not found");
+  });
+});
+
+describe("copies.processOverdue", () => {
+  it("applies reputation penalty to holder with overdue copy", async () => {
+    const t = convexTest(schema, modules);
+    const startingRep = 50;
+    const { holderId } = await t.run(async (ctx) => {
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_overdue1", reputationScore: startingRep }));
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_overdue1" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() - 86400000, // 1 day overdue
+      }));
+      return { holderId: hId };
+    });
+
+    await t.mutation(internal.copies.processOverdue, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(user!.reputationScore).toBe(startingRep - 1); // OVERDUE_DAILY = -1
+  });
+
+  it("applies cumulative penalty for multiple overdue copies held by same user", async () => {
+    const t = convexTest(schema, modules);
+    const startingRep = 50;
+    const { holderId } = await t.run(async (ctx) => {
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_overdue2", reputationScore: startingRep }));
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_overdue2" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      // 3 overdue copies
+      for (let i = 0; i < 3; i++) {
+        await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: hId,
+          returnDeadline: Date.now() - 86400000,
+        }));
+      }
+      return { holderId: hId };
+    });
+
+    await t.mutation(internal.copies.processOverdue, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(user!.reputationScore).toBe(startingRep - 3); // -1 per overdue copy
+  });
+
+  it("does not penalize copies that are not yet overdue", async () => {
+    const t = convexTest(schema, modules);
+    const startingRep = 50;
+    const { holderId } = await t.run(async (ctx) => {
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_notoverdue", reputationScore: startingRep }));
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_notoverdue" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() + 86400000, // due tomorrow — not overdue
+      }));
+      return { holderId: hId };
+    });
+
+    await t.mutation(internal.copies.processOverdue, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(user!.reputationScore).toBe(startingRep); // unchanged
+  });
+
+  it("clamps reputation score at 0 (never goes negative)", async () => {
+    const t = convexTest(schema, modules);
+    const { holderId } = await t.run(async (ctx) => {
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_floor", reputationScore: 0 }));
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_floor" }));
+      const bId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bId as unknown as string, locId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() - 86400000,
+      }));
+      return { holderId: hId };
+    });
+
+    await t.mutation(internal.copies.processOverdue, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(holderId));
+    expect(user!.reputationScore).toBe(0); // clamped at 0
   });
 });
