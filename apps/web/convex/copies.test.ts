@@ -1050,4 +1050,66 @@ describe("copies.relist", () => {
       authed.mutation(api.copies.relist, { copyId }),
     ).rejects.toThrow("Only the sharer can relist");
   });
+
+  it("pickup rejects wrong location", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, wrongLocId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_wrongloc", phone: "+6666666661" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "reader_wrongloc", phone: "+6666666662" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const otherLocId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string, {
+        name: "Other Location",
+        address: "456 Other St",
+        contactPhone: "+6666666663",
+      }));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string),
+      );
+      return { copyId: cId, wrongLocId: otherLocId };
+    });
+
+    const authed = t.withIdentity({ subject: "reader_wrongloc" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId: wrongLocId,
+        conditionAtPickup: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("Copy is not at the specified location");
+  });
+
+  it("returnCopy rejects non-holder", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ret", phone: "+5555555551" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ret", phone: "+5555555552" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "other_ret", phone: "+5555555553" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 86400000,
+        }),
+      );
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "other_ret" });
+    await expect(
+      authed.mutation(api.copies.returnCopy, {
+        copyId,
+        locationId,
+        conditionAtReturn: "good",
+        photos: [],
+      }),
+    ).rejects.toThrow("You are not the current holder");
+  });
 });
