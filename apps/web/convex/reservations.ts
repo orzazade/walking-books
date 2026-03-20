@@ -170,6 +170,56 @@ export const cancel = mutation({
   },
 });
 
+/** Past reservations (fulfilled, expired, cancelled) enriched with book and location details. */
+export const myHistory = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const [fulfilled, expired, cancelled] = await Promise.all([
+      ctx.db
+        .query("reservations")
+        .withIndex("by_user", (q) => q.eq("userId", user._id).eq("status", "fulfilled"))
+        .collect(),
+      ctx.db
+        .query("reservations")
+        .withIndex("by_user", (q) => q.eq("userId", user._id).eq("status", "expired"))
+        .collect(),
+      ctx.db
+        .query("reservations")
+        .withIndex("by_user", (q) => q.eq("userId", user._id).eq("status", "cancelled"))
+        .collect(),
+    ]);
+
+    const all = [...fulfilled, ...expired, ...cancelled].sort(
+      (a, b) => b.reservedAt - a.reservedAt,
+    );
+
+    if (all.length === 0) return [];
+
+    return await Promise.all(
+      all.map(async (res) => {
+        const [copy, location] = await Promise.all([
+          ctx.db.get(res.copyId),
+          ctx.db.get(res.locationId),
+        ]);
+        const book = copy ? await ctx.db.get(copy.bookId) : null;
+
+        return {
+          ...res,
+          bookTitle: book?.title ?? "Unknown book",
+          bookAuthor: book?.author ?? "Unknown author",
+          coverImage: book?.coverImage ?? null,
+          bookId: copy?.bookId ?? null,
+          locationName: location?.name ?? "Unknown location",
+          locationAddress: location?.address ?? "",
+        };
+      }),
+    );
+  },
+});
+
 export const byLocation = query({
   args: { locationId: v.id("partnerLocations") },
   handler: async (ctx, args) => {

@@ -54,6 +54,74 @@ function makeLocation(userId: unknown, overrides: Record<string, unknown> = {}) 
   };
 }
 
+describe("reservations.myHistory", () => {
+  it("returns past reservations sorted newest-first with enriched details", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_sharer_h", name: "Sharer H" }),
+      );
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook({ title: "History Book" }));
+      const locationId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(sharerId, { name: "Cafe Central" }),
+      );
+      const copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "available",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: sharerId,
+        currentLocationId: locationId,
+        qrCodeUrl: "",
+      });
+
+      // Older fulfilled reservation
+      await ctx.db.insert("reservations", {
+        copyId,
+        userId,
+        locationId,
+        reservedAt: Date.now() - 200000,
+        expiresAt: Date.now() - 100000,
+        status: "fulfilled",
+      });
+      // Newer cancelled reservation
+      await ctx.db.insert("reservations", {
+        copyId,
+        userId,
+        locationId,
+        reservedAt: Date.now() - 50000,
+        expiresAt: Date.now() - 10000,
+        status: "cancelled",
+      });
+      // Active reservation — should NOT appear
+      await ctx.db.insert("reservations", {
+        copyId,
+        userId,
+        locationId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 48 * 60 * 60 * 1000,
+        status: "active",
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_res1" });
+    const result = await authed.query(api.reservations.myHistory, {});
+
+    expect(result).toHaveLength(2);
+    // Newest first
+    expect(result[0].status).toBe("cancelled");
+    expect(result[1].status).toBe("fulfilled");
+    // Enriched fields
+    expect(result[0].bookTitle).toBe("History Book");
+    expect(result[0].locationName).toBe("Cafe Central");
+    expect(result[0].bookId).toBeDefined();
+  });
+});
+
 describe("reservations.myActive", () => {
   it("returns empty array for unauthenticated user", async () => {
     const t = convexTest(schema, modules);
