@@ -277,4 +277,48 @@ describe("activityFeed", () => {
     const result = await authed.query(api.activityFeed.feed, { limit: 3 });
     expect(result).toHaveLength(3);
   });
+
+  it("excludes entries where the book has been deleted", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const viewerId = await ctx.db.insert("users", makeUser());
+      const friendId = await ctx.db.insert(
+        "users",
+        makeUser({ clerkId: "user_feed_del", name: "Friend", phone: "+5550001111" }),
+      );
+      await ctx.db.insert("follows", { followerId: viewerId, followingId: friendId });
+
+      const keptBook = await ctx.db.insert("books", makeBook({ title: "Kept Book" }));
+      const deletedBook = await ctx.db.insert("books", makeBook({ title: "Deleted Book" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(viewerId as unknown as string));
+
+      // Journey with kept book
+      const keptCopy = await ctx.db.insert("copies", {
+        bookId: keptBook, status: "checked_out" as const, condition: "good" as const,
+        ownershipType: "donated" as const, originalSharerId: friendId, currentHolderId: friendId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: keptCopy, readerId: friendId, pickupLocationId: locId,
+        pickedUpAt: Date.now() - 3600000, conditionAtPickup: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      // Journey with book that will be deleted
+      const deletedCopy = await ctx.db.insert("copies", {
+        bookId: deletedBook, status: "checked_out" as const, condition: "good" as const,
+        ownershipType: "donated" as const, originalSharerId: friendId, currentHolderId: friendId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("journeyEntries", {
+        copyId: deletedCopy, readerId: friendId, pickupLocationId: locId,
+        pickedUpAt: Date.now() - 7200000, conditionAtPickup: "good", pickupPhotos: [], returnPhotos: [],
+      });
+
+      await ctx.db.delete(deletedBook);
+    });
+
+    const authed = t.withIdentity({ subject: "user_feed1" });
+    const result = await authed.query(api.activityFeed.feed, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].book.title).toBe("Kept Book");
+  });
 });
