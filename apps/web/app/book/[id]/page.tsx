@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/empty-state";
 import { SimilarBooksSection } from "@/components/similar-books-section";
 import { MoreByAuthorSection } from "@/components/more-by-author-section";
 import { WaitlistSection } from "@/components/waitlist-section";
+import { BookNoteSection } from "@/components/book-note-section";
 import { BookOpen, Heart, Users, Bookmark, CheckCircle2 } from "lucide-react";
 
 export default function BookDetailPage() {
@@ -158,6 +159,8 @@ export default function BookDetailPage() {
 
               <AddToCollectionDialog bookId={bookId} />
             </div>
+
+            <BookNoteSection bookId={bookId} />
           </Authenticated>
         </div>
       </div>

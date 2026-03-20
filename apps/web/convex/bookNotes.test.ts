@@ -183,6 +183,24 @@ describe("bookNotes", () => {
     expect(result).toEqual([]);
   });
 
+  it("save rejects notes exceeding 10000 characters", async () => {
+    const t = convexTest(schema, modules);
+
+    const bookId = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      return await ctx.db.insert("books", makeBook());
+    });
+
+    const authed = t.withIdentity({ subject: "user_notes1" });
+
+    await expect(
+      authed.mutation(api.bookNotes.save, {
+        bookId,
+        content: "x".repeat(10001),
+      }),
+    ).rejects.toThrow("Note must be 10000 characters or less");
+  });
+
   it("notes are private — users cannot see each other's notes", async () => {
     const t = convexTest(schema, modules);
 
