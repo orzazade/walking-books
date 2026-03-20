@@ -211,6 +211,139 @@ describe("sharerStats", () => {
     expect(stats!.totalTimesLent).toBe(0);
   });
 
+  describe("perBookBreakdown", () => {
+    it("returns null for unauthenticated users", async () => {
+      const t = convexTest(schema, modules);
+      const result = await t.query(api.sharerStats.perBookBreakdown, {});
+      expect(result).toBeNull();
+    });
+
+    it("returns empty arrays when user has no shared copies", async () => {
+      const t = convexTest(schema, modules);
+      await t.run(async (ctx) => {
+        await ctx.db.insert("users", makeUser());
+      });
+
+      const authed = t.withIdentity({ subject: "user_sharer1" });
+      const result = await authed.query(api.sharerStats.perBookBreakdown, {});
+      expect(result).toEqual({ books: [], monthlyActivity: [] });
+    });
+
+    it("returns per-book breakdown with lending metrics and monthly trends", async () => {
+      const t = convexTest(schema, modules);
+
+      await t.run(async (ctx) => {
+        const sharerId = await ctx.db.insert("users", makeUser({ booksShared: 2 }));
+        const reader1Id = await ctx.db.insert(
+          "users",
+          makeUser({ clerkId: "reader1", name: "Reader 1", phone: "+1111111111" }),
+        );
+        const reader2Id = await ctx.db.insert(
+          "users",
+          makeUser({ clerkId: "reader2", name: "Reader 2", phone: "+2222222222" }),
+        );
+
+        const locationId = await ctx.db.insert(
+          "partnerLocations",
+          makeLocation(sharerId as unknown as string),
+        );
+
+        const book1Id = await ctx.db.insert("books", makeBook({ title: "Popular Book", author: "Author A" }));
+        const book2Id = await ctx.db.insert("books", makeBook({ title: "Niche Book", author: "Author B" }));
+
+        const copy1 = await ctx.db.insert("copies", {
+          bookId: book1Id,
+          status: "available",
+          condition: "fair",
+          ownershipType: "donated",
+          originalSharerId: sharerId,
+          currentLocationId: locationId,
+          qrCodeUrl: "",
+        });
+
+        const copy2 = await ctx.db.insert("copies", {
+          bookId: book2Id,
+          status: "checked_out",
+          condition: "good",
+          ownershipType: "lent",
+          originalSharerId: sharerId,
+          currentHolderId: reader2Id,
+          qrCodeUrl: "",
+        });
+
+        // Recent journey entries (within last 6 months for monthly buckets)
+        const now = Date.now();
+        const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
+        const twoMonthsAgo = now - 60 * 24 * 60 * 60 * 1000;
+
+        // copy1: lent twice, returned both times
+        await ctx.db.insert("journeyEntries", {
+          copyId: copy1,
+          readerId: reader1Id,
+          pickupLocationId: locationId,
+          pickedUpAt: twoMonthsAgo,
+          returnedAt: twoMonthsAgo + 10 * 24 * 60 * 60 * 1000,
+          conditionAtPickup: "good",
+          conditionAtReturn: "good",
+          pickupPhotos: [],
+          returnPhotos: [],
+        });
+
+        await ctx.db.insert("journeyEntries", {
+          copyId: copy1,
+          readerId: reader2Id,
+          pickupLocationId: locationId,
+          pickedUpAt: oneMonthAgo,
+          returnedAt: oneMonthAgo + 5 * 24 * 60 * 60 * 1000,
+          conditionAtPickup: "good",
+          conditionAtReturn: "fair",
+          pickupPhotos: [],
+          returnPhotos: [],
+        });
+
+        // copy2: currently checked out
+        await ctx.db.insert("journeyEntries", {
+          copyId: copy2,
+          readerId: reader2Id,
+          pickupLocationId: locationId,
+          pickedUpAt: now - 3 * 24 * 60 * 60 * 1000,
+          conditionAtPickup: "good",
+          pickupPhotos: [],
+          returnPhotos: [],
+        });
+      });
+
+      const authed = t.withIdentity({ subject: "user_sharer1" });
+      const result = await authed.query(api.sharerStats.perBookBreakdown, {});
+
+      expect(result).not.toBeNull();
+
+      // Books sorted by timesLent desc — Popular Book has 2 lends, Niche Book has 1
+      expect(result!.books).toHaveLength(2);
+
+      const popular = result!.books[0];
+      expect(popular.title).toBe("Popular Book");
+      expect(popular.timesLent).toBe(2);
+      expect(popular.uniqueReaders).toBe(2);
+      expect(popular.activeLends).toBe(0); // both returned
+      expect(popular.totalReadingDays).toBeGreaterThan(0);
+      expect(popular.avgReadingDays).not.toBeNull();
+      expect(popular.worstCondition).toBe("fair");
+
+      const niche = result!.books[1];
+      expect(niche.title).toBe("Niche Book");
+      expect(niche.timesLent).toBe(1);
+      expect(niche.uniqueReaders).toBe(1);
+      expect(niche.activeLends).toBe(1); // currently checked out
+
+      // Monthly activity should have entries
+      expect(result!.monthlyActivity.length).toBeGreaterThan(0);
+      // At least some pickups recorded
+      const totalPickups = result!.monthlyActivity.reduce((s, m) => s + m.pickups, 0);
+      expect(totalPickups).toBe(3);
+    });
+  });
+
   it("handles sharer with copies but no journeys", async () => {
     const t = convexTest(schema, modules);
 
