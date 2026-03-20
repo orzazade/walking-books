@@ -170,6 +170,62 @@ describe("reviews", () => {
     });
   });
 
+  it("create adds review and updates book avgRating and reviewCount", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      return { bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_r1" });
+    await authed.mutation(api.reviews.create, { bookId, rating: 4, text: "Really enjoyed it" });
+
+    // Verify the book's avgRating and reviewCount were updated
+    const book = await t.run(async (ctx) => ctx.db.get(bookId));
+    expect(book!.avgRating).toBe(4);
+    expect(book!.reviewCount).toBe(1);
+
+    // Verify the review exists via byBook
+    const reviews = await t.query(api.reviews.byBook, { bookId });
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].rating).toBe(4);
+    expect(reviews[0].text).toBe("Really enjoyed it");
+  });
+
+  it("create upserts existing review and recalculates book avgRating", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      // Book starts with one existing review from another user
+      const bId = await ctx.db.insert("books", makeBook({ avgRating: 3, reviewCount: 1 }));
+      await ctx.db.insert("users", makeUser({ clerkId: "user_other", phone: "+9999999999", name: "Other" }));
+      return { bookId: bId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_r1" });
+
+    // First review: rating 5
+    await authed.mutation(api.reviews.create, { bookId, rating: 5, text: "Amazing" });
+    const bookAfterFirst = await t.run(async (ctx) => ctx.db.get(bookId));
+    expect(bookAfterFirst!.reviewCount).toBe(2);
+
+    // Update same review: rating 2
+    await authed.mutation(api.reviews.create, { bookId, rating: 2, text: "Changed my mind" });
+
+    // reviewCount should stay at 2 (upsert, not new review)
+    const bookAfterUpdate = await t.run(async (ctx) => ctx.db.get(bookId));
+    expect(bookAfterUpdate!.reviewCount).toBe(2);
+
+    // Verify the review text was updated
+    const reviews = await t.query(api.reviews.byBook, { bookId });
+    const myReview = reviews.find((r: { text: string }) => r.text === "Changed my mind");
+    expect(myReview).toBeDefined();
+    expect(myReview!.rating).toBe(2);
+  });
+
   it("create rejects empty review text", async () => {
     const t = convexTest(schema, modules);
 
