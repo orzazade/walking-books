@@ -219,6 +219,60 @@ describe("locationEvents", () => {
     expect(eventId).toBeDefined();
   });
 
+  it("rejects duplicate RSVP to the same event", async () => {
+    const t = convexTest(schema, modules);
+
+    const { eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        createdByUserId: managerId,
+        title: "Dup RSVP Test",
+        description: "Testing duplicate",
+        eventType: "other" as const,
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+      });
+      return { eventId: evId };
+    });
+
+    const reader = t.withIdentity({ subject: "user_ev1" });
+    await reader.mutation(api.locationEvents.rsvp, { eventId });
+
+    await expect(
+      reader.mutation(api.locationEvents.rsvp, { eventId }),
+    ).rejects.toThrow("You have already RSVPed to this event");
+  });
+
+  it("rejects RSVP to an ended event", async () => {
+    const t = convexTest(schema, modules);
+
+    const { eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        createdByUserId: managerId,
+        title: "Past Event",
+        description: "Already over",
+        eventType: "other" as const,
+        startsAt: Date.now() - 90000000,
+        endsAt: Date.now() - 86400000, // ended yesterday
+        rsvpCount: 0,
+      });
+      return { eventId: evId };
+    });
+
+    const reader = t.withIdentity({ subject: "user_ev1" });
+    await expect(
+      reader.mutation(api.locationEvents.rsvp, { eventId }),
+    ).rejects.toThrow("This event has already ended");
+  });
+
   it("upcoming query returns events across locations enriched with location name", async () => {
     const t = convexTest(schema, modules);
 
