@@ -15,10 +15,13 @@ import {
   AlertTriangle,
   CheckCircle,
   ArrowRight,
+  Calendar,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
-import { CONDITION_LABELS, COPY_STATUS_LABELS, type CopyStatus, type Condition } from "@/convex/lib/validators";
+import { CONDITION_LABELS, COPY_STATUS_LABELS, EVENT_TYPE_LABELS, type CopyStatus, type Condition, type EventType } from "@/convex/lib/validators";
+import { CreateEventDialog } from "@/components/create-event-dialog";
 
 function PartnerDashboardContent() {
   const location = useQuery(api.partnerLocations.myLocation);
@@ -54,6 +57,7 @@ function LocationDashboard({
 }) {
   const allCopies = useQuery(api.copies.allAtLocation, { locationId });
   const reservations = useQuery(api.reservations.byLocation, { locationId });
+  const events = useQuery(api.locationEvents.byLocation, { locationId });
 
   if (allCopies === undefined || reservations === undefined) {
     return <p className="text-muted-foreground">Loading...</p>;
@@ -93,6 +97,7 @@ function LocationDashboard({
             <Package className="h-4 w-4" /> View Inventory
           </Button>
         </Link>
+        <CreateEventDialog locationId={locationId} />
       </div>
 
       {/* Today's overview */}
@@ -194,6 +199,93 @@ function LocationDashboard({
                 className="flex items-center gap-1 text-sm text-primary hover:underline"
               >
                 View all {availableCopies.length} books{" "}
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Upcoming events */}
+      <Separator className="my-6" />
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" /> Upcoming Events
+          </h2>
+          <CreateEventDialog locationId={locationId} />
+        </div>
+        {events === undefined ? (
+          <div className="space-y-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="animate-shimmer h-16 rounded-lg bg-muted" />
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <Card>
+            <CardContent className="p-4 text-center text-sm text-muted-foreground">
+              No upcoming events. Create one to attract readers!
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {events.slice(0, 5).map((event) => {
+              const isFull =
+                event.capacity !== undefined && event.rsvpCount >= event.capacity;
+              return (
+                <Card key={event._id}>
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{event.title}</p>
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          {EVENT_TYPE_LABELS[event.eventType as EventType]}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span>
+                          {new Date(event.startsAt).toLocaleDateString(undefined, {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span>
+                          {new Date(event.startsAt).toLocaleTimeString(undefined, {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                          {" – "}
+                          {new Date(event.endsAt).toLocaleTimeString(undefined, {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {event.rsvpCount}
+                          {event.capacity !== undefined && ` / ${event.capacity}`}
+                          {isFull && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-1 text-xs bg-amber-100 text-amber-600 border-amber-200"
+                            >
+                              Full
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {events.length > 5 && (
+              <Link
+                href="/events"
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                View all {events.length} events{" "}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             )}

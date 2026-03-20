@@ -180,6 +180,45 @@ describe("locationEvents", () => {
     expect(rsvpsAfter).toHaveLength(0);
   });
 
+  it("create validates title, timestamps, and capacity", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const manager = t.withIdentity({ subject: "manager1" });
+    const base = {
+      locationId,
+      title: "Valid Event",
+      description: "A description",
+      eventType: "workshop" as const,
+      startsAt: Date.now() + 86400000,
+      endsAt: Date.now() + 90000000,
+    };
+
+    // Empty title
+    await expect(
+      manager.mutation(api.locationEvents.create, { ...base, title: "   " }),
+    ).rejects.toThrow("Event title is required");
+
+    // End before start
+    await expect(
+      manager.mutation(api.locationEvents.create, { ...base, endsAt: base.startsAt - 1000 }),
+    ).rejects.toThrow("Event must end after it starts");
+
+    // Invalid capacity
+    await expect(
+      manager.mutation(api.locationEvents.create, { ...base, capacity: 0 }),
+    ).rejects.toThrow("Capacity must be an integer between 1 and 1000");
+
+    // Valid creation succeeds
+    const eventId = await manager.mutation(api.locationEvents.create, base);
+    expect(eventId).toBeDefined();
+  });
+
   it("upcoming query returns events across locations enriched with location name", async () => {
     const t = convexTest(schema, modules);
 
