@@ -348,6 +348,87 @@ export const byAuthor = query({
   },
 });
 
+/** All distinct authors on the platform with book counts and availability. */
+export const allAuthors = query({
+  args: {},
+  handler: async (ctx) => {
+    const allBooks = await ctx.db.query("books").collect();
+    const counts = await getBookCopyCounts(ctx);
+
+    // Group books by normalized author name
+    const authorMap = new Map<
+      string,
+      {
+        author: string;
+        bookCount: number;
+        availableCount: number;
+        totalCopies: number;
+        sampleCovers: string[];
+        topCategories: string[];
+      }
+    >();
+
+    for (const book of allBooks) {
+      const key = book.author.toLowerCase();
+      const existing = authorMap.get(key);
+      const availability = counts.get(book._id) ?? {
+        totalCopies: 0,
+        availableCopies: 0,
+      };
+
+      if (existing) {
+        existing.bookCount++;
+        existing.availableCount += availability.availableCopies;
+        existing.totalCopies += availability.totalCopies;
+        if (
+          existing.sampleCovers.length < 4 &&
+          book.coverImage
+        ) {
+          existing.sampleCovers.push(book.coverImage);
+        }
+        for (const cat of book.categories) {
+          if (!existing.topCategories.includes(cat)) {
+            existing.topCategories.push(cat);
+          }
+        }
+      } else {
+        authorMap.set(key, {
+          author: book.author,
+          bookCount: 1,
+          availableCount: availability.availableCopies,
+          totalCopies: availability.totalCopies,
+          sampleCovers: book.coverImage ? [book.coverImage] : [],
+          topCategories: [...book.categories],
+        });
+      }
+    }
+
+    return [...authorMap.values()]
+      .map((a) => ({
+        ...a,
+        topCategories: a.topCategories.slice(0, 3),
+      }))
+      .sort((a, b) => a.author.localeCompare(b.author));
+  },
+});
+
+/** All books by a specific author name, enriched with availability. */
+export const byAuthorName = query({
+  args: { author: v.string() },
+  handler: async (ctx, args) => {
+    const normalizedAuthor = args.author.trim().toLowerCase();
+    if (!normalizedAuthor) return [];
+
+    const allBooks = await ctx.db.query("books").collect();
+    const matching = allBooks.filter(
+      (b) => b.author.toLowerCase() === normalizedAuthor,
+    );
+
+    if (matching.length === 0) return [];
+    return await enrichWithAvailability(ctx, matching);
+  },
+});
+
 /** Social proof counts for a book — currently reading, wishlisted, completed reads. */
 export const socialProof = query({
   args: { bookId: v.id("books") },

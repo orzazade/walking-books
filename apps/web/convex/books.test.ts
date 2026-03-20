@@ -237,6 +237,122 @@ describe("books.byAuthor", () => {
   });
 });
 
+describe("books.allAuthors", () => {
+  it("returns empty when no books exist", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.books.allAuthors, {});
+    expect(result).toEqual([]);
+  });
+
+  it("groups books by author with counts and availability", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const lid = await ctx.db.insert("partnerLocations", makeLocation(uid));
+
+      const book1 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book A", author: "Jane Doe", categories: ["fiction"] }),
+      );
+      const book2 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book B", author: "Jane Doe", categories: ["mystery"] }),
+      );
+      const book3 = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book C", author: "John Smith", categories: ["science"] }),
+      );
+
+      // Jane has 2 available copies across her books, John has 1
+      await ctx.db.insert("copies", makeCopy(book1, lid, uid));
+      await ctx.db.insert("copies", makeCopy(book2, lid, uid));
+      await ctx.db.insert("copies", makeCopy(book3, lid, uid));
+    });
+
+    const result = await t.query(api.books.allAuthors, {});
+    expect(result).toHaveLength(2);
+    // Alphabetical: Jane Doe first
+    expect(result[0].author).toBe("Jane Doe");
+    expect(result[0].bookCount).toBe(2);
+    expect(result[0].availableCount).toBe(2);
+    expect(result[1].author).toBe("John Smith");
+    expect(result[1].bookCount).toBe(1);
+  });
+
+  it("normalizes author names case-insensitively", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book A", author: "jane doe" }),
+      );
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book B", author: "Jane Doe" }),
+      );
+    });
+
+    const result = await t.query(api.books.allAuthors, {});
+    // Should be grouped as one author
+    expect(result).toHaveLength(1);
+    expect(result[0].bookCount).toBe(2);
+  });
+});
+
+describe("books.byAuthorName", () => {
+  it("returns empty for unknown author", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.books.byAuthorName, { author: "Nobody" });
+    expect(result).toEqual([]);
+  });
+
+  it("returns books by author enriched with availability", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const uid = await ctx.db.insert("users", makeUser());
+      const lid = await ctx.db.insert("partnerLocations", makeLocation(uid));
+      const book = await ctx.db.insert(
+        "books",
+        makeBook({ title: "Found Book", author: "Target Author" }),
+      );
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Other Book", author: "Someone Else" }),
+      );
+      await ctx.db.insert("copies", makeCopy(book, lid, uid));
+    });
+
+    const result = await t.query(api.books.byAuthorName, { author: "Target Author" });
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe("Found Book");
+    expect(result[0].availableCopies).toBe(1);
+  });
+
+  it("matches case-insensitively", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert(
+        "books",
+        makeBook({ title: "Book X", author: "Jane Doe" }),
+      );
+    });
+
+    const result = await t.query(api.books.byAuthorName, { author: "jane doe" });
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe("Book X");
+  });
+
+  it("returns empty for blank author string", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("books", makeBook());
+    });
+
+    const result = await t.query(api.books.byAuthorName, { author: "  " });
+    expect(result).toEqual([]);
+  });
+});
+
 describe("books.socialProof", () => {
   it("returns zeros for a book with no activity", async () => {
     const t = convexTest(schema, modules);
