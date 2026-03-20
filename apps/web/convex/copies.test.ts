@@ -1883,4 +1883,42 @@ describe("copies.returnCopy side effects", () => {
     expect(waitlistEntry!.status).toBe("notified");
     expect(waitlistEntry!.notifiedCopyId).toBe(copyId);
   });
+
+  it("returnCopy to different location updates copy currentLocationId and both location counts", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, pickupLocId, returnLocId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_diffloc", name: "Sharer" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_diffloc", name: "Holder" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const pLocId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, {
+        name: "Pickup Cafe", currentBookCount: 4,
+      }));
+      const rLocId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, {
+        name: "Return Cafe", contactPhone: "+7777777777", currentBookCount: 2,
+      }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, pLocId as unknown as string, sId as unknown as string, {
+        status: "checked_out",
+        currentHolderId: hId,
+        returnDeadline: Date.now() + 86400000,
+      }));
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId, readerId: hId, pickupLocationId: pLocId,
+        pickedUpAt: Date.now() - 86400000, conditionAtPickup: "good",
+        pickupPhotos: [], returnPhotos: [],
+      });
+      return { copyId: cId, pickupLocId: pLocId, returnLocId: rLocId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_diffloc" });
+    await authed.mutation(api.copies.returnCopy, {
+      copyId, locationId: returnLocId, conditionAtReturn: "good", photos: [],
+    });
+
+    const { copy, returnLoc } = await t.run(async (ctx) => ({
+      copy: await ctx.db.get(copyId),
+      returnLoc: await ctx.db.get(returnLocId),
+    }));
+    expect(copy!.currentLocationId).toBe(returnLocId); // moved to return location
+    expect(returnLoc!.currentBookCount).toBe(3); // incremented from 2
+  });
 });
