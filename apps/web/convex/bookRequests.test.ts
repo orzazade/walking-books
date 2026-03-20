@@ -617,6 +617,49 @@ describe("bookRequests", () => {
     ).rejects.toThrow("Author must be 200 characters or less");
   });
 
+  it("active shows 'Unknown' for deleted user", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Orphaned Request",
+        status: "open",
+        createdAt: Date.now(),
+      });
+      // Delete the user
+      await ctx.db.delete(userId);
+    });
+
+    const results = await t.query(api.bookRequests.active, {});
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Orphaned Request");
+    expect(results[0].requesterName).toBe("Unknown");
+  });
+
+  it("cancel rejects already-fulfilled request", async () => {
+    const t = convexTest(schema, modules);
+
+    const { requestId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const rId = await ctx.db.insert("bookRequests", {
+        userId,
+        title: "Fulfilled Book",
+        status: "fulfilled",
+        createdAt: Date.now(),
+        fulfilledBy: userId,
+        fulfilledAt: Date.now(),
+      });
+      return { requestId: rId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_req1" });
+    await expect(
+      authed.mutation(api.bookRequests.cancel, { requestId }),
+    ).rejects.toThrow("Request is not open");
+  });
+
   it("create rejects note over 500 characters", async () => {
     const t = convexTest(schema, modules);
 
