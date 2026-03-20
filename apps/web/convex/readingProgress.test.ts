@@ -589,4 +589,57 @@ describe("readingProgress", () => {
     const result = await t.query(api.readingProgress.currentlyReading, {});
     expect(result).toEqual([]);
   });
+
+  it("forCopy returns reading progress for a specific copy", async () => {
+    const t = convexTest(schema, modules);
+
+    let copyId: any;
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bookId = await ctx.db.insert("books", makeBook({ pageCount: 300 }));
+      const locId = await ctx.db.insert("partnerLocations", {
+        name: "Test Cafe",
+        address: "123 Main",
+        lat: 0,
+        lng: 0,
+        contactPhone: "+1000000000",
+        operatingHours: {},
+        photos: [],
+        shelfCapacity: 50,
+        currentBookCount: 0,
+        managedByUserId: userId as unknown as string,
+        staffUserIds: [],
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      copyId = await ctx.db.insert("copies", {
+        bookId,
+        status: "checked_out" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        originalSharerId: userId,
+        currentLocationId: locId,
+        currentHolderId: userId,
+        qrCodeUrl: "qr_forcopy",
+      });
+      await ctx.db.insert("readingProgress", {
+        userId,
+        copyId,
+        bookId,
+        currentPage: 150,
+        totalPages: 300,
+        status: "reading" as const,
+        startedAt: Date.now() - 5 * 86400000,
+        lastUpdatedAt: Date.now(),
+      });
+    });
+
+    const authed = t.withIdentity({ subject: "user_progress1" });
+    const progress = await authed.query(api.readingProgress.forCopy, { copyId });
+    expect(progress).not.toBeNull();
+    expect(progress!.currentPage).toBe(150);
+    expect(progress!.totalPages).toBe(300);
+    expect(progress!.status).toBe("reading");
+  });
 });

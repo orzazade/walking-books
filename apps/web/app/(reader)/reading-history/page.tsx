@@ -4,7 +4,7 @@ import { useQuery, useConvexAuth, Authenticated, Unauthenticated } from "convex/
 import { api } from "@/convex/_generated/api";
 import { HeaderActionLink } from "@/components/header-action-link";
 import { SignInPrompt } from "@/components/sign-in-prompt";
-import { BookOpen, Calendar, Target, MapPin, Clock } from "lucide-react";
+import { BookOpen, Calendar, Target, MapPin, Clock, BookMarked } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,6 +14,100 @@ function formatDate(ts: number) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function CurrentlyReadingSection() {
+  const { isAuthenticated } = useConvexAuth();
+  const reading = useQuery(
+    api.readingProgress.currentlyReading,
+    isAuthenticated ? {} : "skip",
+  );
+
+  if (reading === undefined) {
+    return (
+      <div className="mb-6">
+        <div className="animate-shimmer h-24 rounded-xl border border-border/40 bg-muted" />
+      </div>
+    );
+  }
+
+  if (!reading || reading.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="mb-3 flex items-center gap-2 font-serif text-lg font-semibold">
+        <BookMarked className="h-4.5 w-4.5 text-primary" /> Currently Reading
+      </h2>
+      <div className="space-y-2.5">
+        {reading.map((entry) => (
+          <div
+            key={entry._id}
+            className="rounded-xl border border-primary/20 bg-primary/[0.02] p-4"
+          >
+            <div className="flex gap-4">
+              {entry.coverImage ? (
+                <Link href={`/book/${entry.bookId}`} className="flex-shrink-0">
+                  <Image
+                    src={entry.coverImage}
+                    alt={entry.bookTitle}
+                    width={56}
+                    height={84}
+                    className="rounded-md object-cover"
+                  />
+                </Link>
+              ) : (
+                <div className="flex h-[84px] w-[56px] flex-shrink-0 items-center justify-center rounded-md bg-muted">
+                  <BookOpen className="h-5 w-5 text-muted-foreground/40" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/book/${entry.bookId}`}
+                  className="font-serif text-[0.9375rem] font-semibold leading-tight hover:underline"
+                >
+                  {entry.bookTitle}
+                </Link>
+                <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+                  {entry.bookAuthor}
+                </p>
+
+                {/* Progress bar */}
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[0.75rem]">
+                    <span className="text-muted-foreground">
+                      Page {entry.currentPage} of {entry.totalPages}
+                    </span>
+                    <span className="font-medium text-primary">
+                      {entry.percentComplete}%
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${entry.percentComplete}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Pace info */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.75rem] text-muted-foreground">
+                  {entry.pagesPerDay !== null && entry.pagesPerDay > 0 && (
+                    <span>{entry.pagesPerDay} pages/day</span>
+                  )}
+                  {entry.estimatedDaysLeft !== null && entry.estimatedDaysLeft > 0 && (
+                    <span>~{entry.estimatedDaysLeft}d left</span>
+                  )}
+                  {entry.pagesRemaining > 0 && (
+                    <span>{entry.pagesRemaining} pages to go</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function HistoryContent() {
@@ -179,6 +273,10 @@ export default function ReadingHistoryPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-[0.8125rem]">
+          <HeaderActionLink href="/currently-reading">
+            <BookMarked className="h-3.5 w-3.5" />
+            Reading
+          </HeaderActionLink>
           <HeaderActionLink href="/reading-goals">
             <Target className="h-3.5 w-3.5" />
             Goals
@@ -196,6 +294,7 @@ export default function ReadingHistoryPage() {
 
       {/* Content */}
       <Authenticated>
+        <CurrentlyReadingSection />
         <HistoryContent />
       </Authenticated>
       <Unauthenticated>
