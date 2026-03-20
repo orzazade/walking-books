@@ -153,6 +153,61 @@ export function LocationEventsSection({
   );
 }
 
+export function RsvpEventCard({
+  event,
+}: {
+  event: {
+    _id: string;
+    title: string;
+    description: string;
+    eventType: string;
+    startsAt: number;
+    endsAt: number;
+    capacity?: number;
+    rsvpCount: number;
+    locationName: string;
+    locationAddress: string;
+  };
+}) {
+  return (
+    <Card className="border-l-4 border-l-primary">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium truncate">{event.title}</h3>
+              <Badge variant="outline" className="shrink-0 text-xs">
+                {EVENT_TYPE_LABELS[event.eventType as EventType]}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {event.locationName}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {formatEventDate(event.startsAt)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatEventTime(event.startsAt)} –{" "}
+                {formatEventTime(event.endsAt)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {event.rsvpCount}
+                {event.capacity !== undefined && ` / ${event.capacity}`}
+              </span>
+            </div>
+          </div>
+          <RsvpButton eventId={event._id as Id<"locationEvents">} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function EventCard({
   event,
 }: {

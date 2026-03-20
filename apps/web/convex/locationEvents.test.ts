@@ -143,6 +143,43 @@ describe("locationEvents", () => {
     ).rejects.toThrow("This event is at full capacity");
   });
 
+  it("myRsvps returns the current user's upcoming RSVPs with location details", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId, eventId } = await t.run(async (ctx) => {
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "manager1", phone: "+1111111111", name: "Manager" }));
+      await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, { name: "Book Nook" }));
+      const evId = await ctx.db.insert("locationEvents", {
+        locationId: locId,
+        createdByUserId: managerId,
+        title: "Poetry Night",
+        description: "Read your poems",
+        eventType: "other" as const,
+        startsAt: Date.now() + 86400000,
+        endsAt: Date.now() + 90000000,
+        rsvpCount: 0,
+      });
+      return { locationId: locId, eventId: evId };
+    });
+
+    // Reader RSVPs
+    const reader = t.withIdentity({ subject: "user_ev1" });
+    await reader.mutation(api.locationEvents.rsvp, { eventId });
+
+    // myRsvps should return the event enriched with location name
+    const rsvps = await reader.query(api.locationEvents.myRsvps);
+    expect(rsvps).toHaveLength(1);
+    expect(rsvps[0].title).toBe("Poetry Night");
+    expect(rsvps[0].locationName).toBe("Book Nook");
+    expect(rsvps[0].rsvpId).toBeDefined();
+
+    // After cancelling, myRsvps should be empty
+    await reader.mutation(api.locationEvents.cancelRsvp, { eventId });
+    const rsvpsAfter = await reader.query(api.locationEvents.myRsvps);
+    expect(rsvpsAfter).toHaveLength(0);
+  });
+
   it("upcoming query returns events across locations enriched with location name", async () => {
     const t = convexTest(schema, modules);
 
