@@ -916,6 +916,82 @@ describe("copies.recall", () => {
     expect(copy!.returnDeadline).toBeLessThan(farDeadline);
   });
 
+  it("recall of checked-out copy creates notification for holder", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, holderId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_recnotif", phone: "+9191919191" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_recnotif", phone: "+9191919192" }));
+      const bookId = await ctx.db.insert("books", makeBook({ title: "Recalled Book" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: hId,
+          returnDeadline: Date.now() + 30 * 86400000,
+        }),
+      );
+      return { copyId: cId, holderId: hId };
+    });
+
+    const sharer = t.withIdentity({ subject: "sharer_recnotif" });
+    await sharer.mutation(api.copies.recall, { copyId });
+
+    // Verify notification was created for the holder
+    const notifications = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("userNotifications")
+        .withIndex("by_user", (q) => q.eq("userId", holderId))
+        .collect();
+    });
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_recalled");
+    expect(notifications[0].title).toBe("Book recalled by owner");
+    expect(notifications[0].message).toContain("Recalled Book");
+  });
+
+  it("returnCopy of recalled copy preserves recalled status", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_retrecall", phone: "+9292929291" }));
+      const hId = await ctx.db.insert("users", makeUser({ clerkId: "holder_retrecall", phone: "+9292929292" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string, {
+          status: "recalled",
+          currentHolderId: hId,
+          returnDeadline: Date.now() + 7 * 86400000,
+        }),
+      );
+      await ctx.db.insert("journeyEntries", {
+        copyId: cId,
+        readerId: hId,
+        pickupLocationId: locId,
+        pickedUpAt: Date.now() - 86400000,
+        conditionAtPickup: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+      return { copyId: cId, locationId: locId };
+    });
+
+    const holder = t.withIdentity({ subject: "holder_retrecall" });
+    await holder.mutation(api.copies.returnCopy, {
+      copyId,
+      locationId,
+      conditionAtReturn: "good",
+      photos: [],
+    });
+
+    // Status should remain "recalled", NOT "available"
+    const copy = await t.run(async (ctx) => ctx.db.get(copyId));
+    expect(copy!.status).toBe("recalled");
+  });
+
   it("rejects recall by non-sharer", async () => {
     const t = convexTest(schema, modules);
     const sharerId = await t.run(async (ctx) => {
