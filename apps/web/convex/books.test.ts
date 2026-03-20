@@ -161,6 +161,84 @@ describe("books.register", () => {
       }),
     ).rejects.toThrow("Maximum 10 categories");
   });
+  it("rejects empty author", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "   ",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Author is required");
+  });
+
+  it("rejects negative page count", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: [],
+        pageCount: -1,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Page count must be a non-negative integer");
+  });
+
+  it("rejects lending days outside 1-365 range", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(userId as unknown as string));
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "desc",
+        categories: [],
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+        sharerMaxLendingDays: 0,
+      }),
+    ).rejects.toThrow("Lending period must be between 1 and 365 days");
+  });
 });
 
 describe("books.atLocationCatalog", () => {
