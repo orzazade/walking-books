@@ -850,6 +850,81 @@ describe("reservations.expireStale", () => {
     expect(notifications[0].title).toBe("Reservation expired");
     expect(notifications[0].message).toContain("Expired Book");
   });
+
+  it("applies cumulative no-show penalty for multiple expired reservations by same user", async () => {
+    const t = convexTest(schema, modules);
+    const startingRep = 50;
+    const { userId } = await t.run(async (ctx) => {
+      const uId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire_multi", reputationScore: startingRep }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire_multi", phone: "+9999999905" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      // Create 3 expired reservations for the same user
+      for (let i = 0; i < 3; i++) {
+        const bookId = await ctx.db.insert("books", makeBook({ title: `Book ${i}` }));
+        const cId = await ctx.db.insert("copies", {
+          bookId, status: "reserved", condition: "good", ownershipType: "donated",
+          originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+        });
+        await ctx.db.insert("reservations", {
+          userId: uId,
+          copyId: cId,
+          locationId: locId,
+          reservedAt: Date.now() - 172800000,
+          status: "active",
+          expiresAt: Date.now() - 86400000,
+        });
+      }
+      return { userId: uId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    // 3 expired reservations × NO_SHOW (-3) = -9 total penalty
+    expect(user!.reputationScore).toBe(startingRep - 9);
+  });
+
+  it("notifies waitlist when expired reservation releases a copy", async () => {
+    const t = convexTest(schema, modules);
+    const { waiterId, bookId } = await t.run(async (ctx) => {
+      const reserverId = await ctx.db.insert("users", makeUser({ clerkId: "user_expire_wl" }));
+      const wId = await ctx.db.insert("users", makeUser({ clerkId: "waiter_expire_wl", phone: "+9999999906", name: "Waiter" }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expire_wl", phone: "+9999999907" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+      const bId = await ctx.db.insert("books", makeBook({ title: "Waited Book" }));
+      const cId = await ctx.db.insert("copies", {
+        bookId: bId, status: "reserved", condition: "good", ownershipType: "donated",
+        originalSharerId: sharerId, currentLocationId: locId, qrCodeUrl: "",
+      });
+      await ctx.db.insert("reservations", {
+        userId: reserverId,
+        copyId: cId,
+        locationId: locId,
+        reservedAt: Date.now() - 172800000,
+        status: "active",
+        expiresAt: Date.now() - 86400000,
+      });
+      // Waiter is on the waitlist for this book
+      await ctx.db.insert("waitlist", {
+        userId: wId,
+        bookId: bId,
+        status: "waiting",
+        joinedAt: Date.now() - 86400000,
+      });
+      return { waiterId: wId, bookId: bId };
+    });
+
+    await t.mutation(internal.reservations.expireStale, {});
+
+    // Waiter should be notified
+    const waitlistEntry = await t.run(async (ctx) =>
+      ctx.db.query("waitlist")
+        .withIndex("by_user_book", (q) => q.eq("userId", waiterId).eq("bookId", bookId))
+        .first(),
+    );
+    expect(waitlistEntry!.status).toBe("notified");
+    expect(waitlistEntry!.notifiedAt).toBeDefined();
+  });
 });
 
 describe("reservations.create side effects", () => {
