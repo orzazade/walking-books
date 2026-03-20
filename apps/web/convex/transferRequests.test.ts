@@ -579,4 +579,63 @@ describe("transferRequests", () => {
       manager.mutation(api.transferRequests.accept, { requestId }),
     ).rejects.toThrow("Only pending requests can be accepted");
   });
+
+  it("create rejects when at max 50 pending transfer requests", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, toLocationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const managerId = await ctx.db.insert("users", makeUser({ clerkId: "mgr_maxtr", phone: "+9999999991", name: "Manager" }));
+      const bookId = await ctx.db.insert("books", {
+        title: "Test Book",
+        author: "Author",
+        coverImage: "",
+        description: "",
+        categories: ["fiction"],
+        pageCount: 200,
+        language: "English",
+        avgRating: 0,
+        reviewCount: 0,
+      });
+      const fromLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string));
+      const toLocId = await ctx.db.insert("partnerLocations", makeLocation(managerId as unknown as string, { name: "Dest Cafe", address: "456 Oak Ave" }));
+      // Create 50 pending transfer requests via direct DB insert
+      for (let i = 0; i < 50; i++) {
+        const cId = await ctx.db.insert("copies", {
+          bookId,
+          currentLocationId: fromLocId,
+          originalSharerId: managerId,
+          status: "available" as const,
+          condition: "good" as const,
+          ownershipType: "lent" as const,
+          qrCodeUrl: "",
+        });
+        await ctx.db.insert("transferRequests", {
+          copyId: cId,
+          bookId,
+          requesterId: userId,
+          fromLocationId: fromLocId,
+          toLocationId: toLocId,
+          status: "pending",
+          createdAt: Date.now(),
+        });
+      }
+      // Create the copy to try to transfer
+      const targetCopy = await ctx.db.insert("copies", {
+        bookId,
+        currentLocationId: fromLocId,
+        originalSharerId: managerId,
+        status: "available" as const,
+        condition: "good" as const,
+        ownershipType: "lent" as const,
+        qrCodeUrl: "",
+      });
+      return { copyId: targetCopy, toLocationId: toLocId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_tr1" });
+    await expect(
+      authed.mutation(api.transferRequests.create, { copyId, toLocationId }),
+    ).rejects.toThrow("Maximum 50 pending transfer requests allowed");
+  });
 });
