@@ -857,4 +857,38 @@ describe("books.nearMe", () => {
     expect(book!.avgRating).toBe(4.5);
     expect(book!.reviewCount).toBe(10);
   });
+
+  it("register notifies users with matching open book requests (case-insensitive)", async () => {
+    const t = convexTest(schema, modules);
+    const { locationId, requesterId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_notify", booksShared: 0 }));
+      const reqId = await ctx.db.insert("users", makeUser({ clerkId: "requester_notify", phone: "+9999999999" }));
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      // Create an open book request with different casing
+      await ctx.db.insert("bookRequests", {
+        userId: reqId,
+        title: "  Walking Guide  ",
+        status: "open",
+        createdAt: Date.now(),
+      });
+      return { locationId: locId, requesterId: reqId };
+    });
+
+    const authed = t.withIdentity({ subject: "sharer_notify" });
+    await authed.mutation(api.books.register, {
+      title: "walking guide", author: "Author", coverImage: "https://example.com/c.jpg",
+      description: "A guide", categories: ["travel"], pageCount: 150, language: "English",
+      ownershipType: "donated", condition: "good", locationId,
+    });
+
+    const notifications = await t.run(async (ctx) =>
+      ctx.db.query("userNotifications")
+        .withIndex("by_user_read", (q) => q.eq("userId", requesterId).eq("read", false))
+        .collect(),
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("book_request_fulfilled");
+    expect(notifications[0].message).toContain("walking guide");
+    expect(notifications[0].message).toContain("Test Location");
+  });
 });
