@@ -1000,4 +1000,54 @@ describe("copies.relist", () => {
       authed.mutation(api.copies.pickup, { copyId, locationId, conditionAtPickup: "good", photos: [] }),
     ).rejects.toThrow("This copy is reserved — a reservation ID is required");
   });
+
+  it("extend rejects overdue copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_ext_overdue", phone: "+8888888881" }));
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_ext_overdue", phone: "+8888888882" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() - 86400000, // overdue by 1 day
+          lendingPeriodDays: 21,
+          extensionCount: 0,
+        }),
+      );
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "holder_ext_overdue" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("Cannot extend an overdue copy");
+  });
+
+  it("relist rejects non-sharer", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_relist", phone: "+7777777771" }));
+      await ctx.db.insert("users", makeUser({ clerkId: "random_relist", phone: "+7777777772" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "recalled",
+        }),
+      );
+      return { copyId: cId };
+    });
+
+    const authed = t.withIdentity({ subject: "random_relist" });
+    await expect(
+      authed.mutation(api.copies.relist, { copyId }),
+    ).rejects.toThrow("Only the sharer can relist");
+  });
 });
