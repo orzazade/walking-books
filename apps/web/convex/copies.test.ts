@@ -1785,6 +1785,45 @@ describe("copies.pickup side effects", () => {
     expect(copy!.status).toBe("checked_out");
     expect(reservation!.status).toBe("fulfilled");
   });
+
+  it("pickup and returnCopy each create a condition report", async () => {
+    const t = convexTest(schema, modules);
+    const { copyId, locationId } = await t.run(async (ctx) => {
+      const sId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_cr", name: "Sharer" }));
+      const pId = await ctx.db.insert("users", makeUser({ clerkId: "picker_cr", name: "Picker" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sId as unknown as string, { currentBookCount: 5 }));
+      const cId = await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sId as unknown as string));
+      return { copyId: cId, locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "picker_cr" });
+    // Pickup creates a pickup_check report
+    await authed.mutation(api.copies.pickup, {
+      copyId, locationId, conditionAtPickup: "fair", photos: [],
+    });
+
+    const pickupReports = await t.run(async (ctx) =>
+      ctx.db.query("conditionReports").filter((q) => q.eq(q.field("copyId"), copyId)).collect(),
+    );
+    expect(pickupReports).toHaveLength(1);
+    expect(pickupReports[0].type).toBe("pickup_check");
+    expect(pickupReports[0].newCondition).toBe("fair");
+
+    // Return creates a return_check report
+    await authed.mutation(api.copies.returnCopy, {
+      copyId, locationId, conditionAtReturn: "worn", photos: [],
+    });
+
+    const allReports = await t.run(async (ctx) =>
+      ctx.db.query("conditionReports").filter((q) => q.eq(q.field("copyId"), copyId)).collect(),
+    );
+    expect(allReports).toHaveLength(2);
+    const returnReport = allReports.find((r) => r.type === "return_check");
+    expect(returnReport).toBeDefined();
+    expect(returnReport!.newCondition).toBe("worn");
+    expect(returnReport!.previousCondition).toBe("good"); // copy.condition at time of return
+  });
 });
 
 describe("copies.returnCopy side effects", () => {
