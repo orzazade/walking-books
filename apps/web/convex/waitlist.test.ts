@@ -349,6 +349,84 @@ describe("waitlist", () => {
     ).rejects.toThrow("Not on waitlist for this book");
   });
 
+  it("position returns null for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+
+    const { bookId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const bId = await ctx.db.insert("books", makeBook());
+      await ctx.db.insert("copies", {
+        bookId: bId,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        currentHolderId: userId,
+        qrCodeUrl: "",
+      });
+      await ctx.db.insert("waitlist", {
+        userId,
+        bookId: bId,
+        status: "waiting",
+        joinedAt: Date.now(),
+      });
+      return { bookId: bId };
+    });
+
+    const result = await t.query(api.waitlist.position, { bookId });
+    expect(result).toBeNull();
+  });
+
+  it("myWaitlist returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.waitlist.myWaitlist, {});
+    expect(result).toEqual([]);
+  });
+
+  it("join rejects when at max waitlist entries (100)", async () => {
+    const t = convexTest(schema, modules);
+
+    const { lastBookId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      // Create 100 books each with a checked-out copy + waitlist entry
+      for (let i = 0; i < 100; i++) {
+        const bId = await ctx.db.insert("books", makeBook({ title: `Book ${i}` }));
+        await ctx.db.insert("copies", {
+          bookId: bId,
+          status: "checked_out",
+          condition: "good",
+          ownershipType: "donated",
+          originalSharerId: userId,
+          currentHolderId: userId,
+          qrCodeUrl: "",
+        });
+        await ctx.db.insert("waitlist", {
+          userId,
+          bookId: bId,
+          status: "waiting",
+          joinedAt: Date.now(),
+        });
+      }
+      // One more book to try to join
+      const extraBook = await ctx.db.insert("books", makeBook({ title: "Book 101" }));
+      await ctx.db.insert("copies", {
+        bookId: extraBook,
+        status: "checked_out",
+        condition: "good",
+        ownershipType: "donated",
+        originalSharerId: userId,
+        currentHolderId: userId,
+        qrCodeUrl: "",
+      });
+      return { lastBookId: extraBook };
+    });
+
+    const authed = t.withIdentity({ subject: "user_wl1" });
+    await expect(
+      authed.mutation(api.waitlist.join, { bookId: lastBookId }),
+    ).rejects.toThrow("Maximum 100 active waitlist entries allowed");
+  });
+
   it("join throws for unauthenticated users", async () => {
     const t = convexTest(schema, modules);
 
