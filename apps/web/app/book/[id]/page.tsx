@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { SimilarBooksSection } from "@/components/similar-books-section";
 import { WaitlistSection } from "@/components/waitlist-section";
-import { BookOpen, Heart } from "lucide-react";
+import { BookOpen, Heart, Users, Bookmark, CheckCircle2 } from "lucide-react";
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -24,6 +24,7 @@ export default function BookDetailPage() {
 
   const book = useQuery(api.books.byId, { bookId });
   const copies = useQuery(api.copies.byBook, { bookId });
+  const socialProof = useQuery(api.books.socialProof, { bookId });
   const isWishlisted = useQuery(api.wishlist.isWishlisted, { bookId });
   const toggleWishlist = useMutation(api.wishlist.toggle);
 
@@ -159,6 +160,36 @@ export default function BookDetailPage() {
           </Authenticated>
         </div>
       </div>
+
+      {/* Social Proof */}
+      {socialProof &&
+        (socialProof.currentlyReading > 0 ||
+          socialProof.wishlisted > 0 ||
+          socialProof.completedReads > 0) && (
+          <div className="mt-8 flex flex-wrap items-center gap-4 rounded-xl border border-border/40 bg-card/60 px-4 py-3 text-[0.8125rem] text-muted-foreground">
+            {socialProof.currentlyReading > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                {socialProof.currentlyReading}{" "}
+                {socialProof.currentlyReading === 1 ? "person" : "people"} reading
+                now
+              </span>
+            )}
+            {socialProof.wishlisted > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+                {socialProof.wishlisted} wishlisted
+              </span>
+            )}
+            {socialProof.completedReads > 0 && (
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                {socialProof.completedReads} completed{" "}
+                {socialProof.completedReads === 1 ? "read" : "reads"}
+              </span>
+            )}
+          </div>
+        )}
 
       {/* Divider */}
       <div className="editorial-divider my-10">

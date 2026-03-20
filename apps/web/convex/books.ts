@@ -303,3 +303,51 @@ export const byId = query({
     return await ctx.db.get(args.bookId);
   },
 });
+
+/** Social proof counts for a book — currently reading, wishlisted, completed reads. */
+export const socialProof = query({
+  args: { bookId: v.id("books") },
+  handler: async (ctx, args) => {
+    const [activeReaders, wishlistEntries, journeyEntries] = await Promise.all([
+      ctx.db
+        .query("readingProgress")
+        .withIndex("by_user")
+        .collect()
+        .then((entries) =>
+          entries.filter(
+            (e) => e.bookId === args.bookId && e.status === "reading",
+          ),
+        ),
+      ctx.db
+        .query("wishlist")
+        .collect()
+        .then((entries) =>
+          entries.filter((e) => e.bookId === args.bookId),
+        ),
+      ctx.db
+        .query("copies")
+        .withIndex("by_book", (q) => q.eq("bookId", args.bookId))
+        .collect()
+        .then(async (copies) => {
+          const copyIds = new Set(copies.map((c) => c._id));
+          const allJourneys = await Promise.all(
+            copies.map((c) =>
+              ctx.db
+                .query("journeyEntries")
+                .withIndex("by_copy", (q) => q.eq("copyId", c._id))
+                .collect(),
+            ),
+          );
+          return allJourneys
+            .flat()
+            .filter((j) => j.returnedAt !== undefined);
+        }),
+    ]);
+
+    return {
+      currentlyReading: activeReaders.length,
+      wishlisted: wishlistEntries.length,
+      completedReads: journeyEntries.length,
+    };
+  },
+});

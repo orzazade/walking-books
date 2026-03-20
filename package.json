@@ -9,6 +9,7 @@
     "lint": "turbo run lint"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "turbo": "^2"
   }
 }

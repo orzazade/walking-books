@@ -180,3 +180,76 @@ describe("books.atLocationCatalog", () => {
     expect(result[1].availableCopies).toBe(1);
   });
 });
+
+describe("books.socialProof", () => {
+  it("returns zeros for a book with no activity", async () => {
+    const t = convexTest(schema, modules);
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+
+    const result = await t.query(api.books.socialProof, { bookId });
+    expect(result).toEqual({
+      currentlyReading: 0,
+      wishlisted: 0,
+      completedReads: 0,
+    });
+  });
+
+  it("counts active readers, wishlists, and completed reads", async () => {
+    const t = convexTest(schema, modules);
+    const { bookId } = await t.run(async (ctx) => {
+      const uid1 = await ctx.db.insert("users", makeUser({ clerkId: "u1" }));
+      const uid2 = await ctx.db.insert("users", makeUser({ clerkId: "u2", phone: "+9999999999" }));
+      const bid = await ctx.db.insert("books", makeBook());
+      const lid = await ctx.db.insert("partnerLocations", makeLocation(uid1));
+      const copyId = await ctx.db.insert("copies", makeCopy(bid, lid, uid1));
+
+      // One active reader
+      await ctx.db.insert("readingProgress", {
+        userId: uid1,
+        copyId,
+        bookId: bid,
+        currentPage: 50,
+        totalPages: 200,
+        status: "reading",
+        startedAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      });
+      // One finished reader (should NOT count as currently reading)
+      await ctx.db.insert("readingProgress", {
+        userId: uid2,
+        copyId,
+        bookId: bid,
+        currentPage: 200,
+        totalPages: 200,
+        status: "finished",
+        startedAt: Date.now() - 100000,
+        lastUpdatedAt: Date.now(),
+        finishedAt: Date.now(),
+      });
+      // Two wishlist entries
+      await ctx.db.insert("wishlist", { userId: uid1, bookId: bid, addedAt: Date.now() });
+      await ctx.db.insert("wishlist", { userId: uid2, bookId: bid, addedAt: Date.now() });
+      // One completed journey (returned)
+      await ctx.db.insert("journeyEntries", {
+        copyId,
+        readerId: uid1,
+        pickupLocationId: lid,
+        pickedUpAt: Date.now() - 200000,
+        returnedAt: Date.now() - 100000,
+        conditionAtPickup: "good",
+        conditionAtReturn: "good",
+        pickupPhotos: [],
+        returnPhotos: [],
+      });
+
+      return { bookId: bid };
+    });
+
+    const result = await t.query(api.books.socialProof, { bookId });
+    expect(result.currentlyReading).toBe(1);
+    expect(result.wishlisted).toBe(2);
+    expect(result.completedReads).toBe(1);
+  });
+});
