@@ -73,6 +73,63 @@ function makeCopy(
   };
 }
 
+describe("copies.byHolder", () => {
+  it("returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.copies.byHolder, {});
+    expect(result).toEqual([]);
+  });
+
+  it("returns copies currently held by the authenticated user", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const holderId = await ctx.db.insert("users", makeUser({ clerkId: "holder_q" }));
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_q", phone: "+5550001111" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+        status: "checked_out", currentHolderId: holderId,
+      }));
+      // A copy NOT held by this user
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string));
+    });
+
+    const authed = t.withIdentity({ subject: "holder_q" });
+    const result = await authed.query(api.copies.byHolder, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("checked_out");
+  });
+});
+
+describe("copies.bySharer", () => {
+  it("returns empty for unauthenticated users", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.copies.bySharer, {});
+    expect(result).toEqual([]);
+  });
+
+  it("returns copies shared by the authenticated user", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_q2" }));
+      const otherId = await ctx.db.insert("users", makeUser({ clerkId: "other_q2", phone: "+5550002222" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      // Shared by this user
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string));
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string));
+      // Shared by another user
+      await ctx.db.insert("copies", makeCopy(bookId as unknown as string, locId as unknown as string, otherId as unknown as string));
+    });
+
+    const authed = t.withIdentity({ subject: "sharer_q2" });
+    const result = await authed.query(api.copies.bySharer, {});
+    expect(result).toHaveLength(2);
+  });
+});
+
 describe("copies.byLocationWithBooks", () => {
   it("returns empty when no copies at location", async () => {
     const t = convexTest(schema, modules);
