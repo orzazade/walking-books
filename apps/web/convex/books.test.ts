@@ -745,4 +745,62 @@ describe("books.nearMe", () => {
       }),
     ).rejects.toThrow("Description must be 2000 characters or less");
   });
+
+  it("rejects invalid page count", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: [],
+        pageCount: -5,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Page count must be a non-negative integer up to 10000");
+  });
+
+  it("rejects more than 10 categories", async () => {
+    const t = convexTest(schema, modules);
+
+    const { locationId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      const locId = await ctx.db.insert(
+        "partnerLocations",
+        makeLocation(userId as unknown as string),
+      );
+      return { locationId: locId };
+    });
+
+    const authed = t.withIdentity({ subject: "user_books1" });
+    await expect(
+      authed.mutation(api.books.register, {
+        title: "Valid Title",
+        author: "Author",
+        coverImage: "https://example.com/cover.jpg",
+        description: "A book",
+        categories: Array.from({ length: 11 }, (_, i) => `cat${i}`),
+        pageCount: 200,
+        language: "English",
+        ownershipType: "donated",
+        condition: "good",
+        locationId,
+      }),
+    ).rejects.toThrow("Maximum 10 categories allowed");
+  });
 });

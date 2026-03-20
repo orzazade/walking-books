@@ -716,4 +716,28 @@ describe("collections.byUser", () => {
       }),
     ).rejects.toThrow("Book not found");
   });
+
+  it("create rejects when at max collections limit", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", makeUser());
+      for (let i = 0; i < 50; i++) {
+        await ctx.db.insert("collections", {
+          userId,
+          name: `Collection ${i}`,
+          isPublic: false,
+          createdAt: Date.now(),
+        });
+      }
+    });
+
+    const authed = t.withIdentity({ subject: "user_coll1" });
+    await expect(
+      authed.mutation(api.collections.create, {
+        name: "One Too Many",
+        isPublic: false,
+      }),
+    ).rejects.toThrow("Maximum 50 collections allowed");
+  });
 });
