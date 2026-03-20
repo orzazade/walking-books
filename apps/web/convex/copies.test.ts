@@ -1212,6 +1212,87 @@ describe("copies.relist", () => {
     ).rejects.toThrow("Reader note must be 1000 characters or less");
   });
 
+  it("pickup rejects expired reservation on reserved copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, reservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_expres", phone: "+6666666661" }));
+      const readerId = await ctx.db.insert("users", makeUser({ clerkId: "reader_expres", phone: "+6666666662" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "reserved",
+        }),
+      );
+      const resId = await ctx.db.insert("reservations", {
+        copyId: cId,
+        userId: readerId,
+        locationId: locId,
+        reservedAt: Date.now() - 86400000,
+        expiresAt: Date.now() - 3600000,
+        status: "expired",
+      });
+      return { copyId: cId, locationId: locId, reservationId: resId };
+    });
+
+    const authed = t.withIdentity({ subject: "reader_expres" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId,
+        conditionAtPickup: "good",
+        photos: [],
+        reservationId,
+      }),
+    ).rejects.toThrow("Reservation not found or not active");
+  });
+
+  it("pickup rejects reservation that does not match copy", async () => {
+    const t = convexTest(schema, modules);
+
+    const { copyId, locationId, wrongReservationId } = await t.run(async (ctx) => {
+      const sharerId = await ctx.db.insert("users", makeUser({ clerkId: "sharer_wrongres", phone: "+7777777771" }));
+      const readerId = await ctx.db.insert("users", makeUser({ clerkId: "reader_wrongres", phone: "+7777777772" }));
+      const bookId = await ctx.db.insert("books", makeBook());
+      const locId = await ctx.db.insert("partnerLocations", makeLocation(sharerId as unknown as string));
+      const cId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "reserved",
+        }),
+      );
+      // Create a different copy and reservation for it
+      const otherCopyId = await ctx.db.insert(
+        "copies",
+        makeCopy(bookId as unknown as string, locId as unknown as string, sharerId as unknown as string, {
+          status: "reserved",
+        }),
+      );
+      const wrongResId = await ctx.db.insert("reservations", {
+        copyId: otherCopyId,
+        userId: readerId,
+        locationId: locId,
+        reservedAt: Date.now(),
+        expiresAt: Date.now() + 86400000,
+        status: "active",
+      });
+      return { copyId: cId, locationId: locId, wrongReservationId: wrongResId };
+    });
+
+    const authed = t.withIdentity({ subject: "reader_wrongres" });
+    await expect(
+      authed.mutation(api.copies.pickup, {
+        copyId,
+        locationId,
+        conditionAtPickup: "good",
+        photos: [],
+        reservationId: wrongReservationId,
+      }),
+    ).rejects.toThrow("Reservation does not match this copy");
+  });
+
   it("pickup rejects nonexistent location", async () => {
     const t = convexTest(schema, modules);
 
