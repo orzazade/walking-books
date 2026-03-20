@@ -371,3 +371,37 @@ describe("copies.bySharerEnriched", () => {
     expect(result).toEqual([]);
   });
 });
+
+describe("copies.extend", () => {
+  it("rejects after maximum extensions reached", async () => {
+    const t = convexTest(schema, modules);
+    const holderId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_extend" }));
+    });
+    const sharerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", makeUser({ clerkId: "user_sharer_ext" }));
+    });
+    const locId = await t.run(async (ctx) => {
+      return await ctx.db.insert("partnerLocations", makeLocation(sharerId));
+    });
+    const bookId = await t.run(async (ctx) => {
+      return await ctx.db.insert("books", makeBook());
+    });
+    const copyId = await t.run(async (ctx) => {
+      return await ctx.db.insert(
+        "copies",
+        makeCopy(bookId, locId, sharerId, {
+          status: "checked_out",
+          currentHolderId: holderId,
+          returnDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
+          extensionCount: 2,
+        }),
+      );
+    });
+
+    const authed = t.withIdentity({ subject: "user_extend" });
+    await expect(
+      authed.mutation(api.copies.extend, { copyId }),
+    ).rejects.toThrow("Maximum 2 extensions allowed");
+  });
+});

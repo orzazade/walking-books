@@ -34,6 +34,7 @@ export default defineSchema({
     returnDeadline: v.optional(v.number()),
     lendingPeriodDays: v.optional(v.number()),
     sharerMaxLendingDays: v.optional(v.number()),
+    extensionCount: v.optional(v.number()),
   })
     .index("by_book", ["bookId"])
     .index("by_location", ["currentLocationId", "status"])

@@ -308,6 +308,7 @@ export const pickup = mutation({
         currentHolderId: user._id,
         returnDeadline,
         lendingPeriodDays: lendingDays,
+        extensionCount: 0,
       }),
       ctx.db.patch(args.locationId, {
         currentBookCount: Math.max(0, location.currentBookCount - 1),
@@ -543,6 +544,11 @@ export const extend = mutation({
     if (copy.returnDeadline < Date.now())
       throw new Error("Cannot extend an overdue copy — please return it");
 
+    const MAX_EXTENSIONS = 2;
+    const currentExtensions = copy.extensionCount ?? 0;
+    if (currentExtensions >= MAX_EXTENSIONS)
+      throw new Error(`Maximum ${MAX_EXTENSIONS} extensions allowed per lending period`);
+
     // Check no active reservation waiting
     const activeReservation = await ctx.db
       .query("reservations")
@@ -560,7 +566,10 @@ export const extend = mutation({
     const newDeadline =
       currentDeadline + extensionDays * DAY_MS;
 
-    await ctx.db.patch(args.copyId, { returnDeadline: newDeadline });
+    await ctx.db.patch(args.copyId, {
+      returnDeadline: newDeadline,
+      extensionCount: currentExtensions + 1,
+    });
 
     return { success: true, newDeadline, extensionDays };
   },
